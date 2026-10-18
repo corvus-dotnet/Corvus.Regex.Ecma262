@@ -1,9 +1,14 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="Corvus.Regex.Ecma262/Corvus.Regex.Ecma262.csproj" />
+    <Project Path="Corvus.Regex.Ecma262.SourceGenerator/Corvus.Regex.Ecma262.SourceGenerator.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="Corvus.Regex.Ecma262.Tests/Corvus.Regex.Ecma262.Tests.csproj" />
+    <Project Path="Corvus.Regex.Ecma262.SourceGenerator.Tests/Corvus.Regex.Ecma262.SourceGenerator.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="Corvus.Regex.Ecma262.AotSample/Corvus.Regex.Ecma262.AotSample.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="Corvus.Regex.Ecma262.Benchmarks/Corvus.Regex.Ecma262.Benchmarks.csproj" />

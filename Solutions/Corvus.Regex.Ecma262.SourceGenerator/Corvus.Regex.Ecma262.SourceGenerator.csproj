@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(EndjinProjectPropsPath)" Condition="$(EndjinProjectPropsPath) != ''" />
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Corvus.Ecma262.RegularExpressions.SourceGenerator</RootNamespace>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <IsPackable>false</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DefineConstants>$(DefineConstants);BUILDING_SOURCE_GENERATOR</DefineConstants>
+    <!-- The parser and its tables are compiled here from the library's source; the library's own analyzer settings for netstandard2.0 apply. -->
+    <NoWarn>$(NoWarn);CA1510;CA1511;CA1512;CA1513;CA1845;CA1846;CA1847;RS2008</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="RegexGenerator.cs" />
+    <Compile Include="Diagnostics.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\RegexFlags.cs" Link="Shared\RegexFlags.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\RegexParseException.cs" Link="Shared\RegexParseException.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\RegexPatternTooLargeException.cs" Link="Shared\RegexPatternTooLargeException.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexLimits.cs" Link="Shared\Syntax\EcmaRegexLimits.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexNode.cs" Link="Shared\Syntax\EcmaRegexNode.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexParser.cs" Link="Shared\Syntax\EcmaRegexParser.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicode.cs" Link="Shared\Unicode\EcmaRegexUnicode.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeData.cs" Link="Shared\Unicode\EcmaRegexUnicodeData.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Endjin.RecommendedPractices.GitHub">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="PolySharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="System.Memory" PrivateAssets="all" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <!-- The generator's host (Visual Studio runs on .NET Framework) may lack System.Memory, so it is shipped beside the generator. -->
+  <PropertyGroup>
+    <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
+  </PropertyGroup>
+  <Target Name="GetDependencyTargetPaths">
+    <ItemGroup>
+      <TargetPathWithTargetPlatformMoniker Include="$(PKGSystem_Memory)\lib\netstandard2.0\System.Memory.dll" IncludeRuntimeDependency="false" />
+    </ItemGroup>
+  </Target>
+</Project>

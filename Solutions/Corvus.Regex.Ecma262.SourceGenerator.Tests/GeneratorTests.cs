@@ -1,0 +1,155 @@
+// <copyright file="GeneratorTests.cs" company="Endjin Limited">
+// Copyright (c) Endjin Limited. All rights reserved.
+// </copyright>
+
+using System.Collections.Immutable;
+using Corvus.Ecma262.RegularExpressions.SourceGenerator;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+
+namespace Corvus.Ecma262.RegularExpressions.SourceGenerator.Tests;
+
+/// <summary>
+/// The generator run by the driver over small programs: what it emits compiles and has the shape asked for, and
+/// what it refuses it refuses with the right diagnostic.
+/// </summary>
+[TestClass]
+public class GeneratorTests
+{
+    [TestMethod]
+    public void AStaticPartialMethodIsGivenABody()
+    {
+        (Compilation output, ImmutableArray<Diagnostic> diagnostics, string generated) = Run("""
+            using Corvus.Ecma262.RegularExpressions;
+            namespace Sample
+            {
+                public static partial class Patterns
+                {
+                    [GeneratedRegex(@"\d+", "gu")]
+                    public static partial Regex Digits();
+
+                    [GeneratedRegex(@"[a-z]+", RegexFlags.IgnoreCase | RegexFlags.Unicode, 250)]
+                    internal static partial Regex Word();
+                }
+            }
+            """);
+        Assert.AreEqual(0, diagnostics.Length, string.Join("\n", diagnostics));
+        AssertCompiles(output);
+        StringAssert.Contains(generated, "public static partial global::Corvus.Ecma262.RegularExpressions.Regex Digits() => CorvusRegex_Digits.Instance;");
+        StringAssert.Contains(generated, "new(\"\\\\d+\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)34, global::Corvus.Ecma262.RegularExpressions.Regex.InfiniteMatchTimeout);");
+        StringAssert.Contains(generated, "(global::Corvus.Ecma262.RegularExpressions.RegexFlags)36, global::System.TimeSpan.FromMilliseconds(250));");
+    }
+
+    [TestMethod]
+    public void AStaticPartialPropertyInANestedGenericTypeIsGivenABody()
+    {
+        (Compilation output, ImmutableArray<Diagnostic> diagnostics, string generated) = Run("""
+            using Corvus.Ecma262.RegularExpressions;
+            public partial class Outer<T>
+            {
+                private partial struct Inner
+                {
+                    [GeneratedRegex("^a|b$")]
+                    private static partial Regex Edges { get; }
+                }
+            }
+            """);
+        Assert.AreEqual(0, diagnostics.Length, string.Join("\n", diagnostics));
+        AssertCompiles(output);
+        StringAssert.Contains(generated, "partial class Outer<T>");
+        StringAssert.Contains(generated, "partial struct Inner");
+        StringAssert.Contains(generated, "private static partial global::Corvus.Ecma262.RegularExpressions.Regex Edges => CorvusRegex_Edges.Instance;");
+    }
+
+    [TestMethod]
+    [DataRow("(", "u", "CRE0001", "Unterminated group")]
+    [DataRow("a{2,1}", "u", "CRE0001", "Numbers out of order")]
+    [DataRow(@"\p{Lettr}", "u", "CRE0001", "Invalid property name")]
+    [DataRow("a", "gx", "CRE0003", "'x' is not a flag")]
+    [DataRow("a", "gg", "CRE0003", "given twice")]
+    [DataRow("a", "uv", "CRE0003", "cannot both")]
+    [DataRow("a", "v", "CRE0003", "not supported yet")]
+    public void APatternOrFlagsThatAreNotValidAreABuildError(string pattern, string flags, string id, string message)
+    {
+        (_, ImmutableArray<Diagnostic> diagnostics, string generated) = Run($$"""
+            using Corvus.Ecma262.RegularExpressions;
+            public static partial class Patterns
+            {
+                [GeneratedRegex({{Literal(pattern)}}, "{{flags}}")]
+                public static partial Regex Bad();
+            }
+            """);
+        Assert.AreEqual(1, diagnostics.Length, string.Join("\n", diagnostics));
+        Assert.AreEqual(id, diagnostics[0].Id);
+        Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+        StringAssert.Contains(diagnostics[0].GetMessage(), message);
+        Assert.AreEqual(string.Empty, generated, "nothing is generated for a member with an error");
+    }
+
+    [TestMethod]
+    [DataRow("public static partial Regex M(int x);", "CRE0002", "has parameters")]
+    [DataRow("public partial Regex M();", "CRE0002", "not static")]
+    [DataRow("public static partial string M();", "CRE0002", "does not return")]
+    [DataRow("public static partial Regex M { get; set; }", "CRE0002", "has a setter")]
+    public void AMemberOfTheWrongShapeIsABuildError(string member, string id, string message)
+    {
+        (_, ImmutableArray<Diagnostic> diagnostics, _) = Run($$"""
+            using Corvus.Ecma262.RegularExpressions;
+            public static partial class Patterns
+            {
+                [GeneratedRegex("a")]
+                {{member}}
+            }
+            """);
+        Assert.IsTrue(diagnostics.Any(d => d.Id == id && d.GetMessage().Contains(message)), string.Join("\n", diagnostics));
+    }
+
+    [TestMethod]
+    public void AContainingTypeThatIsNotPartialIsABuildError()
+    {
+        (_, ImmutableArray<Diagnostic> diagnostics, _) = Run("""
+            using Corvus.Ecma262.RegularExpressions;
+            public static class Patterns
+            {
+                [GeneratedRegex("a")]
+                public static partial Regex M();
+            }
+            """);
+        Assert.IsTrue(diagnostics.Any(d => d.Id == "CRE0004" && d.GetMessage().Contains("Patterns")), string.Join("\n", diagnostics));
+    }
+
+    private static string Literal(string s) => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, quote: true);
+
+    private static (Compilation Output, ImmutableArray<Diagnostic> Diagnostics, string Generated) Run(string source)
+    {
+        List<MetadataReference> references = [];
+        foreach (string path in ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator))
+        {
+            string name = Path.GetFileName(path);
+            if (name.StartsWith("System.", StringComparison.Ordinal) || name is "mscorlib.dll" or "netstandard.dll")
+            {
+                references.Add(MetadataReference.CreateFromFile(path));
+            }
+        }
+
+        references.Add(MetadataReference.CreateFromFile(typeof(Regex).Assembly.Location));
+        CSharpParseOptions parseOptions = new(LanguageVersion.Preview);
+        CSharpCompilation compilation = CSharpCompilation.Create(
+            "Sample",
+            [CSharpSyntaxTree.ParseText(source, parseOptions)],
+            references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+
+        GeneratorDriver driver = CSharpGeneratorDriver.Create([new RegexGenerator().AsSourceGenerator()], parseOptions: parseOptions);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation output, out ImmutableArray<Diagnostic> diagnostics);
+        GeneratorDriverRunResult result = driver.GetRunResult();
+        string generated = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
+        return (output, diagnostics, generated);
+    }
+
+    private static void AssertCompiles(Compilation output)
+    {
+        ImmutableArray<Diagnostic> errors = output.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToImmutableArray();
+        Assert.AreEqual(0, errors.Length, string.Join("\n", errors));
+    }
+}

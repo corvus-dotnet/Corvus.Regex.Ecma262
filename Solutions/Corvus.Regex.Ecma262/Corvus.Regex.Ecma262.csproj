@@ -47,6 +47,7 @@
     <Compile Include="ValueMatch.cs" />
     <Compile Include="ValueMatchEnumerator.cs" />
     <Compile Include="RegexFlags.cs" />
+    <Compile Include="GeneratedRegexAttribute.cs" />
     <Compile Include="RegexMatchTimeoutException.cs" />
     <Compile Include="RegexParseException.cs" />
     <Compile Include="RegexPatternTooLargeException.cs" />
@@ -70,6 +71,13 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+  <!-- The source generator ships inside this package as an analyzer, so one reference gives the library and the generator. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Corvus.Regex.Ecma262.SourceGenerator\Corvus.Regex.Ecma262.SourceGenerator.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <None Include="..\Corvus.Regex.Ecma262.SourceGenerator\bin\$(Configuration)\netstandard2.0\Corvus.Regex.Ecma262.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="$(NuGetPackageRoot)system.memory\4.6.3\lib\netstandard2.0\System.Memory.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>

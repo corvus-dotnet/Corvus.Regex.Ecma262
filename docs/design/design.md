@@ -255,6 +255,20 @@ It has two stages, each a gate of its own:
 **Decision.** Generator inside the main package. The alternative, a separate `*.SourceGenerator` package as
 Corvus.Text.Json has, would make the swap two references instead of one.
 
+**Stage 1 as built (2026-10-19).** `Corvus.Regex.Ecma262.SourceGenerator` (netstandard2.0, Roslyn 4.12) compiles
+the library's parser and tables from the same source, so a pattern is checked at build time by the parser that
+will run it: CRE0001 is the ECMA-262 message and offset, CRE0002 the member's shape, CRE0003 the flags, CRE0004 a
+containing type that is not partial, CRE0005 a pattern over a limit. It takes a `static partial` method or
+property returning `Regex`, with the flags as `RegexFlags` or as letters and an optional timeout, and emits the
+member returning one instance held in a nested static class. The generator and the `System.Memory` its host may
+lack ship in the package at `analyzers/dotnet/cs`. The AOT sample publishes with no trimming warning and runs.
+
+The instance is made by the `Regex` constructor the first time it is used rather than from baked arrays, which the
+design above asked for: the program's shape changed in every round of phase 3 and will again in stage 2, a
+serialised form would have frozen it, and what it saves is one construction of a few microseconds per process.
+Trimming and AOT are safe without it, since the parser and compiler are plain code. Stage 2 is where the generated
+code earns its place.
+
 ## 6. Target frameworks
 
 `net10.0; netstandard2.0`. net8.0 leaves support in November 2026 and net9.0 left it in May 2026, so neither is a
