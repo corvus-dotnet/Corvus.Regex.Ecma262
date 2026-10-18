@@ -50,6 +50,8 @@ internal static class EcmaRegexUnicode
     private static int[]? idStart;
     private static int[]? idContinue;
     private static Folding? unicodeFolding;
+    private static int[]? simpleFoldingRuns;
+    private static int[]? uppercaseRuns;
     private static Folding? legacyFolding;
 
     /// <summary>The steps the operations on sets have taken on this thread since <see cref="TakeSteps"/> last read them.</summary>
@@ -429,6 +431,36 @@ internal static class EcmaRegexUnicode
     /// <param name="unicode">Whether the pattern is read with the u flag grammar.</param>
     /// <returns>The set.</returns>
     public static int[] Cased(bool unicode) => GetFolding(unicode).Set;
+
+    /// <summary>
+    /// The Canonicalize function of ECMA-262 for case-insensitive matching, which a backreference needs when it is
+    /// matched. With the u flag grammar it is Unicode simple case folding. With no flag it is the uppercase mapping
+    /// of one UTF-16 code unit, when that is again one code unit, and it never maps a character outside ASCII into
+    /// ASCII. A character beyond the Basic Multilingual Plane is two code units, and neither has an uppercase form.
+    /// </summary>
+    /// <param name="c">The code point.</param>
+    /// <param name="unicode">Whether the pattern is read with the u flag grammar.</param>
+    /// <returns>The canonical code point.</returns>
+    public static int Canonicalize(int c, bool unicode)
+    {
+        if (unicode)
+        {
+            return Map(simpleFoldingRuns ??= Mapping(EcmaRegexUnicodeData.SimpleFolding), c);
+        }
+
+        if (c > 0xFFFF || Contains(MultipleUppercase, c))
+        {
+            return c;
+        }
+
+        int upper = Map(uppercaseRuns ??= Mapping(EcmaRegexUnicodeData.Uppercase), c);
+        if ((c >= 128 && upper < 128) || upper > 0xFFFF)
+        {
+            return c;
+        }
+
+        return upper;
+    }
 
     /// <summary>The set of a table of <see cref="EcmaRegexUnicodeData"/>.</summary>
     private static int[] Table(int number)

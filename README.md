@@ -27,6 +27,11 @@ evaluators for Go, Rust, Object Pascal and OCaml, with the C# parser of its .NET
 Under construction. The design is in [docs/design/design.md](docs/design/design.md); the phases and their gates are
 in its section 10.
 
+- Phase 1 (the engine and `IsMatch`) passes the whole test data set: 98,777 patterns under each grammar V8 accepts
+  them in, 15.95 million answers over UTF-16 and over UTF-8, 0 wrong, 0 refused, 0 matches at their limit, and 0
+  bytes allocated per match once warm. The flags `i`, `m`, `s`, `u` and `y` apply; `v` is not yet supported, and
+  `Match`, `Matches`, `Replace` and `Split` are phase 2.
+
 ## Repository structure
 
 - `Solutions` - the library, the source generator, the tests and the benchmarks.

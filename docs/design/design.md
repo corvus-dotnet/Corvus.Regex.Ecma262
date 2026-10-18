@@ -150,11 +150,14 @@ construction cost) are those of the Go/Rust engine and are deterministic: never 
 
 ### 5.1 One matcher, two encodings, no copy
 
-The matcher is `ref struct Matcher<TText> where TText : struct, ITextCursor`, with two cursors: `Utf8Cursor` over
-`ReadOnlySpan<byte>` and `Utf16Cursor` over `ReadOnlySpan<char>`. Each cursor gives `Decode(pos)`,
-`DecodeBefore(pos)`, `UnitAt(pos)` (the UTF-16 code unit at a position, for Annex B matching) and the byte tests
-the instructions need. The JIT specialises the matcher for each struct, so there is no virtual call and no branch on
-the encoding in the loop. The Go engine's `units` trick, which places the position between the halves of a
+The matcher's methods are generic over the unit of the text and an empty struct that reads it:
+`Run<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, ...) where TEncoding : struct, ITextEncoding<TUnit>`, with
+`Utf8Encoding : ITextEncoding<byte>` and `Utf16Encoding : ITextEncoding<char>`. Each encoding gives `Decode`,
+`DecodeBefore`, `UnitAt` and `UnitBefore` (the UTF-16 code unit at a position, for Annex B matching), the line
+terminator tests, the literal and prefix searches. The JIT specialises every generic method for the struct, so
+there is no virtual call and no branch on the encoding in the loop. (A `ref struct` cursor that holds the span and
+implements the interface would read the same, but ref-struct interfaces need a .NET 9 or later runtime, and the
+netstandard2.0 build must compile the same source.) The Go engine's `units` trick, which places the position between the halves of a
 supplementary character at its third byte, is the UTF-8 cursor's code-unit mode. The UTF-16 cursor's code-unit mode
 is the natural one.
 
@@ -205,9 +208,16 @@ Corvus.Text.Json has, would make the swap two references instead of one.
 
 `net10.0; netstandard2.0`. net8.0 leaves support in November 2026 and net9.0 left it in May 2026, so neither is a
 target. netstandard2.0 is needed twice: the generator is a netstandard2.0 Roslyn component that compiles the same
-parser and compiler source, and Corvus.Text.Json targets netstandard2.0 and tests on net481. `SearchValues`,
-`Vector128` and the span `IndexOf` overloads are behind `#if NET`, with a table lookup on netstandard2.0.
-`AllowUnsafeBlocks` is on for the unit readers. The SDK is pinned to 10.0 with `rollForward: latestFeature`.
+parser and compiler source, and Corvus.Text.Json targets netstandard2.0 and tests on net481. The SDK is pinned to
+10.0 with `rollForward: latestFeature`; a net11.0 target is added when that SDK is generally available.
+
+**The modern target never pays for netstandard2.0** (owner, 2026-10-18: "Do not sacrifice .NET 11 performance for
+netstandard2.0 compatibility. Consider conditional compilation."). Wherever the current runtime has a faster way,
+the code takes it under `#if NET` and netstandard2.0 gets a plain fallback, never the other way round:
+`SearchValues` and `IndexOfAny` for first sets, the vectorised span `IndexOf` for prefixes, `Vector128` scans for
+ASCII class loops, static abstract interface members and `allows ref struct` where they remove a cost, `Unsafe`
+reads where bounds checks show in a profile. The benchmarks of section 9 run on the modern target; the
+netstandard2.0 build is held to correctness (the same data set) and not to the same speed.
 
 **Decision.** As above.
 
@@ -338,7 +348,7 @@ time.
 | Phase | Delivers | Gate |
 |---|---|---|
 | 0 | Repository, build, package skeleton, this document, the Unicode tables and their generator | Builds warning-free on both OSes, packs |
-| 1 | Parser, compiler, matcher, both cursors, limits, `IsMatch` only, `None`/`Unicode`/`IgnoreCase`/`Multiline`/`DotAll` | Existing data set 0 wrong on UTF-8 and UTF-16; lone surrogates right on UTF-16; allocation test 0 B |
+| 1 | Parser, compiler, matcher, both cursors, limits, `IsMatch` only, `None`/`Unicode`/`IgnoreCase`/`Multiline`/`DotAll`/`Sticky` | Existing data set 0 wrong on UTF-8 and UTF-16; lone surrogates right on UTF-16; allocation test 0 B. **Met 2026-10-18**: 15,954,941 right, 0 wrong, 0 refused, 0 at the limit, in 4.4 s; 8 allocation cases at 0 B |
 | 2 | The whole drop-in surface of section 4, `Sticky`, `Replace`, `Split`, enumerators, timeout, exceptions | Data set extensions of 8.2 written and green; swap test green |
 | 3 | Prefilters, `SearchValues`, literal search, automaton on UTF-16, benchmarks of section 9, first tables | Interpreter-against-interpreter at or below 1.0 on the industry set; set 3 finishes |
 | 4 | Source generator, stage 1 then stage 2, generator tests, diagnostics | Generated-against-generated at or below 1.0 on the industry set; AOT sample publishes |

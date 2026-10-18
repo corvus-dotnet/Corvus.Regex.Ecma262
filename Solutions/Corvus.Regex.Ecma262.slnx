@@ -5,4 +5,7 @@
   <Folder Name="/tests/">
     <Project Path="Corvus.Regex.Ecma262.Tests/Corvus.Regex.Ecma262.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="Corvus.Regex.Ecma262.DatasetRunner/Corvus.Regex.Ecma262.DatasetRunner.csproj" />
+  </Folder>
 </Solution>

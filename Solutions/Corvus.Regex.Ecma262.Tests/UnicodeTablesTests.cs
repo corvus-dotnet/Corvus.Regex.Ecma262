@@ -4,7 +4,7 @@
 
 using Corvus.Ecma262.RegularExpressions;
 
-namespace Corvus.Regex.Ecma262.Tests;
+namespace Corvus.Ecma262.RegularExpressions.Tests;
 
 /// <summary>The Unicode tables decode and hold what the property escapes and case folding need.</summary>
 [TestClass]

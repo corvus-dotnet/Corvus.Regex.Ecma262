@@ -26,6 +26,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Engine\CaseFolding.cs" />
+    <Compile Include="Engine\CharSet.cs" />
+    <Compile Include="Engine\Dfa.cs" />
+    <Compile Include="Engine\Matcher.cs" />
+    <Compile Include="Engine\Program.cs" />
+    <Compile Include="Engine\TextEncoding.cs" />
+    <Compile Include="Regex.cs" />
+    <Compile Include="RegexFlags.cs" />
+    <Compile Include="RegexMatchTimeoutException.cs" />
+    <Compile Include="RegexParseException.cs" />
+    <Compile Include="RegexPatternTooLargeException.cs" />
+    <Compile Include="Syntax\EcmaRegexLimits.cs" />
+    <Compile Include="Syntax\EcmaRegexNode.cs" />
+    <Compile Include="Syntax\EcmaRegexParser.cs" />
     <Compile Include="Unicode\EcmaRegexUnicode.cs" />
     <Compile Include="Unicode\EcmaRegexUnicodeData.cs" />
   </ItemGroup>
