@@ -502,13 +502,52 @@ internal static class Matcher
 #if NET
         if (p.CasePrefixUtf16.Length != 0)
         {
-            // Every match starts with the literal ignoring case: the comparison is vectorised.
+            // Every match starts with the literal ignoring case: the comparison is vectorised. A character beyond
+            // ASCII that folds to a letter of the literal (the long s, the Kelvin sign) is looked for apart, and
+            // every start from which the literal could reach it is tried, in order.
+            int n = p.CasePrefixUtf16.Length;
+            CharSet? extras = p.CaseExtras;
             while (true)
             {
                 int i = enc.IndexOfCasePrefix(input, pos, p);
-                if (i < 0)
+                int e = extras is null ? -1 : enc.IndexOfCandidate(input, pos, extras, true);
+                if (i < 0 && e < 0)
                 {
                     return false;
+                }
+
+                if (e >= 0 && (i < 0 || e - n < i))
+                {
+                    int s = Math.Max(pos, e - n + 1);
+                    while (s <= e)
+                    {
+                        s = enc.AlignStart(input, s, units);
+                        if (s > e)
+                        {
+                            break;
+                        }
+
+                        from = s;
+                        if (len - s < p.Need)
+                        {
+                            return false;
+                        }
+
+                        if (Run<TUnit, TEncoding>(p, st, input, s, out to))
+                        {
+                            return true;
+                        }
+
+                        if (st.Stop != MatchStop.None)
+                        {
+                            return false;
+                        }
+
+                        s = enc.NextStart(input, s);
+                    }
+
+                    pos = enc.NextStart(input, e);
+                    continue;
                 }
 
                 from = i;
@@ -530,12 +569,58 @@ internal static class Matcher
                 pos = enc.NextStart(input, i);
             }
         }
+
+        if (p.AfterLoopUtf16.Length != 0)
+        {
+            // Every match is a run of the loop's set then the literal: the literal is searched for, and the run
+            // before it is walked back to the earliest start. A failed start fails for every later start of the
+            // same run (the loop ends at the same place), so the next literal occurrence is searched for next.
+            CharSet loopSet = p.LoopSet!;
+            while (true)
+            {
+                int i = enc.IndexOfAfterLoop(input, pos + p.LoopMin, p);
+                if (i < 0)
+                {
+                    return false;
+                }
+
+                int s = i;
+                while (s > pos && enc.Unit(input, s - 1) < 0x80 && loopSet.HasAscii(enc.Unit(input, s - 1)))
+                {
+                    s--;
+                }
+
+                if (p.LoopMin == 1 && s == i)
+                {
+                    pos = enc.NextStart(input, i);
+                    continue;
+                }
+
+                from = s;
+                if (len - s < p.Need)
+                {
+                    return false;
+                }
+
+                if (Run<TUnit, TEncoding>(p, st, input, s, out to))
+                {
+                    return true;
+                }
+
+                if (st.Stop != MatchStop.None)
+                {
+                    return false;
+                }
+
+                pos = enc.NextStart(input, i);
+            }
+        }
 #endif
-        if (p.RequiredOffset >= 0)
+        if (enc.RequiredOffset(p) >= 0)
         {
             // Every match holds the literal at the offset from its start, so the literal's first occurrence at or
             // after pos + offset allows one start, and a start before it can hold no match.
-            int offset = p.RequiredOffset;
+            int offset = enc.RequiredOffset(p);
             while (true)
             {
                 int i = enc.IndexOfRequired(input, pos + offset, p);
@@ -617,6 +702,15 @@ internal static class Matcher
             if (st.Stop != MatchStop.None)
             {
                 return false;
+            }
+
+            if (p.SkipRun && p.LoopSet!.Contains(c))
+            {
+                // The start failed after its leading loop ate the run from here: every start in the rest of the
+                // run fails the same way. (A start the loop took nothing at begins no run.)
+                int end = EndOfRun<TUnit, TEncoding>(p.LoopSet!, input, pos + w, units);
+                pos = end > pos + w ? end : pos + w;
+                continue;
             }
 
             pos += w;

@@ -157,7 +157,19 @@ internal interface ITextEncoding<TUnit>
     /// <param name="program">The program.</param>
     /// <returns>The position, or -1.</returns>
     int IndexOfCasePrefix(ReadOnlySpan<TUnit> input, int from, Program program);
+
+    /// <summary>The first position at or after a position of the literal after the program's leading loop, or -1 (see <see cref="Program.AfterLoopUtf16"/>).</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="program">The program.</param>
+    /// <returns>The position, or -1.</returns>
+    int IndexOfAfterLoop(ReadOnlySpan<TUnit> input, int from, Program program);
 #endif
+
+    /// <summary>The required literal's distance from the start of a match over this encoding (see <see cref="Program.RequiredOffset"/>).</summary>
+    /// <param name="program">The program.</param>
+    /// <returns>The distance, or -1.</returns>
+    int RequiredOffset(Program program);
 }
 
 /// <summary>Reads UTF-8 text.</summary>
@@ -489,6 +501,24 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     }
 
     /// <inheritdoc/>
+    public int IndexOfAfterLoop(ReadOnlySpan<byte> input, int from, Program program)
+    {
+        if (from > input.Length)
+        {
+            return -1;
+        }
+
+        int i = input.Slice(from).IndexOf(program.AfterLoopUtf8);
+        return i < 0 ? -1 : from + i;
+    }
+#endif
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int RequiredOffset(Program program) => program.RequiredOffsetUtf8;
+
+#if NET
+    /// <inheritdoc/>
     public int IndexOfCasePrefix(ReadOnlySpan<byte> input, int from, Program program)
     {
         byte[] lower = program.CasePrefixUtf8;
@@ -673,5 +703,21 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
         int i = input.Slice(from).IndexOf(program.CasePrefixUtf16.AsSpan(), StringComparison.OrdinalIgnoreCase);
         return i < 0 ? -1 : from + i;
     }
+
+    /// <inheritdoc/>
+    public int IndexOfAfterLoop(ReadOnlySpan<char> input, int from, Program program)
+    {
+        if (from > input.Length)
+        {
+            return -1;
+        }
+
+        int i = input.Slice(from).IndexOf(program.AfterLoopUtf16.AsSpan());
+        return i < 0 ? -1 : from + i;
+    }
 #endif
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int RequiredOffset(Program program) => program.RequiredOffset;
 }
