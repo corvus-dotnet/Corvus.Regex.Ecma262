@@ -14,5 +14,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Corvus.Regex.Ecma262\Corvus.Regex.Ecma262.csproj" />
+    <ProjectReference Include="..\Corvus.Regex.Ecma262.SourceGenerator\Corvus.Regex.Ecma262.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

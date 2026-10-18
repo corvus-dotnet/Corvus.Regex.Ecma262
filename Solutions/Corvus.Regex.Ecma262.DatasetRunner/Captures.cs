@@ -60,9 +60,9 @@ internal static class Captures
     {
         int right = 0;
         RegexFlags flags = Regex.ParseFlags(modeFlags);
-        Regex re = new(pattern, flags, limit);
-        Regex g = new(pattern, flags | RegexFlags.Global, limit);
-        Regex y = new(pattern, flags | RegexFlags.Sticky, limit);
+        Regex re = Factory.Make(pattern, flags, limit);
+        Regex g = Factory.Make(pattern, flags | RegexFlags.Global, limit);
+        Regex y = Factory.Make(pattern, flags | RegexFlags.Sticky, limit);
         byte[] utf8 = Encoding.UTF8.GetBytes(text);
         bool lone = HasLoneSurrogate(text);
         int[] byteAt = lone ? [] : ByteOffsets(text);

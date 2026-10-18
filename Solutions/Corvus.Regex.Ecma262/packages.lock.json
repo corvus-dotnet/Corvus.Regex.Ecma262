@@ -86,7 +86,6 @@
         "contentHash": "2hBr6zdbIBTDE3EhK7NSVNdX58uTK6iHW/P/Axmm9sl1xoGSLqDvMtpecn226TNwHByFokYwJmt/aQQNlO5CRw=="
       }
     },
-    ".NETStandard,Version=v2.0/linux-x64": {},
     "net10.0": {
       "Endjin.RecommendedPractices.GitHub": {
         "type": "Direct",
@@ -131,7 +130,6 @@
           "Microsoft.SourceLink.Common": "1.1.1"
         }
       }
-    },
-    "net10.0/linux-x64": {}
+    }
   }
 }

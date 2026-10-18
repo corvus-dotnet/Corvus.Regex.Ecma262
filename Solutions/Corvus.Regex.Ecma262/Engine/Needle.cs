@@ -25,7 +25,8 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// search for a value.
 /// </summary>
 /// <typeparam name="T">The unit: byte for UTF-8, ushort for UTF-16.</typeparam>
-internal sealed class Needle<T>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public sealed class Needle<T>
     where T : unmanaged, IEquatable<T>
 {
     private const int MaxRows = 4;
@@ -1252,7 +1253,8 @@ internal static class PairSearch
 /// leaves out.
 /// </summary>
 /// <typeparam name="T">The unit: byte for UTF-8, ushort for UTF-16.</typeparam>
-internal sealed class MultiNeedle<T>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public sealed class MultiNeedle<T>
     where T : unmanaged, IEquatable<T>
 {
     /// <summary>The cost of a start the units let through, in the units of a vector operation: the search's return and restart, and the full comparison.</summary>

@@ -38,8 +38,8 @@ in its section 10.
   19.7 million answers at 0 wrong.
 - Phase 3 (the searches for where a match can start, and the measured run against `System.Text.RegularExpressions`
   on dotnet/performance's workloads): see [docs/benchmarks](docs/benchmarks) for the table. On the Industry set
-  the library is at or below .NET's interpreter on 53 of 55 workloads over UTF-16 (median 0.55) and over UTF-8
-  (median 0.51); the exceptions are the two memory-bound literal searches over a 16 MB text, where both engines
+  the library is at or below .NET's interpreter on 55 of 57 workloads over UTF-16 (median 0.55) and over UTF-8
+  (median 0.49); the exceptions are the two memory-bound literal searches over a 16 MB text, where both engines
   run .NET's span search, and the two CJK searches over UTF-8, where three bytes a character with no rare byte
   cannot be found as fast as one UTF-16 unit.
 

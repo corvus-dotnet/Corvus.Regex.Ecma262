@@ -18,7 +18,8 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// touch (the form <see cref="EcmaRegexUnicode"/> makes). The two words of ASCII bits repeat the membership of the
 /// code points below 128, so that the common case is one bit test.
 /// </summary>
-internal sealed class CharSet
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public sealed class CharSet
 {
     private readonly int[] ranges;
     private readonly ulong ascii0;

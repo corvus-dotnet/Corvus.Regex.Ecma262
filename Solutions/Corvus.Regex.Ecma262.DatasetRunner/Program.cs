@@ -22,6 +22,7 @@ string directory = args[0];
 string wrongPath = args[1];
 string filter = args.Length > 2 ? args[2] : "*.jsonl";
 string encodings = args.Length > 3 ? args[3] : "both";
+int generated = args.Length > 4 && args[4].StartsWith("--generated", StringComparison.Ordinal) ? (args[4].Length > 12 ? int.Parse(args[4].Substring(12), System.Globalization.CultureInfo.InvariantCulture) : 1) : 0;
 bool utf16 = encodings is "both" or "utf16";
 bool utf8 = encodings is "both" or "utf8";
 TimeSpan limit = TimeSpan.FromSeconds(2);
@@ -35,6 +36,14 @@ foreach (string file in Directory.GetFiles(directory, filter).Order(StringCompar
     string name = Path.GetFileName(file);
     long fileRight = 0, fileWrong = 0, fileRefused = 0, fileAccepted = 0, fileLimited = 0;
     string[] lines = File.ReadAllLines(file);
+    if (generated > 0)
+    {
+        // Every pattern of the file (one in N) as straight-line code, compiled and loaded, before the answers are
+        // checked with it in place of the interpreter.
+        Factory.Prepare(lines, generated, Unescape, limit);
+        Console.WriteLine($"{name,-24} generated {Factory.Count,10:N0} programs in {clock.Elapsed:mm\\:ss}");
+    }
+
     Parallel.ForEach(lines, new ParallelOptions { MaxDegreeOfParallelism = 4 }, line =>
     {
         using JsonDocument doc = JsonDocument.Parse(line);
@@ -73,7 +82,7 @@ foreach (string file in Directory.GetFiles(directory, filter).Order(StringCompar
             string? error = null;
             try
             {
-                regex = new Regex(pattern, Regex.ParseFlags(modeFlags), limit);
+                regex = Factory.Make(pattern, Regex.ParseFlags(modeFlags), limit);
             }
             catch (RegexParseException e)
             {

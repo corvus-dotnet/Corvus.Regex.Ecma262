@@ -11,7 +11,8 @@ using System.Runtime.CompilerServices;
 namespace Corvus.Ecma262.RegularExpressions;
 
 /// <summary>Why a match was abandoned. Neither is an answer.</summary>
-internal enum MatchStop : byte
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public enum MatchStop : byte
 {
     /// <summary>The match was not abandoned.</summary>
     None,
@@ -24,7 +25,8 @@ internal enum MatchStop : byte
 }
 
 /// <summary>One entry of the backtracking stack. A choice entry says where to resume. An undo entry restores a value that was overwritten after the entries below it were pushed.</summary>
-internal struct Entry
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public struct Entry
 {
     /// <summary>Resumes at <see cref="Pc"/> with the position <see cref="Pos"/>.</summary>
     public const byte Choice = 0;
@@ -83,7 +85,8 @@ internal struct Entry
 /// The working memory of one match. Each thread keeps one and every match on the thread uses it, so a match
 /// allocates only while the stack is still growing to the depth the pattern and the text need.
 /// </summary>
-internal sealed class MatchState
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public sealed class MatchState
 {
     /// <summary>The value of a group that has not taken part, and of the start of an iteration that has not started.</summary>
     public const int None = -1;
@@ -286,7 +289,8 @@ internal sealed class MatchState
 }
 
 /// <summary>The backtracking matcher.</summary>
-internal static class Matcher
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public static class Matcher
 {
     /// <summary>
     /// The number of steps the matcher takes between two looks at the clock and at the depth of its stack. A step is
@@ -318,7 +322,7 @@ internal static class Matcher
     /// nothing else, and the places below this depth are remembered when the stack unwinds, so a later start has
     /// the room to mark the next ones.
     /// </summary>
-    private const int MaxMarkDepth = MaxStack / 2;
+    public const int MaxMarkDepth = MaxStack / 2;
 
     /// <summary>
     /// Reports whether the program matches anywhere in the text (or only at <paramref name="start"/> when
@@ -1093,7 +1097,7 @@ internal static class Matcher
     /// that is not ASCII is decoded and looked up unless the set holds every such character.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int EndOfRun<TUnit, TEncoding>(CharSet set, ReadOnlySpan<TUnit> input, int at, bool units)
+    public static int EndOfRun<TUnit, TEncoding>(CharSet set, ReadOnlySpan<TUnit> input, int at, bool units)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
@@ -1156,8 +1160,14 @@ internal static class Matcher
     }
 
     /// <summary>The end of the run of one ASCII character that starts at a position.</summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="c">The character.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="at">The position.</param>
+    /// <returns>The end of the run.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int EndOfRun<TUnit, TEncoding>(int c, ReadOnlySpan<TUnit> input, int at)
+    public static int EndOfRun<TUnit, TEncoding>(int c, ReadOnlySpan<TUnit> input, int at)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
@@ -1177,7 +1187,7 @@ internal static class Matcher
 
     /// <summary>The bit of the memory for the memo point <paramref name="m"/> at a position, with the state of the loops around the point: for each, whether it would refuse an iteration that ended here as empty.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int MemoIndex(Program p, MatchState st, int m, int pos)
+    public static int MemoIndex(Program p, MatchState st, int m, int pos)
     {
         MemoPoint pt = p.Points[m - 1];
         int idx = (((m - 1) * st.Width) + pos) << Compiler.MaxMemoLoops;
@@ -1195,14 +1205,28 @@ internal static class Matcher
         return idx;
     }
 
+    /// <summary>Whether a bit of the memory of failed places is set.</summary>
+    /// <param name="memo">The memory.</param>
+    /// <param name="idx">The bit.</param>
+    /// <returns>Whether it is set.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool MemoBit(ulong[] memo, int idx) => ((memo[idx >> 6] >> (idx & 63)) & 1) != 0;
+    public static bool MemoBit(ulong[] memo, int idx) => ((memo[idx >> 6] >> (idx & 63)) & 1) != 0;
 
+    /// <summary>Sets a bit of the memory of failed places.</summary>
+    /// <param name="memo">The memory.</param>
+    /// <param name="idx">The bit.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SetMemoBit(ulong[] memo, int idx) => memo[idx >> 6] |= 1UL << (idx & 63);
+    public static void SetMemoBit(ulong[] memo, int idx) => memo[idx >> 6] |= 1UL << (idx & 63);
 
+    /// <summary>Pushes an entry on the stack, growing it when full.</summary>
+    /// <param name="stack">The stack.</param>
+    /// <param name="sp">Its depth.</param>
+    /// <param name="kind">The kind of the entry.</param>
+    /// <param name="pc">The instruction, group or loop.</param>
+    /// <param name="pos">The position.</param>
+    /// <param name="a">The other value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Push(ref Entry[] stack, ref int sp, byte kind, int pc, int pos, int a)
+    public static void Push(ref Entry[] stack, ref int sp, byte kind, int pc, int pos, int a)
     {
         if (sp == stack.Length)
         {
@@ -1213,8 +1237,15 @@ internal static class Matcher
     }
 
     /// <summary>The width of the character at the position <paramref name="at"/> when the instruction's character or class matches it, and 0 otherwise. The character is a code unit with <paramref name="units"/> set.</summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="i">The loop instruction.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="at">The position.</param>
+    /// <param name="units">Whether the text is matched by UTF-16 code unit.</param>
+    /// <returns>The width, or 0.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int One<TUnit, TEncoding>(in Inst i, ReadOnlySpan<TUnit> input, int at, bool units)
+    public static int One<TUnit, TEncoding>(in Inst i, ReadOnlySpan<TUnit> input, int at, bool units)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
@@ -1243,8 +1274,14 @@ internal static class Matcher
     /// The width of the last character before a position, to give it back. The characters of a run were decoded
     /// going forward, and decoding the last of them going backward finds the same boundary.
     /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="input">The text.</param>
+    /// <param name="pos">The position.</param>
+    /// <param name="units">Whether the text is matched by UTF-16 code unit.</param>
+    /// <returns>The width.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GiveBack<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, int pos, bool units)
+    public static int GiveBack<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, int pos, bool units)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
@@ -1268,8 +1305,10 @@ internal static class Matcher
     }
 
     /// <summary>Whether the code point is a word character of a case-insensitive word boundary under the u flag: a word character, the long s or the Kelvin sign.</summary>
+    /// <param name="r">The character.</param>
+    /// <returns>Whether it is.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsFoldWordRune(int r) => (r < 128 && Utf8Encoding.IsWordUnit(r)) || r == 0x17F || r == 0x212A;
+    public static bool IsFoldWordRune(int r) => (r < 128 && Utf8Encoding.IsWordUnit(r)) || r == 0x17F || r == 0x212A;
 
     /// <summary>
     /// Reports whether the program matches at the position <paramref name="start"/>. It keeps its choices on an
@@ -1277,7 +1316,40 @@ internal static class Matcher
     /// fails, every group and counter is back to the value it had on entry. It counts its steps, and when a check
     /// says the match has reached a limit it returns false with the reason in the state.
     /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="p">The program.</param>
+    /// <param name="st">The state.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="start">The position.</param>
+    /// <param name="end">The end of the match.</param>
+    /// <returns>Whether the program matched at the position.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool Run<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int start, out int end)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        GeneratedRunner? runner = p.Runner;
+        if (runner is not null)
+        {
+            return typeof(TUnit) == typeof(byte)
+                ? runner.Run(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, byte>(input), start, out end)
+                : runner.Run(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(input), start, out end);
+        }
+
+        return Interpret<TUnit, TEncoding>(p, st, input, start, out end);
+    }
+
+    /// <summary>The interpreter: runs the program's instructions from a position.</summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="p">The program.</param>
+    /// <param name="st">The state.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="start">The position.</param>
+    /// <param name="end">The end of the match.</param>
+    /// <returns>Whether the program matched at the position.</returns>
+    public static bool Interpret<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int start, out int end)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
@@ -2041,180 +2113,213 @@ internal static class Matcher
             }
 
             // The instruction failed. Take up the most recent choice, undoing what was recorded since.
-            while (true)
+            if (!Backtrack<TUnit, TEncoding>(p, st, input, ref stack, ref sp, ref pc, ref pos, ref steps, memo, memoBits))
             {
-                if (sp == 0)
-                {
-                    st.Steps = steps;
-                    st.Stack = stack;
-                    return false;
-                }
+                st.Steps = steps;
+                st.Stack = stack;
+                return false;
+            }
+        }
+    }
 
-                int top = sp - 1;
-                Entry e = stack[top];
-                bool resumed = false;
-                switch (e.Kind)
-                {
-                    case Entry.Choice:
-                        pc = e.Pc;
-                        pos = e.Pos;
-                        sp--;
-                        resumed = true;
-                        break;
-                    case Entry.Rep:
-                    {
-                        // What followed the loop from the position it stood at has failed.
-                        ref Inst rep = ref insts[e.Pc - 1];
-                        bool marked = memo && rep.M != 0;
-                        if (marked)
-                        {
-                            SetMemoBit(memoBits, MemoIndex(p, st, rep.M, e.Pos));
-                        }
-
-                        int at;
+    /// <summary>
+    /// Takes up the most recent choice after an instruction failed, undoing what was recorded since: the shared
+    /// backtracking of the interpreter and of generated code.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="p">The program.</param>
+    /// <param name="st">The state.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="stack">The stack of choices.</param>
+    /// <param name="sp">Its depth.</param>
+    /// <param name="pc">Receives the instruction to resume at.</param>
+    /// <param name="pos">Receives the position to resume at.</param>
+    /// <param name="steps">The steps left before the next check.</param>
+    /// <param name="memo">Whether the memory of failed places is in use.</param>
+    /// <param name="memoBits">The memory of failed places.</param>
+    /// <returns><see langword="true"/> to resume at <paramref name="pc"/> and <paramref name="pos"/>; <see langword="false"/> when no choice is left and the match fails.</returns>
+    public static bool Backtrack<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, ref Entry[] stack, ref int sp, ref int pc, ref int pos, ref long steps, bool memo, ulong[] memoBits)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
 #if NET
-                        if (!marked && e.Pos - e.A >= 16 && quick[e.Pc].AsciiOnly)
-                        {
-                            // What follows can go on only from a character below 128: the last such position in
-                            // the run is found by a vectorised search, and the positions passed over are the ones
-                            // the check below would pass over one by one. None of them is marked, since the loop
-                            // has no memo point.
-                            int j = enc.LastAllowed(input, e.A, e.Pos, ref quick[e.Pc]);
-                            if (j < 0)
-                            {
-                                sp--;
-                                break;
-                            }
-
-                            at = j;
-                        }
-                        else
-                        {
-                            at = e.Pos - GiveBack<TUnit, TEncoding>(input, e.Pos, units);
-                        }
-#else
-                        at = e.Pos - GiveBack<TUnit, TEncoding>(input, e.Pos, units);
+        TEncoding enc = default;
 #endif
-                        stack[top].Pos = at;
-                        pc = e.Pc;
-                        pos = at;
-                        bool last = at <= e.A;
+        Inst[] insts = p.Insts;
+        Quick[] quick = p.Quick;
+        bool units = p.Units;
+        while (true)
+        {
+            if (sp == 0)
+            {
+                return false;
+            }
 
-                        // A position from which what follows the loop cannot go on is passed over, and so is one
-                        // from which it has failed before.
-                        bool pass = !quick[pc].Allows<TUnit, TEncoding>(input, pos);
-                        if (marked && !pass)
-                        {
-                            int idx = MemoIndex(p, st, rep.M, pos);
-                            if (MemoBit(memoBits, idx))
-                            {
-                                pass = true;
-                            }
-                            else if (last)
-                            {
-                                // The loop has nothing more to give back. The entry stays to note this last way.
-                                stack[top] = new Entry(Entry.Mark, 0, idx, 0);
-                                resumed = true;
-                                break;
-                            }
-                        }
+            int top = sp - 1;
+            Entry e = stack[top];
+            bool resumed = false;
+            switch (e.Kind)
+            {
+                case Entry.Choice:
+                    pc = e.Pc;
+                    pos = e.Pos;
+                    sp--;
+                    resumed = true;
+                    break;
+                case Entry.Rep:
+                {
+                    // What followed the loop from the position it stood at has failed.
+                    ref Inst rep = ref insts[e.Pc - 1];
+                    bool marked = memo && rep.M != 0;
+                    if (marked)
+                    {
+                        SetMemoBit(memoBits, MemoIndex(p, st, rep.M, e.Pos));
+                    }
 
-                        if (last)
+                    int at;
+#if NET
+                    if (!marked && e.Pos - e.A >= 16 && quick[e.Pc].AsciiOnly)
+                    {
+                        // What follows can go on only from a character below 128: the last such position in
+                        // the run is found by a vectorised search, and the positions passed over are the ones
+                        // the check below would pass over one by one. None of them is marked, since the loop
+                        // has no memo point.
+                        int j = enc.LastAllowed(input, e.A, e.Pos, ref quick[e.Pc]);
+                        if (j < 0)
                         {
                             sp--;
+                            break;
                         }
 
-                        if (pass)
+                        at = j;
+                    }
+                    else
+                    {
+                        at = e.Pos - GiveBack<TUnit, TEncoding>(input, e.Pos, units);
+                    }
+#else
+                    at = e.Pos - GiveBack<TUnit, TEncoding>(input, e.Pos, units);
+#endif
+                    stack[top].Pos = at;
+                    pc = e.Pc;
+                    pos = at;
+                    bool last = at <= e.A;
+
+                    // A position from which what follows the loop cannot go on is passed over, and so is one
+                    // from which it has failed before.
+                    bool pass = !quick[pc].Allows<TUnit, TEncoding>(input, pos);
+                    if (marked && !pass)
+                    {
+                        int idx = MemoIndex(p, st, rep.M, pos);
+                        if (MemoBit(memoBits, idx))
                         {
+                            pass = true;
+                        }
+                        else if (last)
+                        {
+                            // The loop has nothing more to give back. The entry stays to note this last way.
+                            stack[top] = new Entry(Entry.Mark, 0, idx, 0);
+                            resumed = true;
+                            break;
+                        }
+                    }
+
+                    if (last)
+                    {
+                        sp--;
+                    }
+
+                    if (pass)
+                    {
+                        steps--;
+                        break;
+                    }
+
+                    resumed = true;
+                    break;
+                }
+
+                case Entry.RepLazy:
+                {
+                    // What followed the loop from the position it stood at has failed.
+                    ref Inst rep = ref insts[e.Pc];
+                    bool marked = memo && rep.M != 0;
+                    if (marked)
+                    {
+                        SetMemoBit(memoBits, MemoIndex(p, st, rep.M, e.Pos));
+                    }
+
+                    int w = One<TUnit, TEncoding>(in rep, input, e.Pos, units);
+                    if (w == 0)
+                    {
+                        sp--;
+                        break;
+                    }
+
+                    int at = e.Pos + w;
+                    int taken = e.A + 1;
+                    stack[top].Pos = at;
+                    stack[top].A = taken;
+                    pc = e.Pc + 1;
+                    pos = at;
+                    bool last = taken == rep.Max;
+                    if (marked)
+                    {
+                        int idx = MemoIndex(p, st, rep.M, pos);
+                        if (MemoBit(memoBits, idx))
+                        {
+                            if (last)
+                            {
+                                sp--;
+                            }
+
                             steps--;
                             break;
                         }
 
-                        resumed = true;
-                        break;
-                    }
-
-                    case Entry.RepLazy:
-                    {
-                        // What followed the loop from the position it stood at has failed.
-                        ref Inst rep = ref insts[e.Pc];
-                        bool marked = memo && rep.M != 0;
-                        if (marked)
-                        {
-                            SetMemoBit(memoBits, MemoIndex(p, st, rep.M, e.Pos));
-                        }
-
-                        int w = One<TUnit, TEncoding>(in rep, input, e.Pos, units);
-                        if (w == 0)
-                        {
-                            sp--;
-                            break;
-                        }
-
-                        int at = e.Pos + w;
-                        int taken = e.A + 1;
-                        stack[top].Pos = at;
-                        stack[top].A = taken;
-                        pc = e.Pc + 1;
-                        pos = at;
-                        bool last = taken == rep.Max;
-                        if (marked)
-                        {
-                            int idx = MemoIndex(p, st, rep.M, pos);
-                            if (MemoBit(memoBits, idx))
-                            {
-                                if (last)
-                                {
-                                    sp--;
-                                }
-
-                                steps--;
-                                break;
-                            }
-
-                            if (last)
-                            {
-                                stack[top] = new Entry(Entry.Mark, 0, idx, 0);
-                                resumed = true;
-                                break;
-                            }
-                        }
-
                         if (last)
                         {
-                            sp--;
+                            stack[top] = new Entry(Entry.Mark, 0, idx, 0);
+                            resumed = true;
+                            break;
                         }
-
-                        resumed = true;
-                        break;
                     }
 
-                    case Entry.Mark:
-                        // Every way from a memo point has failed.
-                        SetMemoBit(memoBits, e.Pos);
+                    if (last)
+                    {
                         sp--;
-                        break;
-                    case Entry.Look:
-                        // The body of a positive lookaround has no way left to match.
-                        sp--;
-                        break;
-                    case Entry.LookNeg:
-                        // The body of a negative lookaround has no way to match, so the lookaround holds.
-                        pc = e.Pc;
-                        pos = e.Pos;
-                        sp--;
-                        resumed = true;
-                        break;
-                    default:
-                        st.Undo(in e);
-                        sp--;
-                        break;
-                }
+                    }
 
-                if (resumed)
-                {
+                    resumed = true;
                     break;
                 }
+
+                case Entry.Mark:
+                    // Every way from a memo point has failed.
+                    SetMemoBit(memoBits, e.Pos);
+                    sp--;
+                    break;
+                case Entry.Look:
+                    // The body of a positive lookaround has no way left to match.
+                    sp--;
+                    break;
+                case Entry.LookNeg:
+                    // The body of a negative lookaround has no way to match, so the lookaround holds.
+                    pc = e.Pc;
+                    pos = e.Pos;
+                    sp--;
+                    resumed = true;
+                    break;
+                default:
+                    st.Undo(in e);
+                    sp--;
+                    break;
+            }
+
+            if (resumed)
+            {
+                return true;
             }
         }
     }

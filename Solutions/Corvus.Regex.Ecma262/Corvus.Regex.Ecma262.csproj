@@ -48,6 +48,7 @@
     <Compile Include="ValueMatchEnumerator.cs" />
     <Compile Include="RegexFlags.cs" />
     <Compile Include="GeneratedRegexAttribute.cs" />
+    <Compile Include="GeneratedRunner.cs" />
     <Compile Include="RegexMatchTimeoutException.cs" />
     <Compile Include="RegexParseException.cs" />
     <Compile Include="RegexPatternTooLargeException.cs" />

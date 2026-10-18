@@ -36,8 +36,8 @@ public class GeneratorTests
         Assert.AreEqual(0, diagnostics.Length, string.Join("\n", diagnostics));
         AssertCompiles(output);
         StringAssert.Contains(generated, "public static partial global::Corvus.Ecma262.RegularExpressions.Regex Digits() => CorvusRegex_Digits.Instance;");
-        StringAssert.Contains(generated, "new(\"\\\\d+\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)34, global::Corvus.Ecma262.RegularExpressions.Regex.InfiniteMatchTimeout);");
-        StringAssert.Contains(generated, "(global::Corvus.Ecma262.RegularExpressions.RegexFlags)36, global::System.TimeSpan.FromMilliseconds(250));");
+        StringAssert.Contains(generated, "new(\"\\\\d+\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)34, global::Corvus.Ecma262.RegularExpressions.Regex.InfiniteMatchTimeout, new Bounds(), new Captures());");
+        StringAssert.Contains(generated, "(global::Corvus.Ecma262.RegularExpressions.RegexFlags)36, global::System.TimeSpan.FromMilliseconds(250), new Bounds(), new Captures());");
     }
 
     [TestMethod]

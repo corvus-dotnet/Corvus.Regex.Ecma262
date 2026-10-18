@@ -18,6 +18,14 @@
   <ItemGroup>
     <Compile Include="RegexGenerator.cs" />
     <Compile Include="Diagnostics.cs" />
+    <Compile Include="RunEmitter.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\GeneratedRunner.cs" Link="Shared\GeneratedRunner.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Engine\CaseFolding.cs" Link="Shared\Engine\CaseFolding.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Engine\CharSet.cs" Link="Shared\Engine\CharSet.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Engine\Matcher.cs" Link="Shared\Engine\Matcher.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Engine\Needle.cs" Link="Shared\Engine\Needle.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Engine\Program.cs" Link="Shared\Engine\Program.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Engine\TextEncoding.cs" Link="Shared\Engine\TextEncoding.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\RegexFlags.cs" Link="Shared\RegexFlags.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\RegexParseException.cs" Link="Shared\RegexParseException.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\RegexPatternTooLargeException.cs" Link="Shared\RegexPatternTooLargeException.cs" />
@@ -39,6 +47,11 @@
     </PackageReference>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
     <PackageReference Include="System.Memory" PrivateAssets="all" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Corvus.Regex.Ecma262.DatasetRunner" />
+    <InternalsVisibleTo Include="Corvus.Regex.Ecma262.SourceGenerator.Tests" />
   </ItemGroup>
 
   <!-- The generator's host (Visual Studio runs on .NET Framework) may lack System.Memory, so it is shipped beside the generator. -->

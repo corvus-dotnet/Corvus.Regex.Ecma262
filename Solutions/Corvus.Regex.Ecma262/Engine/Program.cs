@@ -12,7 +12,8 @@ using System.Text;
 namespace Corvus.Ecma262.RegularExpressions;
 
 /// <summary>The instructions of the backtracking matcher.</summary>
-internal enum Op : byte
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public enum Op : byte
 {
     /// <summary><see cref="Char"/> and <see cref="Set"/> consume one code point going forward.</summary>
     Char,
@@ -118,7 +119,8 @@ internal enum Op : byte
 }
 
 /// <summary>One instruction of the backtracking matcher.</summary>
-internal struct Inst
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public struct Inst
 {
     /// <summary>Initializes a new instance of the <see cref="Inst"/> struct.</summary>
     /// <param name="op">The instruction.</param>
@@ -195,7 +197,8 @@ internal struct Inst
 /// would refuse the iteration as empty if it ended here. That is one bit for each such loop the place is in
 /// (innermost last), and a place in more than <see cref="Compiler.MaxMemoLoops"/> of them has no memo point.
 /// </summary>
-internal struct MemoPoint
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public struct MemoPoint
 {
     /// <summary>Gets or sets the outer loop, or -1.</summary>
     public int Loop0 { get; set; }
@@ -217,7 +220,8 @@ internal struct MemoPoint
 /// taken, and where it was one of two no choice is kept for it. V8 makes the same check ("quick check") at its
 /// choices. It is what keeps a choice between ways that need different characters from being a choice.
 /// </summary>
-internal struct Quick : IEquatable<Quick>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public struct Quick : IEquatable<Quick>
 {
     /// <summary>Gets or sets the characters 0 to 63 a way can consume next, one bit each.</summary>
     public ulong Ascii0 { get; set; }
@@ -363,7 +367,8 @@ internal struct Quick : IEquatable<Quick>
 }
 
 /// <summary>The shapes of program the search answers without running the matcher.</summary>
-internal enum SimpleShape : byte
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public enum SimpleShape : byte
 {
     /// <summary>None of the below.</summary>
     None,
@@ -388,7 +393,8 @@ internal enum SimpleShape : byte
 }
 
 /// <summary>A pattern compiled for the backtracking matcher.</summary>
-internal sealed class Program
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public sealed class Program
 {
     /// <summary>Initializes a new instance of the <see cref="Program"/> class.</summary>
     /// <param name="insts">The instructions.</param>
@@ -479,6 +485,9 @@ internal sealed class Program
 
     /// <summary>Gets the literal text every match starts with, as UTF-8.</summary>
     public byte[] Utf8Prefix { get; }
+
+    /// <summary>Gets or sets the generated code that runs this program in place of the interpreter, or null (see <see cref="GeneratedRunner"/>).</summary>
+    public GeneratedRunner? Runner { get; set; }
 
     /// <summary>Gets the prefix as a UTF-8 search, or null.</summary>
     public Needle<byte>? Utf8PrefixNeedle { get; }

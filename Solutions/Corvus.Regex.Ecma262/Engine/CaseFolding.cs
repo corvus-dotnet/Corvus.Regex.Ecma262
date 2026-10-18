@@ -9,7 +9,8 @@
 namespace Corvus.Ecma262.RegularExpressions;
 
 /// <summary>Case-insensitive matching of a backreference.</summary>
-internal static class CaseFolding
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public static class CaseFolding
 {
     /// <summary>
     /// The Canonicalize function of ECMA-262 for case-insensitive matching. With the u flag it is Unicode simple

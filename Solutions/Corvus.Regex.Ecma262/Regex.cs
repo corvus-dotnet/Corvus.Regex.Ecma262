@@ -23,6 +23,7 @@ public sealed partial class Regex
     private readonly EcmaRegexNode root;
     private readonly bool linear;
     private readonly bool unicode;
+    private readonly GeneratedRunner? captureRunner;
     private Program? captureProgram;
     private Dfa? dfa;
     private bool dfaTried;
@@ -63,7 +64,23 @@ public sealed partial class Regex
     /// <exception cref="RegexParseException">The pattern is not valid in the grammar of its flags.</exception>
     /// <exception cref="RegexPatternTooLargeException">The pattern is over a limit of size.</exception>
     public Regex(string pattern, RegexFlags flags, TimeSpan matchTimeout)
+        : this(pattern, flags, matchTimeout, null, null)
     {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Regex"/> class whose programs run as the generated code given
+    /// rather than the interpreter: the seam for the source generator, not for use by hand.
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="matchTimeout">The limit of time on a match.</param>
+    /// <param name="bounds">The generated code for the program that finds a match's bounds, or null.</param>
+    /// <param name="captures">The generated code for the program that tracks every group, or null.</param>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public Regex(string pattern, RegexFlags flags, TimeSpan matchTimeout, GeneratedRunner? bounds, GeneratedRunner? captures)
+    {
+        this.captureRunner = captures;
         if (pattern is null)
         {
             throw new ArgumentNullException(nameof(pattern));
@@ -87,6 +104,7 @@ public sealed partial class Regex
         this.GroupCount = parser.GroupCount;
         this.GroupNames = parser.GroupNames;
         this.program = Compiler.Compile(this.root, unicode, this.GroupCount, trackAll: false);
+        this.program.Runner = bounds;
     }
 
     /// <summary>Gets the pattern.</summary>
@@ -384,6 +402,7 @@ public sealed partial class Regex
             // Simplify changes the tree in place, and did so when the first program was compiled; compiling the
             // same tree again gives the same program apart from the groups it tracks.
             cp = Compiler.Compile(this.root, this.unicode, this.GroupCount, trackAll: true);
+            cp.Runner = this.captureRunner;
             Interlocked.CompareExchange(ref this.captureProgram, cp, null);
             cp = this.captureProgram;
         }

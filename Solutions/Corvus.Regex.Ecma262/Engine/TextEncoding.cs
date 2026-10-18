@@ -26,7 +26,8 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// between them is written as the offset of the character's third byte, which is a continuation byte and so no
 /// position at all when reading by code point.
 /// </remarks>
-internal interface ITextEncoding<TUnit>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public interface ITextEncoding<TUnit>
     where TUnit : unmanaged, IEquatable<TUnit>
 {
     /// <summary>The unit at a position, as a number.</summary>
@@ -239,7 +240,8 @@ internal interface ITextEncoding<TUnit>
 }
 
 /// <summary>Reads UTF-8 text.</summary>
-internal readonly struct Utf8Encoding : ITextEncoding<byte>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public readonly struct Utf8Encoding : ITextEncoding<byte>
 {
     /// <summary>What a byte that is not UTF-8 decodes to, one byte at a time.</summary>
     public const int RuneError = 0xFFFD;
@@ -717,7 +719,8 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
 }
 
 /// <summary>Reads UTF-16 text.</summary>
-internal readonly struct Utf16Encoding : ITextEncoding<char>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public readonly struct Utf16Encoding : ITextEncoding<char>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

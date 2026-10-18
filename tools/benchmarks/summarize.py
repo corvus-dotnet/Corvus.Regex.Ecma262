@@ -32,7 +32,12 @@ def load(directory):
         with open(path, encoding="utf-8-sig", newline="") as f:
             for row in csv.DictReader(f):
                 params = ", ".join(f"{k}={row[k]}" for k in PARAMS if row.get(k))
-                runs.setdefault(title, {}).setdefault(params, {})[row["Method"]] = (nanoseconds(row["Mean"]), row.get("Allocated", ""))
+                # A display name BenchmarkDotNet truncated can be shared by two workloads: each keeps its own row.
+                workloads = runs.setdefault(title, {})
+                key = params
+                while key in workloads and row["Method"] in workloads[key]:
+                    key += " "
+                workloads.setdefault(key, {})[row["Method"]] = (nanoseconds(row["Mean"]), row.get("Allocated", ""))
     return runs
 
 def fmt(ns):
