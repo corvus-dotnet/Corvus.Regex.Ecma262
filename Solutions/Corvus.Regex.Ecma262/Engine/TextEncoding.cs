@@ -10,6 +10,7 @@ using System;
 using System.Buffers;
 #endif
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Corvus.Ecma262.RegularExpressions;
 
@@ -151,12 +152,40 @@ internal interface ITextEncoding<TUnit>
     /// <returns>The position.</returns>
     int AlignStart(ReadOnlySpan<TUnit> input, int pos, bool units);
 
-    /// <summary>The first position at or after a position of the program's case-insensitive ASCII literal, or -1 (see <see cref="Program.CasePrefixUtf16"/>).</summary>
+    /// <summary>The first position at or after a position of the program's leading literal in any of its forms, or -1 (see <see cref="Program.CaseCharacters"/>).</summary>
     /// <param name="input">The text.</param>
     /// <param name="from">The position.</param>
     /// <param name="program">The program.</param>
     /// <returns>The position, or -1.</returns>
     int IndexOfCasePrefix(ReadOnlySpan<TUnit> input, int from, Program program);
+
+    /// <summary>Whether the program's leading literal in its forms can be searched for over this encoding.</summary>
+    /// <param name="program">The program.</param>
+    /// <returns>Whether it can.</returns>
+    bool HasCaseNeedle(Program program);
+
+    /// <summary>The length in units of that literal as the search finds it.</summary>
+    /// <param name="program">The program.</param>
+    /// <returns>The length.</returns>
+    int CaseLength(Program program);
+
+    /// <summary>The most units that literal can take in any form, counting the forms the search leaves out.</summary>
+    /// <param name="program">The program.</param>
+    /// <returns>The most units.</returns>
+    int CaseWindow(Program program);
+
+    /// <summary>Whether the search leaves out any form of the literal's characters, to be looked for apart.</summary>
+    /// <param name="program">The program.</param>
+    /// <returns>Whether it does.</returns>
+    bool HasCaseExtras(Program program);
+
+    /// <summary>The first position at or after a position, before a limit, where a form the search leaves out starts, or -1.</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="limit">The end of the range, exclusive.</param>
+    /// <param name="program">The program.</param>
+    /// <returns>The position, or -1.</returns>
+    int IndexOfCaseExtra(ReadOnlySpan<TUnit> input, int from, int limit, Program program);
 
     /// <summary>The last position in a range from which a way can go on, by the quick's allowed characters, or -1 (only when the quick is <see cref="Quick.AsciiOnly"/>).</summary>
     /// <param name="input">The text.</param>
@@ -598,28 +627,8 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     public int IndexOfAnyNeedle(ReadOnlySpan<byte> input, int from, Program program, bool alternatives)
     {
-        Utf8Needle[] needles = alternatives ? program.AlternativeNeedles : program.PairNeedlesUtf8;
-        if (needles.Length == 0)
-        {
-            return -2;
-        }
-
-        // Each needle after the first is looked for only up to the best so far.
-        int best = -1;
-        foreach (Utf8Needle needle in needles)
-        {
-            int i = needle.IndexOf(best < 0 ? input : input.Slice(0, Math.Min(input.Length, best + needle.Bytes.Length)), from);
-            if (i >= 0 && (best < 0 || i < best))
-            {
-                best = i;
-                if (i == from)
-                {
-                    break;
-                }
-            }
-        }
-
-        return best;
+        MultiNeedle<byte>? multi = alternatives ? program.AlternativeMultiUtf8 : program.PairMultiUtf8;
+        return multi is null ? -2 : multi.IndexOf(input, from);
     }
 
     /// <inheritdoc/>
@@ -640,6 +649,13 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     public int WalkBack(ReadOnlySpan<byte> input, int from, int count, int floor, bool units)
     {
+#if NET
+        // Where the units before the position are all ASCII, they are the characters.
+        if (from - count >= floor && !input.Slice(from - count, count).ContainsAnyInRange((byte)0x80, (byte)0xFF))
+        {
+            return from - count;
+        }
+#endif
         int at = from;
         for (int k = 0; k < count; k++)
         {
@@ -666,10 +682,28 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
 
 #if NET
     /// <inheritdoc/>
-    public int IndexOfCasePrefix(ReadOnlySpan<byte> input, int from, Program program)
-    {
-        return Utf8CaseSearch.IndexOf(input, from, program.CasePrefixUtf8);
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int IndexOfCasePrefix(ReadOnlySpan<byte> input, int from, Program program) => program.CaseNeedleUtf8!.IndexOf(input, from);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool HasCaseNeedle(Program program) => program.CaseNeedleUtf8 is not null;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int CaseLength(Program program) => program.CaseNeedleUtf8!.Length;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int CaseWindow(Program program) => program.CaseWindowUtf8;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool HasCaseExtras(Program program) => program.CaseExtrasUtf8 is not null;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int IndexOfCaseExtra(ReadOnlySpan<byte> input, int from, int limit, Program program) => program.CaseExtrasUtf8!.IndexOf(input.Slice(0, limit), from);
 #endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -761,22 +795,13 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     }
 
     /// <inheritdoc/>
-    public int IndexOfPrefix(ReadOnlySpan<char> input, int from, Program program)
-    {
-        int i = input.Slice(from).IndexOf(program.Utf16Prefix.AsSpan());
-        return i < 0 ? -1 : from + i;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int IndexOfPrefix(ReadOnlySpan<char> input, int from, Program program) => program.Utf16PrefixNeedle!.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
 
     /// <inheritdoc/>
     public int IndexOfRequired(ReadOnlySpan<char> input, int from, Program program)
     {
-        if (from > input.Length)
-        {
-            return -1;
-        }
-
-        int i = input.Slice(from).IndexOf(program.RequiredUtf16.AsSpan());
-        return i < 0 ? -1 : from + i;
+        return from > input.Length ? -1 : program.RequiredUtf16Needle!.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
     }
 
     /// <inheritdoc/>
@@ -823,11 +848,28 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     }
 
     /// <inheritdoc/>
-    public int IndexOfCasePrefix(ReadOnlySpan<char> input, int from, Program program)
-    {
-        int i = input.Slice(from).IndexOf(program.CasePrefixUtf16.AsSpan(), StringComparison.OrdinalIgnoreCase);
-        return i < 0 ? -1 : from + i;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int IndexOfCasePrefix(ReadOnlySpan<char> input, int from, Program program) => program.CaseNeedleUtf16!.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool HasCaseNeedle(Program program) => program.CaseNeedleUtf16 is not null;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int CaseLength(Program program) => program.CaseNeedleUtf16!.Length;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int CaseWindow(Program program) => program.CaseWindowUtf16;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool HasCaseExtras(Program program) => program.CaseExtrasUtf16 is not null;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int IndexOfCaseExtra(ReadOnlySpan<char> input, int from, int limit, Program program) => program.CaseExtrasUtf16!.IndexOf(MemoryMarshal.Cast<char, ushort>(input.Slice(0, limit)), from);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -840,13 +882,7 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     public int IndexOfAfterLoop(ReadOnlySpan<char> input, int from, Program program)
     {
-        if (from > input.Length)
-        {
-            return -1;
-        }
-
-        int i = input.Slice(from).IndexOf(program.AfterLoopUtf16.AsSpan());
-        return i < 0 ? -1 : from + i;
+        return from > input.Length ? -1 : program.AfterLoopUtf16Needle!.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
     }
 #endif
 
@@ -861,29 +897,8 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     public int IndexOfAnyNeedle(ReadOnlySpan<char> input, int from, Program program, bool alternatives)
     {
-        string[] needles = alternatives ? program.Alternatives : program.PairNeedles;
-        if (needles.Length == 0 || alternatives)
-        {
-            // The alternatives are found by their first characters, a vectorised search for a few values.
-            return -2;
-        }
-
-        int best = -1;
-        foreach (string needle in needles)
-        {
-            ReadOnlySpan<char> scope = best < 0 ? input.Slice(from) : input.Slice(from, Math.Min(input.Length, best + needle.Length) - from);
-            int i = scope.IndexOf(needle.AsSpan());
-            if (i >= 0 && (best < 0 || from + i < best))
-            {
-                best = from + i;
-                if (i == 0)
-                {
-                    break;
-                }
-            }
-        }
-
-        return best;
+        MultiNeedle<ushort>? multi = alternatives ? program.AlternativeMultiUtf16 : program.PairMultiUtf16;
+        return multi is null ? -2 : multi.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
     }
 
     /// <inheritdoc/>

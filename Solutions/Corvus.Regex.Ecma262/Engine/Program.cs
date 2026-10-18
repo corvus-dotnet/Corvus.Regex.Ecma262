@@ -405,36 +405,42 @@ internal sealed class Program
     /// <param name="utf16Literals">The literals as UTF-16.</param>
     /// <param name="required">A literal every match holds at a fixed distance from its start, or empty.</param>
     /// <param name="requiredOffset">That distance, or -1.</param>
-    /// <param name="casePrefix">An ASCII literal every match starts with ignoring case, in lower case, or empty.</param>
+    /// <param name="caseForms">For each character of a literal every match starts with, its forms (a letter's cases under the i flag), or empty (see <see cref="Compiler.CaseForms"/>).</param>
     /// <param name="requiredOffsetUtf8">The distance to the required literal over UTF-8, or -1 when the terms before it are not all ASCII.</param>
-    /// <param name="caseExtras">The characters beyond ASCII that fold to a letter of the case-insensitive prefix, or empty.</param>
     /// <param name="loopSet">The set of a loop every match starts with, when a literal follows it or a failed start may skip its run, or null.</param>
     /// <param name="loopMin">The least count of that loop.</param>
     /// <param name="afterLoop">The literal after that loop, or empty.</param>
     /// <param name="skipRun">Whether a failed start may be moved to the end of the run of the loop's set.</param>
     /// <param name="requiredCount">The number of characters before the required literal, or -1.</param>
-    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, string casePrefix, int requiredOffsetUtf8, int[] caseExtras, CharSet? loopSet, int loopMin, string afterLoop, bool skipRun, int requiredCount)
+    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, int[][] caseForms, int requiredOffsetUtf8, CharSet? loopSet, int loopMin, string afterLoop, bool skipRun, int requiredCount)
     {
-        this.CasePrefixUtf16 = casePrefix;
-        this.CasePrefixUtf8 = Encoding.UTF8.GetBytes(casePrefix);
         this.RequiredOffsetUtf8 = requiredOffsetUtf8;
         this.RequiredCount = requiredCount;
-        this.CasePrefixPairs = CasePairs(casePrefix);
-        this.CaseExtras = caseExtras.Length == 0 ? null : new CharSet(EcmaRegexUnicode.SetOf(Pairs(caseExtras), caseExtras.Length * 2));
+        this.CaseCharacters = caseForms.Length;
+        if (caseForms.Length != 0)
+        {
+            Needle<ushort> needle16 = Needles.Forms<ushort>(caseForms, false, out int[] extras16, out int window16);
+            Needle<byte> needle8 = Needles.Forms<byte>(caseForms, true, out int[] extras8, out int window8);
+            this.CaseNeedleUtf16 = needle16.CanSearch ? needle16 : null;
+            this.CaseNeedleUtf8 = needle8.CanSearch ? needle8 : null;
+            this.CaseExtrasUtf16 = extras16.Length == 0 ? null : Needles.Multi<ushort>(Array.ConvertAll(extras16, Rune), false);
+            this.CaseExtrasUtf8 = extras8.Length == 0 ? null : Needles.Multi<byte>(Array.ConvertAll(extras8, Rune), true);
+            this.CaseWindowUtf16 = window16;
+            this.CaseWindowUtf8 = window8;
+        }
+
         this.LoopSet = loopSet;
         this.LoopMin = loopMin;
         this.AfterLoopUtf16 = afterLoop;
         this.AfterLoopUtf8 = Encoding.UTF8.GetBytes(afterLoop);
         this.SkipRun = skipRun;
-#if NET
-        this.CasePrefixFirst = casePrefix.Length == 0
-            ? System.Buffers.SearchValues.Create(ReadOnlySpan<byte>.Empty)
-            : System.Buffers.SearchValues.Create([(byte)char.ToLowerInvariant(casePrefix[0]), (byte)char.ToUpperInvariant(casePrefix[0])]);
-#endif
         this.FirstIsSmall = first is not null && first.IsSmall;
-        this.Utf8PrefixNeedle = prefix.Length == 0 ? null : new Utf8Needle(Encoding.UTF8.GetBytes(prefix));
-        this.RequiredUtf8Needle = required.Length == 0 ? null : new Utf8Needle(Encoding.UTF8.GetBytes(required));
-        this.AfterLoopUtf8Needle = afterLoop.Length == 0 ? null : new Utf8Needle(Encoding.UTF8.GetBytes(afterLoop));
+        this.Utf8PrefixNeedle = prefix.Length == 0 ? null : Needles.Utf8(prefix);
+        this.RequiredUtf8Needle = required.Length == 0 ? null : Needles.Utf8(required);
+        this.AfterLoopUtf8Needle = afterLoop.Length == 0 ? null : Needles.Utf8(afterLoop);
+        this.Utf16PrefixNeedle = prefix.Length == 0 ? null : Needles.Utf16(prefix);
+        this.RequiredUtf16Needle = required.Length == 0 ? null : Needles.Utf16(required);
+        this.AfterLoopUtf16Needle = afterLoop.Length == 0 ? null : Needles.Utf16(afterLoop);
         this.RequiredUtf16 = required;
         this.RequiredUtf8 = Encoding.UTF8.GetBytes(required);
         this.RequiredOffset = requiredOffset;
@@ -474,14 +480,23 @@ internal sealed class Program
     /// <summary>Gets the literal text every match starts with, as UTF-8.</summary>
     public byte[] Utf8Prefix { get; }
 
-    /// <summary>Gets the prefix as a UTF-8 search by its rarest byte, or null.</summary>
-    public Utf8Needle? Utf8PrefixNeedle { get; }
+    /// <summary>Gets the prefix as a UTF-8 search, or null.</summary>
+    public Needle<byte>? Utf8PrefixNeedle { get; }
+
+    /// <summary>Gets the prefix as a UTF-16 search, or null.</summary>
+    public Needle<ushort>? Utf16PrefixNeedle { get; }
+
+    /// <summary>Gets the required literal as a UTF-16 search, or null.</summary>
+    public Needle<ushort>? RequiredUtf16Needle { get; }
+
+    /// <summary>Gets the literal after the leading loop as a UTF-16 search, or null.</summary>
+    public Needle<ushort>? AfterLoopUtf16Needle { get; }
 
     /// <summary>Gets the required literal as a UTF-8 search by its rarest byte, or null.</summary>
-    public Utf8Needle? RequiredUtf8Needle { get; }
+    public Needle<byte>? RequiredUtf8Needle { get; }
 
     /// <summary>Gets the literal after the leading loop as a UTF-8 search by its rarest byte, or null.</summary>
-    public Utf8Needle? AfterLoopUtf8Needle { get; }
+    public Needle<byte>? AfterLoopUtf8Needle { get; }
 
     /// <summary>Gets the least number of characters a match consumes (see <see cref="Compiler.SetNeeds"/>).</summary>
     public int Need { get; }
@@ -508,19 +523,30 @@ internal sealed class Program
     public int RequiredOffset { get; }
 
     /// <summary>
-    /// Gets, in lower case, an ASCII literal of two characters or more that every match starts with ignoring case
-    /// (each character of the pattern is a letter with its two cases, or a character with no case), or empty. The
-    /// search for a start then compares ignoring case, which is vectorised, instead of matching the classes.
+    /// Gets the number of characters of the literal every match starts with whose characters each have one or
+    /// more forms (a letter's cases under the i flag, or the members of a small class of single characters), or 0
+    /// (see <see cref="Compiler.CaseForms"/>). The search for a start is then an anchored search for the literal
+    /// in any of its forms, vectorised, instead of a match of the classes.
     /// </summary>
-    public string CasePrefixUtf16 { get; }
+    public int CaseCharacters { get; }
 
-    /// <summary>Gets the case-insensitive prefix as UTF-8.</summary>
-    public byte[] CasePrefixUtf8 { get; }
+    /// <summary>Gets the search for that literal over UTF-16, or null when there is none or it cannot be searched for by anchors.</summary>
+    public Needle<ushort>? CaseNeedleUtf16 { get; }
 
-#if NET
-    /// <summary>Gets the two cases of the first character of the case-insensitive prefix, as bytes.</summary>
-    public System.Buffers.SearchValues<byte> CasePrefixFirst { get; }
-#endif
+    /// <summary>Gets the search for that literal over UTF-8, or null when there is none or it cannot be searched for by anchors.</summary>
+    public Needle<byte>? CaseNeedleUtf8 { get; }
+
+    /// <summary>Gets a search for the forms of the literal's characters that the UTF-16 search leaves out (none in practice: a character and its cases are each one code unit, or each two), or null.</summary>
+    public MultiNeedle<ushort>? CaseExtrasUtf16 { get; }
+
+    /// <summary>Gets a search for the forms of the literal's characters that the UTF-8 search leaves out (the long s and the Kelvin sign, whose UTF-8 is longer than s and k), which are looked for apart, or null.</summary>
+    public MultiNeedle<byte>? CaseExtrasUtf8 { get; }
+
+    /// <summary>Gets the most UTF-16 units the literal can take in any of its forms.</summary>
+    public int CaseWindowUtf16 { get; }
+
+    /// <summary>Gets the most UTF-8 units the literal can take in any of its forms.</summary>
+    public int CaseWindowUtf8 { get; }
 
     /// <summary>Gets a value indicating whether <see cref="First"/> is small enough to be searched for member by member (see <see cref="CharSet.IsSmall"/>).</summary>
     public bool FirstIsSmall { get; }
@@ -583,13 +609,17 @@ internal sealed class Program
             this.Shape = SimpleShape.LiteralAlternation;
             this.Alternatives = alternatives;
             this.AlternativesUtf8 = new byte[alternatives.Length][];
-            this.AlternativeNeedles = new Utf8Needle[alternatives.Length];
+            this.AlternativeNeedles = new Needle<byte>[alternatives.Length];
+            this.AlternativeNeedlesUtf16 = new Needle<ushort>[alternatives.Length];
             for (int k = 0; k < alternatives.Length; k++)
             {
                 this.AlternativesUtf8[k] = Encoding.UTF8.GetBytes(alternatives[k]);
-                this.AlternativeNeedles[k] = new Utf8Needle(this.AlternativesUtf8[k]);
+                this.AlternativeNeedles[k] = new Needle<byte>(this.AlternativesUtf8[k]);
+                this.AlternativeNeedlesUtf16[k] = Needles.Utf16(alternatives[k]);
             }
 
+            this.AlternativeMultiUtf8 = new MultiNeedle<byte>(this.AlternativeNeedles);
+            this.AlternativeMultiUtf16 = new MultiNeedle<ushort>(this.AlternativeNeedlesUtf16);
             return;
         }
 
@@ -602,7 +632,7 @@ internal sealed class Program
         }
 
 #if NET
-        if (this.CasePrefixUtf16.Length == insts.Length - 1)
+        if (this.CaseCharacters != 0 && this.CaseCharacters == insts.Length - 1 && this.CaseNeedleUtf16 is not null && this.CaseNeedleUtf8 is not null)
         {
             this.Shape = SimpleShape.CaseLiteral;
             return;
@@ -613,10 +643,18 @@ internal sealed class Program
         {
             this.Shape = SimpleShape.Sequence;
             this.PairNeedles = MakePairNeedles(insts);
-            this.PairNeedlesUtf8 = new Utf8Needle[this.PairNeedles.Length];
+            this.PairNeedlesUtf8 = new Needle<byte>[this.PairNeedles.Length];
+            this.PairNeedlesUtf16 = new Needle<ushort>[this.PairNeedles.Length];
             for (int k = 0; k < this.PairNeedles.Length; k++)
             {
-                this.PairNeedlesUtf8[k] = new Utf8Needle(Encoding.UTF8.GetBytes(this.PairNeedles[k]));
+                this.PairNeedlesUtf8[k] = Needles.Utf8(this.PairNeedles[k]);
+                this.PairNeedlesUtf16[k] = Needles.Utf16(this.PairNeedles[k]);
+            }
+
+            if (this.PairNeedles.Length != 0)
+            {
+                this.PairMultiUtf8 = new MultiNeedle<byte>(this.PairNeedlesUtf8);
+                this.PairMultiUtf16 = new MultiNeedle<ushort>(this.PairNeedlesUtf16);
             }
         }
     }
@@ -629,10 +667,28 @@ internal sealed class Program
     public string[] PairNeedles { get; private set; } = [];
 
     /// <summary>Gets <see cref="PairNeedles"/> as UTF-8 searches.</summary>
-    public Utf8Needle[] PairNeedlesUtf8 { get; private set; } = [];
+    public Needle<byte>[] PairNeedlesUtf8 { get; private set; } = [];
+
+    /// <summary>Gets <see cref="PairNeedles"/> as UTF-16 searches.</summary>
+    public Needle<ushort>[] PairNeedlesUtf16 { get; private set; } = [];
 
     /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program as UTF-8 searches.</summary>
-    public Utf8Needle[] AlternativeNeedles { get; private set; } = [];
+    public Needle<byte>[] AlternativeNeedles { get; private set; } = [];
+
+    /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program as UTF-16 searches.</summary>
+    public Needle<ushort>[] AlternativeNeedlesUtf16 { get; private set; } = [];
+
+    /// <summary>Gets the search for any of the alternatives at once over UTF-8, or null.</summary>
+    public MultiNeedle<byte>? AlternativeMultiUtf8 { get; private set; }
+
+    /// <summary>Gets the search for any of the alternatives at once over UTF-16, or null.</summary>
+    public MultiNeedle<ushort>? AlternativeMultiUtf16 { get; private set; }
+
+    /// <summary>Gets the search for any of the pair needles at once over UTF-8, or null.</summary>
+    public MultiNeedle<byte>? PairMultiUtf8 { get; private set; }
+
+    /// <summary>Gets the search for any of the pair needles at once over UTF-16, or null.</summary>
+    public MultiNeedle<ushort>? PairMultiUtf16 { get; private set; }
 
     private static string[] MakePairNeedles(Inst[] insts)
     {
@@ -700,33 +756,6 @@ internal sealed class Program
     /// <summary>Gets the number of characters (code points, or code units without the u flag) before the required literal, or -1 when there is none. Where the encoding has no fixed offset, the start is that many characters before the literal.</summary>
     public int RequiredCount { get; }
 
-    /// <summary>Gets the first two characters of the case-insensitive prefix in each of their cases, as UTF-8 needles.</summary>
-    public byte[][] CasePrefixPairs { get; }
-
-    private static byte[][] CasePairs(string casePrefix)
-    {
-        if (casePrefix.Length < 2)
-        {
-            return [];
-        }
-
-        List<byte[]> pairs = [];
-        foreach (char a in Cases(casePrefix[0]))
-        {
-            foreach (char b in Cases(casePrefix[1]))
-            {
-                pairs.Add([(byte)a, (byte)b]);
-            }
-        }
-
-        return [.. pairs];
-
-        static char[] Cases(char c) => c >= 'a' && c <= 'z' ? [c, (char)(c - 32)] : [c];
-    }
-
-    /// <summary>Gets the characters beyond ASCII that fold to a letter of the case-insensitive prefix (the long s, the Kelvin sign), which the ordinal comparison does not know, or null when there are none.</summary>
-    public CharSet? CaseExtras { get; }
-
     /// <summary>Gets the set of the single-character loop every match starts with (see <see cref="Compiler.LiteralAfterLoop"/> and <see cref="SkipRun"/>), or null.</summary>
     public CharSet? LoopSet { get; }
 
@@ -746,6 +775,13 @@ internal sealed class Program
     /// the run ends at the same place, and what follows runs from there with the same result.
     /// </summary>
     public bool SkipRun { get; }
+
+    private static string Rune(int codePoint)
+    {
+        StringBuilder sb = new();
+        Compiler.AppendRune(sb, codePoint);
+        return sb.ToString();
+    }
 
     private static int[] Pairs(int[] points)
     {
@@ -847,8 +883,7 @@ internal sealed class Compiler
         int requiredOffset = -1;
         int requiredOffsetUtf8 = -1;
         int requiredCount = -1;
-        string casePrefix = string.Empty;
-        int[] caseExtras = [];
+        int[][] caseForms = [];
         CharSet? loopSet = null;
         int loopMin = 0;
         string afterLoop = string.Empty;
@@ -879,10 +914,10 @@ internal sealed class Compiler
 
                 if (required.Length == 0)
                 {
-                    casePrefix = CaseInsensitivePrefix(root, out caseExtras);
+                    caseForms = CaseForms(root);
                 }
 
-                if (required.Length == 0 && casePrefix.Length == 0 && referenced.Count == 0)
+                if (required.Length == 0 && caseForms.Length == 0 && referenced.Count == 0)
                 {
                     afterLoop = LiteralAfterLoop(root, c, out loopSet, out loopMin);
                 }
@@ -910,7 +945,7 @@ internal sealed class Compiler
             }
         }
 
-        Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, casePrefix, requiredOffsetUtf8, caseExtras, loopSet, loopMin, afterLoop, skipRun, requiredCount);
+        Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, caseForms, requiredOffsetUtf8, loopSet, loopMin, afterLoop, skipRun, requiredCount);
         program.SetShape(LiteralAlternatives(root));
         program.LeadingWordBoundary = insts.Length > 1 && insts[0].Op == Op.WordBoundary && first is not null && !first.HasNonAscii && IsWordSubset(first);
         return program;
@@ -1411,6 +1446,30 @@ internal sealed class Compiler
             n = n.Subs[0];
         }
 
+        if (n.Kind == EcmaRegexNodeKind.Alt)
+        {
+            // A literal every alternative holds at the same distance from its start is one every match holds.
+            string shared = string.Empty;
+            foreach (EcmaRegexNode alternative in n.Subs)
+            {
+                string literal = RequiredLiteral(alternative, unicode, out int o, out int o8, out int c);
+                if (literal.Length == 0 || (shared.Length != 0 && (literal != shared || o != offset || o8 != offsetUtf8 || c != count)))
+                {
+                    offset = -1;
+                    offsetUtf8 = -1;
+                    count = -1;
+                    return string.Empty;
+                }
+
+                shared = literal;
+                offset = o;
+                offsetUtf8 = o8;
+                count = c;
+            }
+
+            return shared;
+        }
+
         if (n.Kind != EcmaRegexNodeKind.Cat)
         {
             return string.Empty;
@@ -1581,15 +1640,15 @@ internal sealed class Compiler
     }
 
     /// <summary>
-    /// The ASCII text, in lower case, that every match starts with ignoring case, when it is two characters or
-    /// more: a run of terms at the start of the top-level sequence that are each an ASCII character without a case
-    /// or the class of the two cases of an ASCII letter (which is how the parser reads a letter under the i flag),
-    /// or empty.
+    /// The literal every match starts with, when its characters each have one or more forms and it is two
+    /// characters or more with some character of more than one form: a run of terms at the start of the
+    /// top-level sequence that are each a character or a class of up to four single characters (which is how the
+    /// parser reads a letter under the i flag: the letter in each of its cases), or empty. The search for a start
+    /// is then one anchored search for the literal in any of its forms (see <see cref="Needle{T}"/>).
     /// </summary>
     /// <param name="root">The root of the tree.</param>
-    /// <param name="extras">The characters beyond ASCII that fold to a letter of the prefix under the u flag (the long s to s, the Kelvin sign to k), which the ordinal comparison does not find and the search looks for apart.</param>
-    /// <returns>The text, or empty.</returns>
-    public static string CaseInsensitivePrefix(EcmaRegexNode root, out int[] extras)
+    /// <returns>For each character, its forms as code points, the pattern's own first; or empty.</returns>
+    public static int[][] CaseForms(EcmaRegexNode root)
     {
         EcmaRegexNode n = root;
         while (n.Kind == EcmaRegexNodeKind.Group && n.Group == 0)
@@ -1598,30 +1657,24 @@ internal sealed class Compiler
         }
 
         EcmaRegexNode[] terms = n.Kind == EcmaRegexNodeKind.Cat ? n.Subs : [n];
-        StringBuilder sb = new();
-        List<int> extra = [];
+        List<int[]> forms = [];
+        bool several = false;
         foreach (EcmaRegexNode term in terms)
         {
-            if (term.Kind == EcmaRegexNodeKind.Char && term.CodePoint < 0x80 && !char.IsLetter((char)term.CodePoint))
+            if (term.Kind == EcmaRegexNodeKind.Char && !IsSurrogate(term.CodePoint))
             {
-                sb.Append((char)term.CodePoint);
+                forms.Add([term.CodePoint]);
                 continue;
             }
 
-            if (term.Kind == EcmaRegexNodeKind.Set && term.Set.Length >= 4 && term.Set[0] == term.Set[1] && term.Set[2] == term.Set[3]
-                && term.Set[0] >= 'A' && term.Set[0] <= 'Z' && term.Set[2] == term.Set[0] + ('a' - 'A')
-                && (term.Set.Length == 4 || term.Set[4] >= 0x80))
+            if (term.Kind == EcmaRegexNodeKind.Set && term.Set.Length >= 4 && term.Set.Length <= 8)
             {
+                int[] members = new int[term.Set.Length / 2];
                 bool single = true;
-                for (int k = 4; k < term.Set.Length; k += 2)
+                for (int k = 0; k < term.Set.Length; k += 2)
                 {
-                    if (term.Set[k] != term.Set[k + 1])
-                    {
-                        single = false;
-                        break;
-                    }
-
-                    extra.Add(term.Set[k]);
+                    single &= term.Set[k] == term.Set[k + 1] && !IsSurrogate(term.Set[k]);
+                    members[k / 2] = term.Set[k];
                 }
 
                 if (!single)
@@ -1629,15 +1682,17 @@ internal sealed class Compiler
                     break;
                 }
 
-                sb.Append((char)term.Set[2]);
+                forms.Add(members);
+                several = true;
                 continue;
             }
 
             break;
         }
 
-        extras = [.. extra];
-        return sb.Length >= 2 ? sb.ToString() : string.Empty;
+        return forms.Count >= 2 && several ? [.. forms] : [];
+
+        static bool IsSurrogate(int c) => c >= 0xD800 && c <= 0xDFFF;
     }
 
     /// <summary>
@@ -1652,6 +1707,15 @@ internal sealed class Compiler
         fixedUnits = false;
         switch (term.Kind)
         {
+            case EcmaRegexNodeKind.Bol:
+            case EcmaRegexNodeKind.Eol:
+            case EcmaRegexNodeKind.LineStart:
+            case EcmaRegexNodeKind.LineEnd:
+            case EcmaRegexNodeKind.WordBoundary:
+            case EcmaRegexNodeKind.NotWordBoundary:
+                ascii = true;
+                fixedUnits = true;
+                return 0;
             case EcmaRegexNodeKind.Char:
                 ascii = term.CodePoint < 0x80;
                 fixedUnits = term.CodePoint <= 0xFFFF;

@@ -108,6 +108,24 @@ public class PrefilterTests
     [DataRow(@"\S{2}\ud801\udc00$", "u", "\ud801\udc00\ud801\udc00", false, "")]
     [DataRow(@"[^u-z]{13}x", "u", "\ud83d\ude00abcdefghijklx", true, "a required literal reached by walking back over characters of two units")]
     [DataRow(@"[a-z]*x", "u", "1ax", true, "")]
+    [DataRow("\u03b8x", "iu", "a\u03f4x", true, "a character of four forms (theta) anchors nothing: the search falls back")]
+    [DataRow("\u03b8x", "iu", "a\u03d1X", true, "")]
+    [DataRow("\u03b8x", "iu", "a\u03f4y", false, "")]
+    [DataRow("\u03b8 ab", "iu", "\u03d1 AB", true, "and with other characters to anchor on it is searched for by them")]
+    [DataRow("\u03b8 ab", "iu", "\u03b8 ac", false, "")]
+    [DataRow("\ud801\udc00a", "iu", "x\ud801\udc28A", true, "a supplementary character's cases differ in the low surrogate, two forms of two units")]
+    [DataRow("\ud801\udc00a", "iu", "x\ud801\udc29A", false, "")]
+    [DataRow("\u0428x", "iu", "\u0408x", false, "over UTF-8 the forms of a letter differ in both bytes (D0 A8, D1 88): a byte of each is not a form (D0 88)")]
+    [DataRow("\u0428x", "iu", "\u0468x", false, "nor D1 A8")]
+    [DataRow("\u0428x", "iu", "\u0448X", true, "")]
+    [DataRow(@"[ab][cd]", "u", "zzbd", true, "a small class of single characters is a character of several forms")]
+    [DataRow(@"[ab][cd]", "u", "zzbb", false, "")]
+    [DataRow(@"ss", "iu", "x\u017fS", true, "three forms at every position (s, S, the long s): anchors of three values over UTF-16, extras over UTF-8")]
+    [DataRow(@"ss", "iu", "x\u017f\u017f", true, "")]
+    [DataRow(@"ss", "iu", "xs\u017fx", true, "")]
+    [DataRow(@"ss", "iu", "x\u017fxs", false, "")]
+    [DataRow(@"k\u0428", "iu", "x\u212a\u0448", true, "the Kelvin sign before a letter beyond ASCII: an extra whose window is wider than the literal over UTF-8")]
+    [DataRow(@"k\u0428", "iu", "x\u212a\u0418", false, "")]
     public void TheScansAgreeWithThePlainSearchOverBothEncodings(string pattern, string flags, string text, bool expected, string why)
     {
         Regex r = new(pattern, flags);
@@ -125,6 +143,8 @@ public class PrefilterTests
         {
             (@"Шерлок Холмс|Джон Уотсон|夏洛克", "gu", @"Шерлок Холмс|Джон Уотсон|夏洛克", System.Text.RegularExpressions.RegexOptions.None),
             (@"twain", "giu", @"twain", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
+            (@"шерлок|джон", "giu", @"шерлок|джон", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
+            (@"ſherlock|\u212aing", "giu", @"[sſ]herlock|[k\u212a]ing", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
             (@"[\w.+-]+@[\w.-]+\.[\w.-]+", "gu", @"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9_.-]+\.[a-zA-Z0-9_.-]+", System.Text.RegularExpressions.RegexOptions.None),
             (@"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9])", "gu", @"(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9])", System.Text.RegularExpressions.RegexOptions.None),
             (@"\w+", "gu", @"[a-zA-Z0-9_]+", System.Text.RegularExpressions.RegexOptions.None),

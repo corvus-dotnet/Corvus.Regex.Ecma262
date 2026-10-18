@@ -597,20 +597,22 @@ internal static class Matcher
 #if NET
             case SimpleShape.CaseLiteral:
             {
-                // The ordinal search ignoring case, and where a letter also folds to a character beyond ASCII (the
-                // long s, the Kelvin sign) a check of every start that could reach one, as the general search does.
-                int n = p.CasePrefixUtf16.Length;
-                CharSet? extras = p.CaseExtras;
+                // The anchored search for the literal in its forms, and where a form the search leaves out exists
+                // (the long s, the Kelvin sign, over UTF-8) a check of every start that could reach one, as the
+                // general search does.
+                int n = enc.CaseLength(p);
+                int window = enc.CaseWindow(p);
+                bool extras = enc.HasCaseExtras(p);
                 bool units = p.Units;
                 int pos = start;
                 while (true)
                 {
                     int i = enc.IndexOfCasePrefix(input, pos, p);
                     int e = -1;
-                    if (extras is not null)
+                    if (extras)
                     {
-                        int limit = i < 0 ? len : Math.Min(len, i + n);
-                        e = enc.IndexOfCandidate(input.Slice(0, limit), pos, extras, true);
+                        int limit = i < 0 ? len : Math.Min(len, i + window);
+                        e = enc.IndexOfCaseExtra(input, pos, limit, p);
                     }
 
                     if (i < 0 && e < 0)
@@ -618,9 +620,9 @@ internal static class Matcher
                         return false;
                     }
 
-                    if (e >= 0 && (i < 0 || e - n < i))
+                    if (e >= 0 && (i < 0 || e - window < i))
                     {
-                        int s = Math.Max(pos, e - n + 1);
+                        int s = Math.Max(pos, e - window + 1);
                         while (s <= e)
                         {
                             s = enc.AlignStart(input, s, units);
@@ -838,26 +840,26 @@ internal static class Matcher
         bool units = p.Units;
         int pos = start;
 #if NET
-        if (p.CasePrefixUtf16.Length != 0)
+        if (enc.HasCaseNeedle(p))
         {
-            // Every match starts with the literal ignoring case: the comparison is vectorised. A character beyond
-            // ASCII that folds to a letter of the literal (the long s, the Kelvin sign) is looked for apart, and
-            // every start from which the literal could reach it is tried, in order.
-            int n = p.CasePrefixUtf16.Length;
-            CharSet? extras = p.CaseExtras;
+            // Every match starts with the literal in one of its forms: the anchored search is vectorised. A form
+            // the search leaves out (the long s, the Kelvin sign, over UTF-8) is looked for apart, and every start
+            // from which the literal could reach it is tried, in order.
+            int window = enc.CaseWindow(p);
+            bool extras = enc.HasCaseExtras(p);
 
             while (true)
             {
                 int i = enc.IndexOfCasePrefix(input, pos, p);
 
-                // An extra character matters only where a start before the ordinal candidate could reach it, so
-                // it is looked for up to the end of that candidate's prefix, or to the end of the text when there
-                // is no candidate.
+                // An extra form matters only where a start before the candidate could reach it, so it is looked
+                // for up to the end of that candidate's literal, or to the end of the text when there is no
+                // candidate.
                 int e = -1;
-                if (extras is not null)
+                if (extras)
                 {
-                    int limit = i < 0 ? len : Math.Min(len, i + n);
-                    e = enc.IndexOfCandidate(input.Slice(0, limit), pos, extras, true);
+                    int limit = i < 0 ? len : Math.Min(len, i + window);
+                    e = enc.IndexOfCaseExtra(input, pos, limit, p);
                 }
 
                 if (i < 0 && e < 0)
@@ -865,9 +867,9 @@ internal static class Matcher
                     return false;
                 }
 
-                if (e >= 0 && (i < 0 || e - n < i))
+                if (e >= 0 && (i < 0 || e - window < i))
                 {
-                    int s = Math.Max(pos, e - n + 1);
+                    int s = Math.Max(pos, e - window + 1);
                     while (s <= e)
                     {
                         s = enc.AlignStart(input, s, units);
