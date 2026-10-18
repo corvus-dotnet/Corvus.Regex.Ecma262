@@ -658,12 +658,14 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
             }
 
             // The first two characters in each of their cases, as two-byte needles the span search vectorises;
-            // the nearest occurrence is the candidate.
+            // the nearest occurrence is the candidate. Each needle after the first is looked for only up to the
+            // best so far, so a rare needle never scans the whole text at every step.
             ReadOnlySpan<byte> window = input.Slice(from, input.Length - from - n + 2);
             int best = -1;
             foreach (byte[] pair in pairs)
             {
-                int j = window.IndexOf(pair);
+                ReadOnlySpan<byte> scope = best < 0 ? window : window.Slice(0, best + 1);
+                int j = scope.IndexOf(pair);
                 if (j >= 0 && (best < 0 || j < best))
                 {
                     best = j;

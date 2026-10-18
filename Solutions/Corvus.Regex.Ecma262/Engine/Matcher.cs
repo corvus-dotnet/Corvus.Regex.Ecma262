@@ -1726,7 +1726,7 @@ internal static class Matcher
 
                         int at;
 #if NET
-                        if (!marked && quick[e.Pc].AsciiOnly)
+                        if (!marked && e.Pos - e.A >= 16 && quick[e.Pc].AsciiOnly)
                         {
                             // What follows can go on only from a character below 128: the last such position in
                             // the run is found by a vectorised search, and the positions passed over are the ones
