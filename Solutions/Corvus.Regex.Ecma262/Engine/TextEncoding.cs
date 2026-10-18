@@ -90,6 +90,13 @@ internal interface ITextEncoding<TUnit>
     /// <returns>The position, or -1.</returns>
     int IndexOfPrefix(ReadOnlySpan<TUnit> input, int from, Program program);
 
+    /// <summary>The position of the first occurrence of the program's required literal at or after a position, or -1.</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="program">The program.</param>
+    /// <returns>The position, or -1.</returns>
+    int IndexOfRequired(ReadOnlySpan<TUnit> input, int from, Program program);
+
     /// <summary>The next position after a position that a match can start at: the next unit that is not a continuation byte.</summary>
     /// <param name="input">The text.</param>
     /// <param name="pos">The position, which is less than the length.</param>
@@ -121,6 +128,35 @@ internal interface ITextEncoding<TUnit>
     /// <param name="c">The character.</param>
     /// <returns>The unit.</returns>
     TUnit AsciiUnit(int c);
+
+    /// <summary>
+    /// The first position at or after a position where a character of the set can be: an exact member when the
+    /// set is small, otherwise an ASCII member or any character that is not ASCII. The caller decodes and checks.
+    /// </summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="set">The set.</param>
+    /// <param name="small">Whether the set is small (see <see cref="CharSet.IsSmall"/>).</param>
+    /// <returns>The position, or -1.</returns>
+    int IndexOfCandidate(ReadOnlySpan<TUnit> input, int from, CharSet set, bool small);
+
+    /// <summary>
+    /// The first position at or after a position that a match may start at. Over UTF-8 a candidate the scan lands
+    /// on can be a continuation byte: a stray one is a character (U+FFFD) and so a start; one inside a character is
+    /// not, unless it is the third byte of a four-byte character and the text is matched by code unit.
+    /// </summary>
+    /// <param name="input">The text.</param>
+    /// <param name="pos">The position, which is less than the length.</param>
+    /// <param name="units">Whether the text is matched by UTF-16 code unit.</param>
+    /// <returns>The position.</returns>
+    int AlignStart(ReadOnlySpan<TUnit> input, int pos, bool units);
+
+    /// <summary>The first position at or after a position of the program's case-insensitive ASCII literal, or -1 (see <see cref="Program.CasePrefixUtf16"/>).</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="program">The program.</param>
+    /// <returns>The position, or -1.</returns>
+    int IndexOfCasePrefix(ReadOnlySpan<TUnit> input, int from, Program program);
 #endif
 }
 
@@ -350,6 +386,18 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     }
 
     /// <inheritdoc/>
+    public int IndexOfRequired(ReadOnlySpan<byte> input, int from, Program program)
+    {
+        if (from > input.Length)
+        {
+            return -1;
+        }
+
+        int i = input.Slice(from).IndexOf(program.RequiredUtf8);
+        return i < 0 ? -1 : from + i;
+    }
+
+    /// <inheritdoc/>
     public int NextStart(ReadOnlySpan<byte> input, int pos)
     {
         pos++;
@@ -396,6 +444,77 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte AsciiUnit(int c) => (byte)c;
+
+    /// <inheritdoc/>
+    public int IndexOfCandidate(ReadOnlySpan<byte> input, int from, CharSet set, bool small)
+    {
+        int i = small
+            ? input.Slice(from).IndexOfAny(set.LeadBytes)
+            : set.HasNonAscii ? input.Slice(from).IndexOfAnyExcept(set.NonMemberBytes) : input.Slice(from).IndexOfAny(set.MemberBytes);
+        return i < 0 ? -1 : from + i;
+    }
+
+    /// <inheritdoc/>
+    public int AlignStart(ReadOnlySpan<byte> input, int pos, bool units)
+    {
+        if (!IsContinuation(input[pos]))
+        {
+            return pos;
+        }
+
+        int lead = pos - 1;
+        while (lead >= 0 && pos - lead < 4 && IsContinuation(input[lead]))
+        {
+            lead--;
+        }
+
+        if (lead < 0 || IsContinuation(input[lead]))
+        {
+            // No lead byte within reach: a stray continuation byte, which is a character of its own.
+            return pos;
+        }
+
+        DecodeRune(input.Slice(lead), out int w);
+        if (lead + w <= pos)
+        {
+            return pos;
+        }
+
+        if (units && w == 4)
+        {
+            return pos <= lead + 2 ? lead + 2 : lead + 4;
+        }
+
+        return lead + w;
+    }
+
+    /// <inheritdoc/>
+    public int IndexOfCasePrefix(ReadOnlySpan<byte> input, int from, Program program)
+    {
+        byte[] lower = program.CasePrefixUtf8;
+        int n = lower.Length;
+        while (true)
+        {
+            if (input.Length - from < n)
+            {
+                return -1;
+            }
+
+            int i = input.Slice(from, input.Length - from - n + 1).IndexOfAny(program.CasePrefixFirst);
+            if (i < 0)
+            {
+                return -1;
+            }
+
+            from += i;
+            if (System.Text.Ascii.EqualsIgnoreCase(input.Slice(from, n), lower))
+            {
+                return from;
+            }
+
+            from++;
+        }
+    }
 #endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -494,6 +613,18 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     }
 
     /// <inheritdoc/>
+    public int IndexOfRequired(ReadOnlySpan<char> input, int from, Program program)
+    {
+        if (from > input.Length)
+        {
+            return -1;
+        }
+
+        int i = input.Slice(from).IndexOf(program.RequiredUtf16.AsSpan());
+        return i < 0 ? -1 : from + i;
+    }
+
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int NextStart(ReadOnlySpan<char> input, int pos) => pos + 1;
 
@@ -513,5 +644,34 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public char AsciiUnit(int c) => (char)c;
+
+    /// <inheritdoc/>
+    public int IndexOfCandidate(ReadOnlySpan<char> input, int from, CharSet set, bool small)
+    {
+        int i = small
+            ? input.Slice(from).IndexOfAny(set.AllChars)
+            : set.HasNonAscii ? input.Slice(from).IndexOfAnyExcept(set.NonMemberChars) : input.Slice(from).IndexOfAny(set.MemberChars);
+        return i < 0 ? -1 : from + i;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int AlignStart(ReadOnlySpan<char> input, int pos, bool units)
+    {
+        // By code point, the low half of a surrogate pair is inside a character.
+        if (!units && pos > 0 && char.IsLowSurrogate(input[pos]) && char.IsHighSurrogate(input[pos - 1]))
+        {
+            return pos + 1;
+        }
+
+        return pos;
+    }
+
+    /// <inheritdoc/>
+    public int IndexOfCasePrefix(ReadOnlySpan<char> input, int from, Program program)
+    {
+        int i = input.Slice(from).IndexOf(program.CasePrefixUtf16.AsSpan(), StringComparison.OrdinalIgnoreCase);
+        return i < 0 ? -1 : from + i;
+    }
 #endif
 }

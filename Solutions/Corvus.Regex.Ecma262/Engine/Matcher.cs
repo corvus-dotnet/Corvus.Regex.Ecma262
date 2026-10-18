@@ -499,6 +499,72 @@ internal static class Matcher
         CharSet? first = p.First;
         bool units = p.Units;
         int pos = start;
+#if NET
+        if (p.CasePrefixUtf16.Length != 0)
+        {
+            // Every match starts with the literal ignoring case: the comparison is vectorised.
+            while (true)
+            {
+                int i = enc.IndexOfCasePrefix(input, pos, p);
+                if (i < 0)
+                {
+                    return false;
+                }
+
+                from = i;
+                if (len - i < p.Need)
+                {
+                    return false;
+                }
+
+                if (Run<TUnit, TEncoding>(p, st, input, i, out to))
+                {
+                    return true;
+                }
+
+                if (st.Stop != MatchStop.None)
+                {
+                    return false;
+                }
+
+                pos = enc.NextStart(input, i);
+            }
+        }
+#endif
+        if (p.RequiredOffset >= 0)
+        {
+            // Every match holds the literal at the offset from its start, so the literal's first occurrence at or
+            // after pos + offset allows one start, and a start before it can hold no match.
+            int offset = p.RequiredOffset;
+            while (true)
+            {
+                int i = enc.IndexOfRequired(input, pos + offset, p);
+                if (i < 0)
+                {
+                    return false;
+                }
+
+                int at = i - offset;
+                if (len - at < p.Need)
+                {
+                    return false;
+                }
+
+                from = at;
+                if (Run<TUnit, TEncoding>(p, st, input, at, out to))
+                {
+                    return true;
+                }
+
+                if (st.Stop != MatchStop.None)
+                {
+                    return false;
+                }
+
+                pos = enc.NextStart(input, at);
+            }
+        }
+
         while (true)
         {
             if (len - pos < p.Need)
@@ -515,19 +581,22 @@ internal static class Matcher
 #if NET
             if (first is not null)
             {
-                // A start is a unit that is an ASCII member of the first set, or any unit that is not ASCII (looked
-                // at below). The scan for one is vectorised.
-                int i = first.HasNonAscii
-                    ? input.Slice(pos).IndexOfAnyExcept(enc.NonMembers(first))
-                    : input.Slice(pos).IndexOfAny(enc.Members(first));
+                // A start is a unit that can begin a member of the first set (looked at below). The scan for one
+                // is vectorised.
+                int i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);
                 if (i < 0)
                 {
                     return false;
                 }
 
-                pos += i;
+                pos = enc.AlignStart(input, i, units);
                 from = pos;
                 if (len - pos < p.Need)
+                {
+                    return false;
+                }
+
+                if (pos == len)
                 {
                     return false;
                 }
@@ -1282,6 +1351,14 @@ internal static class Matcher
                     steps -= (at - pos) >> 3;
                     if (n >= min)
                     {
+                        if (i.Atomic)
+                        {
+                            // Nothing that follows can take a character of the set, so no give-back can succeed.
+                            pos = at;
+                            pc++;
+                            continue;
+                        }
+
                         if (memo && i.M != 0)
                         {
                             int idx = MemoIndex(p, st, i.M, at);

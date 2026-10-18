@@ -8,6 +8,7 @@ using System;
 #if NET
 using System.Buffers;
 #endif
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace Corvus.Ecma262.RegularExpressions;
@@ -28,6 +29,8 @@ internal sealed class CharSet
     private SearchValues<byte>? nonMemberBytes;
     private SearchValues<char>? memberChars;
     private SearchValues<char>? nonMemberChars;
+    private SearchValues<byte>? leadBytes;
+    private SearchValues<char>? allChars;
 #endif
 
     /// <summary>Initializes a new instance of the <see cref="CharSet"/> class.</summary>
@@ -83,6 +86,28 @@ internal sealed class CharSet
     /// <summary>Gets a value indicating whether the set holds a code point of 128 or more.</summary>
     public bool HasNonAscii => this.ranges.Length > 0 && this.ranges[this.ranges.Length - 1] >= 128;
 
+    /// <summary>The most members a set may have for its search values over every member to be built: enumerating them must stay cheap.</summary>
+    public const int SmallSet = 512;
+
+    /// <summary>Gets a value indicating whether the set has at most <see cref="SmallSet"/> members.</summary>
+    public bool IsSmall
+    {
+        get
+        {
+            long n = 0;
+            for (int k = 0; k < this.ranges.Length; k += 2)
+            {
+                n += this.ranges[k + 1] - this.ranges[k] + 1;
+                if (n > SmallSet)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
     /// <summary>
     /// Gets the last code point of the range that holds 128, when one does, or -1. A set whose range from 128
     /// reaches the last character of the grammar (U+10FFFF by code point, U+FFFF by code unit) holds every
@@ -108,6 +133,90 @@ internal sealed class CharSet
 
     /// <summary>Gets the ASCII characters that are not members, for a vectorised search over UTF-16.</summary>
     public SearchValues<char> NonMemberChars => this.nonMemberChars ??= SearchValues.Create(this.AsciiUnits<char>(members: false));
+
+    /// <summary>Gets every member of a small set as UTF-16 code units, for a vectorised search over UTF-16 (a member beyond the Basic Multilingual Plane is its high surrogate). Only for a set that <see cref="IsSmall"/>.</summary>
+    public SearchValues<char> AllChars
+    {
+        get
+        {
+            if (this.allChars is null)
+            {
+                List<char> chars = [];
+                for (int k = 0; k < this.ranges.Length; k += 2)
+                {
+                    for (int c = this.ranges[k]; c <= this.ranges[k + 1]; c++)
+                    {
+                        chars.Add(c > 0xFFFF ? (char)(0xD800 + ((c - 0x10000) >> 10)) : (char)c);
+                    }
+                }
+
+                this.allChars = SearchValues.Create(chars.ToArray());
+            }
+
+            return this.allChars;
+        }
+    }
+
+    /// <summary>Gets the first UTF-8 byte of every member of a small set, for a vectorised search over UTF-8. Only for a set that <see cref="IsSmall"/>.</summary>
+    public SearchValues<byte> LeadBytes
+    {
+        get
+        {
+            if (this.leadBytes is null)
+            {
+                bool[] seen = new bool[256];
+                for (int k = 0; k < this.ranges.Length; k += 2)
+                {
+                    for (int c = this.ranges[k]; c <= this.ranges[k + 1]; c++)
+                    {
+                        if (c >= 0xD800 && c <= 0xDBFF)
+                        {
+                            // A high surrogate is a code unit of a four-byte character, read at its first byte.
+                            for (int b = 0xF0; b <= 0xF4; b++)
+                            {
+                                seen[b] = true;
+                            }
+                        }
+                        else if (c >= 0xDC00 && c <= 0xDFFF)
+                        {
+                            // A low surrogate is read at the third byte of a four-byte character, a continuation byte.
+                            for (int b = 0x80; b < 0xC0; b++)
+                            {
+                                seen[b] = true;
+                            }
+                        }
+                        else
+                        {
+                            int lead = c < 0x80 ? c : c < 0x800 ? 0xC0 | (c >> 6) : c < 0x10000 ? 0xE0 | (c >> 12) : 0xF0 | (c >> 18);
+                            seen[lead] = true;
+                        }
+                    }
+                }
+
+                // U+FFFD, which a byte that is not UTF-8 decodes to, is a member through any such byte.
+                if (this.Contains(0xFFFD))
+                {
+                    for (int b = 0x80; b < 256; b++)
+                    {
+                        seen[b] = true;
+                    }
+                }
+
+                List<byte> bytes = [];
+                for (int b = 0; b < 256; b++)
+                {
+                    if (seen[b])
+                    {
+                        bytes.Add((byte)b);
+                    }
+                }
+
+                this.leadBytes = SearchValues.Create(bytes.ToArray());
+            }
+
+            return this.leadBytes;
+        }
+    }
 
     private TUnit[] AsciiUnits<TUnit>(bool members)
         where TUnit : unmanaged

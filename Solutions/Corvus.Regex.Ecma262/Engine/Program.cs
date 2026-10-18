@@ -176,6 +176,13 @@ internal struct Inst
 
     /// <summary>Gets or sets the number of the instruction's memo point, counted from 1, or 0 when it has none (see <see cref="MemoPoint"/>). It is set for a <see cref="Op.Split"/>, a <see cref="Op.Loop"/>, a <see cref="Op.Rep"/> and a <see cref="Op.RepLazy"/>.</summary>
     public int M { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether a <see cref="Op.Rep"/> keeps no choice to give characters back: what
+    /// follows it cannot consume any character of its set, so a way that gives one back fails at once (see
+    /// <see cref="Compiler.SetAtomic"/>).
+    /// </summary>
+    public bool Atomic { get; set; }
 }
 
 /// <summary>
@@ -341,8 +348,22 @@ internal sealed class Program
     /// <param name="first">Every code point a match can start with, or null.</param>
     /// <param name="utf8Literals">The literals as UTF-8.</param>
     /// <param name="utf16Literals">The literals as UTF-16.</param>
-    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals)
+    /// <param name="required">A literal every match holds at a fixed distance from its start, or empty.</param>
+    /// <param name="requiredOffset">That distance, or -1.</param>
+    /// <param name="casePrefix">An ASCII literal every match starts with ignoring case, in lower case, or empty.</param>
+    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, string casePrefix)
     {
+        this.CasePrefixUtf16 = casePrefix;
+        this.CasePrefixUtf8 = Encoding.UTF8.GetBytes(casePrefix);
+#if NET
+        this.CasePrefixFirst = casePrefix.Length == 0
+            ? System.Buffers.SearchValues.Create(ReadOnlySpan<byte>.Empty)
+            : System.Buffers.SearchValues.Create([(byte)char.ToLowerInvariant(casePrefix[0]), (byte)char.ToUpperInvariant(casePrefix[0])]);
+#endif
+        this.FirstIsSmall = first is not null && first.IsSmall;
+        this.RequiredUtf16 = required;
+        this.RequiredUtf8 = Encoding.UTF8.GetBytes(required);
+        this.RequiredOffset = requiredOffset;
         this.Insts = insts;
         this.Groups = groups;
         this.Loops = loops;
@@ -393,6 +414,33 @@ internal sealed class Program
 
     /// <summary>Gets the literals as UTF-8.</summary>
     public byte[][] Utf8Literals { get; }
+
+    /// <summary>Gets a literal every match holds at a fixed distance from its start, or empty (see <see cref="Compiler.RequiredLiteral"/>).</summary>
+    public string RequiredUtf16 { get; }
+
+    /// <summary>Gets the required literal as UTF-8.</summary>
+    public byte[] RequiredUtf8 { get; }
+
+    /// <summary>Gets the distance from the start of a match to its required literal, in units of either encoding, or -1 when there is none.</summary>
+    public int RequiredOffset { get; }
+
+    /// <summary>
+    /// Gets, in lower case, an ASCII literal of two characters or more that every match starts with ignoring case
+    /// (each character of the pattern is a letter with its two cases, or a character with no case), or empty. The
+    /// search for a start then compares ignoring case, which is vectorised, instead of matching the classes.
+    /// </summary>
+    public string CasePrefixUtf16 { get; }
+
+    /// <summary>Gets the case-insensitive prefix as UTF-8.</summary>
+    public byte[] CasePrefixUtf8 { get; }
+
+#if NET
+    /// <summary>Gets the two cases of the first character of the case-insensitive prefix, as bytes.</summary>
+    public System.Buffers.SearchValues<byte> CasePrefixFirst { get; }
+#endif
+
+    /// <summary>Gets a value indicating whether <see cref="First"/> is small enough to be searched for member by member (see <see cref="CharSet.IsSmall"/>).</summary>
+    public bool FirstIsSmall { get; }
 
     /// <summary>Gets the literals as UTF-16.</summary>
     public string[] Utf16Literals { get; }
@@ -474,9 +522,13 @@ internal sealed class Compiler
         Inst[] insts = [.. c.insts];
         int need = SetNeeds(insts);
         Quick[] quick = SetQuick(insts);
+        SetAtomic(insts, quick);
         bool anchored = StartsAtBol(root);
         string prefix = string.Empty;
         CharSet? first = null;
+        string required = string.Empty;
+        int requiredOffset = -1;
+        string casePrefix = string.Empty;
         if (!anchored)
         {
             StringBuilder sb = new();
@@ -490,10 +542,16 @@ internal sealed class Compiler
                 {
                     first = new CharSet(EcmaRegexUnicode.SetOf([.. pairs], pairs.Count));
                 }
+
+                required = RequiredLiteral(root, out requiredOffset);
+                if (required.Length == 0)
+                {
+                    casePrefix = CaseInsensitivePrefix(root);
+                }
             }
         }
 
-        return new Program(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals]);
+        return new Program(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, casePrefix);
     }
 
     /// <summary>
@@ -827,6 +885,169 @@ internal sealed class Compiler
         }
 
         return q;
+    }
+
+    /// <summary>
+    /// Marks each greedy single character loop that can keep no choice: when nothing that follows it (the quick of
+    /// the next instruction) can consume a character of its set, a way that gives a character back stands before a
+    /// character of the set, which what follows cannot take, so it fails at once. V8 and .NET make the same loop
+    /// atomic. A loop inside a lookbehind is left alone, as is one whose follower can end consuming nothing.
+    /// </summary>
+    /// <param name="insts">The instructions.</param>
+    /// <param name="quick">The quick of each instruction.</param>
+    public static void SetAtomic(Inst[] insts, Quick[] quick)
+    {
+        for (int pc = 0; pc + 1 < insts.Length; pc++)
+        {
+            Inst i = insts[pc];
+            if (i.Op != Op.Rep)
+            {
+                continue;
+            }
+
+            Quick follow = quick[pc + 1];
+            if (follow.Mid)
+            {
+                continue;
+            }
+
+            bool disjoint;
+            if (i.Set is not null)
+            {
+                disjoint = (follow.Ascii0 & i.Set.Ascii0) == 0 && (follow.Ascii1 & i.Set.Ascii1) == 0 && !(follow.Other && i.Set.HasNonAscii);
+            }
+            else
+            {
+                disjoint = i.R < 0x80 ? !(i.R < 64 ? ((follow.Ascii0 >> i.R) & 1) != 0 : ((follow.Ascii1 >> (i.R - 64)) & 1) != 0) : !follow.Other;
+            }
+
+            if (disjoint)
+            {
+                insts[pc].Atomic = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// A literal of two characters or more that every match holds at a fixed distance from its start, with that
+    /// distance, or empty and -1. The terms before it in the top-level sequence must each be one ASCII character or
+    /// class, or a counted repetition of one, so that the distance is the same number of units in UTF-16 and in
+    /// UTF-8. The search for a start then looks for the literal and tries the one start it allows.
+    /// </summary>
+    /// <param name="root">The root of the tree.</param>
+    /// <param name="offset">The distance, or -1.</param>
+    /// <returns>The literal, or empty.</returns>
+    public static string RequiredLiteral(EcmaRegexNode root, out int offset)
+    {
+        offset = -1;
+        EcmaRegexNode n = root;
+        while (n.Kind == EcmaRegexNodeKind.Group)
+        {
+            n = n.Subs[0];
+        }
+
+        if (n.Kind != EcmaRegexNodeKind.Cat)
+        {
+            return string.Empty;
+        }
+
+        int distance = 0;
+        for (int k = 0; k < n.Subs.Length; k++)
+        {
+            EcmaRegexNode term = n.Subs[k];
+            if (term.Kind == EcmaRegexNodeKind.Char && IsLiteralRune(term.CodePoint))
+            {
+                int j = k;
+                StringBuilder sb = new();
+                while (j < n.Subs.Length && n.Subs[j].Kind == EcmaRegexNodeKind.Char && IsLiteralRune(n.Subs[j].CodePoint))
+                {
+                    AppendRune(sb, n.Subs[j].CodePoint);
+                    j++;
+                }
+
+                if (j - k >= 2)
+                {
+                    offset = distance;
+                    return sb.ToString();
+                }
+            }
+
+            int width = FixedAsciiWidth(term);
+            if (width < 0)
+            {
+                return string.Empty;
+            }
+
+            distance += width;
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// The ASCII text, in lower case, that every match starts with ignoring case, when it is two characters or
+    /// more: a run of terms at the start of the top-level sequence that are each an ASCII character without a case
+    /// or the class of the two cases of an ASCII letter (which is how the parser reads a letter under the i flag),
+    /// or empty.
+    /// </summary>
+    /// <param name="root">The root of the tree.</param>
+    /// <returns>The text, or empty.</returns>
+    public static string CaseInsensitivePrefix(EcmaRegexNode root)
+    {
+        EcmaRegexNode n = root;
+        while (n.Kind == EcmaRegexNodeKind.Group && n.Group == 0)
+        {
+            n = n.Subs[0];
+        }
+
+        EcmaRegexNode[] terms = n.Kind == EcmaRegexNodeKind.Cat ? n.Subs : [n];
+        StringBuilder sb = new();
+        foreach (EcmaRegexNode term in terms)
+        {
+            if (term.Kind == EcmaRegexNodeKind.Char && term.CodePoint < 0x80 && !char.IsLetter((char)term.CodePoint))
+            {
+                sb.Append((char)term.CodePoint);
+                continue;
+            }
+
+            if (term.Kind == EcmaRegexNodeKind.Set && term.Set.Length == 4 && term.Set[0] == term.Set[1] && term.Set[2] == term.Set[3]
+                && term.Set[0] >= 'A' && term.Set[0] <= 'Z' && term.Set[2] == term.Set[0] + ('a' - 'A'))
+            {
+                sb.Append((char)term.Set[2]);
+                continue;
+            }
+
+            break;
+        }
+
+        return sb.Length >= 2 ? sb.ToString() : string.Empty;
+    }
+
+    /// <summary>The number of units a term always consumes, when it is an ASCII character or class or a counted repetition of one, or -1.</summary>
+    private static int FixedAsciiWidth(EcmaRegexNode term)
+    {
+        switch (term.Kind)
+        {
+            case EcmaRegexNodeKind.Char:
+                return term.CodePoint < 0x80 ? 1 : -1;
+            case EcmaRegexNodeKind.Set:
+                return term.Set.Length > 0 && term.Set[term.Set.Length - 1] < 0x80 ? 1 : -1;
+            case EcmaRegexNodeKind.Repeat:
+            {
+                if (term.Min != term.Max || term.Min > 64)
+                {
+                    return -1;
+                }
+
+                int w = FixedAsciiWidth(term.Subs[0]);
+                return w < 0 ? -1 : w * term.Min;
+            }
+
+            case EcmaRegexNodeKind.Group:
+                return term.Group == 0 ? FixedAsciiWidth(term.Subs[0]) : -1;
+            default:
+                return -1;
+        }
     }
 
     /// <summary>Whether a code point can be matched by comparing its encoded units. A surrogate has no encoding in UTF-8, and U+FFFD is also what a malformed byte of the text decodes to.</summary>
