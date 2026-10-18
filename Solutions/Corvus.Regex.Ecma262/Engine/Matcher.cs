@@ -342,9 +342,58 @@ internal static class Matcher
         try
         {
             Prepare(st, p, input.Length, limit);
-            bool ok = Search<TUnit, TEncoding>(p, st, input, start, sticky);
+            bool ok = Search<TUnit, TEncoding>(p, st, input, start, sticky, out _, out _);
             stop = st.Stop;
             return ok && stop == MatchStop.None;
+        }
+        finally
+        {
+            st.Release();
+        }
+    }
+
+    /// <summary>
+    /// Finds the first match at or after <paramref name="start"/> (at <paramref name="start"/> alone when
+    /// <paramref name="sticky"/>) and reports where it is and what each tracked group captured.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="p">The program, which must track every group (see <see cref="Compiler.Compile"/>).</param>
+    /// <param name="input">The text.</param>
+    /// <param name="start">The position to search from.</param>
+    /// <param name="sticky">Whether a match may start only at <paramref name="start"/>.</param>
+    /// <param name="limit">The limit of time, or a value of zero or less for none.</param>
+    /// <param name="captures">
+    /// Receives the start and end of the match in its first two slots, then the start and end of each tracked
+    /// group in order, or -1 and -1 for a group that did not take part. Its length is at least
+    /// <c>2 * (1 + p.Groups)</c>.
+    /// </param>
+    /// <param name="stop">Why the match was abandoned, or <see cref="MatchStop.None"/>.</param>
+    /// <returns><see langword="true"/> when the program matches.</returns>
+    public static bool Match<TUnit, TEncoding>(Program p, ReadOnlySpan<TUnit> input, int start, bool sticky, TimeSpan limit, Span<int> captures, out MatchStop stop)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        MatchState st = MatchState.Acquire();
+        try
+        {
+            Prepare(st, p, input.Length, limit);
+            bool ok = Search<TUnit, TEncoding>(p, st, input, start, sticky, out int from, out int to);
+            stop = st.Stop;
+            if (!ok || stop != MatchStop.None)
+            {
+                return false;
+            }
+
+            captures[0] = from;
+            captures[1] = to;
+            int[] caps = st.Caps;
+            for (int k = 0; k < 2 * p.Groups; k++)
+            {
+                captures[2 + k] = caps[k];
+            }
+
+            return true;
         }
         finally
         {
@@ -388,12 +437,14 @@ internal static class Matcher
         }
     }
 
-    private static bool Search<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int start, bool sticky)
+    private static bool Search<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int start, bool sticky, out int from, out int to)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
         TEncoding enc = default;
         int len = input.Length;
+        from = -1;
+        to = -1;
         if (len - start < p.Need)
         {
             return false;
@@ -401,12 +452,14 @@ internal static class Matcher
 
         if (sticky)
         {
-            return Run<TUnit, TEncoding>(p, st, input, start);
+            from = start;
+            return Run<TUnit, TEncoding>(p, st, input, start, out to);
         }
 
         if (p.Anchored)
         {
-            return start == 0 && Run<TUnit, TEncoding>(p, st, input, 0);
+            from = 0;
+            return start == 0 && Run<TUnit, TEncoding>(p, st, input, 0, out to);
         }
 
         if (p.Utf16Prefix.Length != 0)
@@ -428,7 +481,8 @@ internal static class Matcher
                     return false;
                 }
 
-                if (Run<TUnit, TEncoding>(p, st, input, at))
+                from = at;
+                if (Run<TUnit, TEncoding>(p, st, input, at, out to))
                 {
                     return true;
                 }
@@ -452,9 +506,10 @@ internal static class Matcher
                 return false;
             }
 
+            from = pos;
             if (pos == len)
             {
-                return first is null && Run<TUnit, TEncoding>(p, st, input, pos);
+                return first is null && Run<TUnit, TEncoding>(p, st, input, pos, out to);
             }
 
             int c = enc.Unit(input, pos);
@@ -464,7 +519,7 @@ internal static class Matcher
                 c = units ? enc.UnitAt(input, pos, out w) : enc.Decode(input, pos, out w);
             }
 
-            if ((first is null || first.Contains(c)) && Run<TUnit, TEncoding>(p, st, input, pos))
+            if ((first is null || first.Contains(c)) && Run<TUnit, TEncoding>(p, st, input, pos, out to))
             {
                 return true;
             }
@@ -552,10 +607,11 @@ internal static class Matcher
     /// fails, every group and counter is back to the value it had on entry. It counts its steps, and when a check
     /// says the match has reached a limit it returns false with the reason in the state.
     /// </summary>
-    private static bool Run<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int start)
+    private static bool Run<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int start, out int end)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
+        end = -1;
         TEncoding enc = default;
         Inst[] insts = p.Insts;
         Quick[] quick = p.Quick;
@@ -1281,6 +1337,7 @@ internal static class Matcher
                 case Op.Match:
                     st.Steps = steps;
                     st.Stack = stack;
+                    end = pos;
                     return true;
                 default:
                     throw new InvalidOperationException("Unknown instruction " + i.Op);

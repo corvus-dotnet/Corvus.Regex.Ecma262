@@ -32,7 +32,17 @@
     <Compile Include="Engine\Matcher.cs" />
     <Compile Include="Engine\Program.cs" />
     <Compile Include="Engine\TextEncoding.cs" />
+    <Compile Include="Capture.cs" />
+    <Compile Include="CaptureCollection.cs" />
+    <Compile Include="Group.cs" />
+    <Compile Include="GroupCollection.cs" />
+    <Compile Include="Match.cs" />
+    <Compile Include="MatchCollection.cs" />
+    <Compile Include="MatchEvaluator.cs" />
     <Compile Include="Regex.cs" />
+    <Compile Include="Regex.Matching.cs" />
+    <Compile Include="ValueMatch.cs" />
+    <Compile Include="ValueMatchEnumerator.cs" />
     <Compile Include="RegexFlags.cs" />
     <Compile Include="RegexMatchTimeoutException.cs" />
     <Compile Include="RegexParseException.cs" />

@@ -92,6 +92,16 @@ internal interface ITextEncoding<TUnit>
     /// <param name="pos">The position, which is less than the length.</param>
     /// <returns>The position.</returns>
     int NextStart(ReadOnlySpan<TUnit> input, int pos);
+
+    /// <summary>
+    /// The position one UTF-16 code unit on from a position, which is how ECMA-262 advances past an empty match
+    /// without the u flag (AdvanceStringIndex). Over UTF-8 that can be the position between the halves of a
+    /// character of four bytes.
+    /// </summary>
+    /// <param name="input">The text.</param>
+    /// <param name="pos">The position, which is less than the length.</param>
+    /// <returns>The position.</returns>
+    int AdvanceUnit(ReadOnlySpan<TUnit> input, int pos);
 }
 
 /// <summary>Reads UTF-8 text.</summary>
@@ -331,6 +341,29 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
         return pos;
     }
 
+    /// <inheritdoc/>
+    public int AdvanceUnit(ReadOnlySpan<byte> input, int pos)
+    {
+        int c = input[pos];
+        if (c >= 0xF0)
+        {
+            DecodeRune(input.Slice(pos), out int w);
+            return w == 4 ? pos + 2 : pos + 1;
+        }
+
+        if (c >= 0x80 && c < 0xC0 && pos >= 2 && input[pos - 2] >= 0xF0)
+        {
+            DecodeRune(input.Slice(pos - 2), out int w);
+            if (w == 4)
+            {
+                return pos + 2;
+            }
+        }
+
+        DecodeRune(input.Slice(pos), out int width);
+        return pos + width;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsContinuation(int b) => (b & 0xC0) == 0x80;
 
@@ -429,4 +462,8 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int NextStart(ReadOnlySpan<char> input, int pos) => pos + 1;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int AdvanceUnit(ReadOnlySpan<char> input, int pos) => pos + 1;
 }

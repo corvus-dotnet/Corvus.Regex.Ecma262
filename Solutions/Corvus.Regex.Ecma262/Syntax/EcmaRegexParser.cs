@@ -133,6 +133,9 @@ internal sealed class EcmaRegexParser
     /// <summary>Gets a value indicating whether the pattern holds a backreference.</summary>
     public bool HasBackreferences { get; private set; }
 
+    /// <summary>Gets, once the pattern is read, each group name with the numbers of its groups, in the order the pattern first used the names.</summary>
+    public List<KeyValuePair<string, int[]>> GroupNames { get; } = [];
+
     /// <summary>Gets every character: the code points with the u flag grammar and the UTF-16 code units without.</summary>
     public int[] Any => this.complements.Any;
 
@@ -148,6 +151,17 @@ internal sealed class EcmaRegexParser
         if (this.i < this.p.Length)
         {
             throw this.Error(this.p[this.i] == ')' ? "Unmatched ')'" : "Unexpected character");
+        }
+
+        foreach (KeyValuePair<string, List<int[]>> named in this.names)
+        {
+            int[] numbers = new int[named.Value.Count];
+            for (int k = 0; k < numbers.Length; k++)
+            {
+                numbers[k] = named.Value[k][0];
+            }
+
+            this.GroupNames.Add(new KeyValuePair<string, int[]>(named.Key, numbers));
         }
 
         foreach (EcmaRegexNode reference in this.namedRefs)

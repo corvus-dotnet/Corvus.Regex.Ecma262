@@ -22,6 +22,8 @@ public sealed partial class Regex
     private readonly Program program;
     private readonly EcmaRegexNode root;
     private readonly bool linear;
+    private readonly bool unicode;
+    private Program? captureProgram;
     private Dfa? dfa;
     private bool dfaTried;
 
@@ -81,8 +83,10 @@ public sealed partial class Regex
             dotAll: (flags & RegexFlags.DotAll) != 0);
         this.root = parser.Parse();
         this.linear = !parser.HasBackreferences;
-        this.program = Compiler.Compile(this.root, unicode);
+        this.unicode = unicode;
         this.GroupCount = parser.GroupCount;
+        this.GroupNames = parser.GroupNames;
+        this.program = Compiler.Compile(this.root, unicode, this.GroupCount, trackAll: false);
     }
 
     /// <summary>Gets the pattern.</summary>
@@ -368,6 +372,22 @@ public sealed partial class Regex
     }
 
     private RegexMatchTimeoutException Abandoned(MatchStop stop) => new(this.Pattern, this.MatchTimeout, stop == MatchStop.Memory);
+
+    /// <summary>The program that tracks every group, for the members that report captures.</summary>
+    private Program CaptureProgram()
+    {
+        Program? cp = this.captureProgram;
+        if (cp is null)
+        {
+            // Simplify changes the tree in place, and did so when the first program was compiled; compiling the
+            // same tree again gives the same program apart from the groups it tracks.
+            cp = Compiler.Compile(this.root, this.unicode, this.GroupCount, trackAll: true);
+            Interlocked.CompareExchange(ref this.captureProgram, cp, null);
+            cp = this.captureProgram;
+        }
+
+        return cp;
+    }
 
     private Dfa? Automaton()
     {

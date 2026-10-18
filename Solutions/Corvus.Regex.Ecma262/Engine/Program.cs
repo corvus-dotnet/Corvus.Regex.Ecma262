@@ -430,29 +430,45 @@ internal sealed class Compiler
     /// <summary>Compiles a tree. The tree is changed in place by <see cref="Simplify"/>.</summary>
     /// <param name="root">The root of the tree.</param>
     /// <param name="unicode">Whether the pattern was read with the u flag grammar.</param>
+    /// <param name="groupCount">The number of capturing groups of the pattern.</param>
+    /// <param name="trackAll">
+    /// Whether every capturing group is tracked, with group <c>g</c> in slot <c>g - 1</c>, so that a match can
+    /// report what each captured. Otherwise only the groups some backreference names are tracked, which is all a
+    /// yes-or-no answer needs. The memory of failed places is sound either way: it prunes only ways that fail, and
+    /// the first way that succeeds, with what its groups hold, is the same.
+    /// </param>
     /// <returns>The program.</returns>
-    public static Program Compile(EcmaRegexNode root, bool unicode)
+    public static Program Compile(EcmaRegexNode root, bool unicode, int groupCount, bool trackAll)
     {
         List<int> openGroups = [];
         root = Simplify(root, openGroups);
         Compiler c = new(unicode);
         List<int> referenced = [];
         CollectBackrefs(root, referenced);
-
-        // Slots follow group order, so the groups inside any one subtree take a contiguous range of slots.
-        referenced.Sort();
-        int slot = 0;
-        for (int k = 0; k < referenced.Count; k++)
+        if (trackAll)
         {
-            if (k > 0 && referenced[k] == referenced[k - 1])
+            for (int g = 1; g <= groupCount; g++)
             {
-                continue;
+                c.tracked[g] = g - 1;
             }
+        }
+        else
+        {
+            // Slots follow group order, so the groups inside any one subtree take a contiguous range of slots.
+            referenced.Sort();
+            int slot = 0;
+            for (int k = 0; k < referenced.Count; k++)
+            {
+                if (k > 0 && referenced[k] == referenced[k - 1])
+                {
+                    continue;
+                }
 
-            c.tracked[referenced[k]] = slot++;
+                c.tracked[referenced[k]] = slot++;
+            }
         }
 
-        c.memo = c.tracked.Count == 0;
+        c.memo = referenced.Count == 0;
         c.Emit(root, false);
         c.Add(new Inst(Op.Match));
         Inst[] insts = [.. c.insts];
