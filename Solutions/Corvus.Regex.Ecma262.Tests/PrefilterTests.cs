@@ -58,6 +58,21 @@ public class PrefilterTests
     [DataRow(@"[^u-z]{3}xy", "", "a\ud83d\ude00xy", true, "")]
     [DataRow(@"[^u-z]{3}xy", "u", "a\ud83d\ude00xy", false, "")]
     [DataRow(@"(.*)$", "u", "\nabd", true, "a start the loop took nothing at begins no run to skip")]
+    [DataRow(@"[a-zA-Z]+ing", "u", "sing singing s", true, "a leading loop that keeps its choices still lets a failed start skip its run")]
+    [DataRow(@"[a-zA-Z]+ing", "u", "sin sinn", false, "")]
+    [DataRow(@"\b\w+n\b", "u", "the lion sleeps", true, "an assertion before the leading loop stops the skipping")]
+    [DataRow(@"\b\w+n\b", "u", "the lions sleep", false, "")]
+    [DataRow(@"\B\w+.{0,2}\S$", "u", "ab c", true, "a start inside the word holds \\B where the word's start does not")]
+    [DataRow(@"the", "u", "In the end", true, "a literal alone")]
+    [DataRow(@"the", "yu", "In the end", false, "sticky: not at the start")]
+    [DataRow(@"\p{Lu}", "u", "abcDef", true, "a class alone")]
+    [DataRow(@"\p{Lu}", "yu", "abcDef", false, "")]
+    [DataRow(@"\p{Lu}", "yu", "Def", true, "")]
+    [DataRow(@"[\ud800-\udbff]", "", "a\ud83d\ude00", true, "a class alone of surrogate units, found over UTF-8 at the first byte")]
+    [DataRow(@"[\udc00-\udfff]", "", "a\ud83d\ude00", true, "and at the third")]
+    [DataRow(@"[\udc00-\udfff]", "u", "a\ud83d\ude00", false, "by code point the pair is one character")]
+    [DataRow(@"the", "iu", "In THE end", true, "a case-insensitive literal alone")]
+    [DataRow(@"the", "iyu", "In THE end", false, "")]
     [DataRow(@"[\ud83d\ude00-\ud83d\ude4f]", "u", "\ud83d\ude00,", true, "a trail-byte scan can land on a middle byte of the member it is looking for")]
     [DataRow(@"[\u0428\u0448]x", "u", "\u0448x", true, "")]
     [DataRow(@"[\u0428\u0448]x", "u", "\u0418x", false, "")]
@@ -88,6 +103,11 @@ public class PrefilterTests
             (@"[a-z]+n", "gu", @"[a-z]+n", System.Text.RegularExpressions.RegexOptions.None),
             (@"\w+\s+and", "gu", @"[a-zA-Z0-9_]+\s+and", System.Text.RegularExpressions.RegexOptions.None),
             (@"[^u-z]{3}in", "gu", @"[^u-z]{3}in", System.Text.RegularExpressions.RegexOptions.None),
+            (@"[a-zA-Z]+in", "gu", @"[a-zA-Z]+in", System.Text.RegularExpressions.RegexOptions.None),
+            (@"\b\w+n\b", "gu", @"\b[a-zA-Z0-9_]+n\b", System.Text.RegularExpressions.RegexOptions.None),
+            (@"n", "gu", @"n", System.Text.RegularExpressions.RegexOptions.None),
+            (@"[a-z]", "gu", @"[a-z]", System.Text.RegularExpressions.RegexOptions.None),
+            (@"and", "giu", @"and", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
         })
         {
             int expected = System.Text.RegularExpressions.Regex.Count(text, netPattern, options);

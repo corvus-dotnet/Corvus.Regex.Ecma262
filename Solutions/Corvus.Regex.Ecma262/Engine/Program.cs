@@ -362,6 +362,22 @@ internal struct Quick : IEquatable<Quick>
     public override int GetHashCode() => (this.Ascii0.GetHashCode() * 31) + this.Ascii1.GetHashCode();
 }
 
+/// <summary>The shapes of program the search answers without running the matcher.</summary>
+internal enum SimpleShape : byte
+{
+    /// <summary>None of the below.</summary>
+    None,
+
+    /// <summary>A literal and nothing else: every occurrence of the prefix is a match.</summary>
+    Literal,
+
+    /// <summary>One class and nothing else: every member is a match.</summary>
+    Set,
+
+    /// <summary>An ASCII literal matched ignoring case and nothing else.</summary>
+    CaseLiteral,
+}
+
 /// <summary>A pattern compiled for the backtracking matcher.</summary>
 internal sealed class Program
 {
@@ -487,6 +503,54 @@ internal sealed class Program
 
     /// <summary>Gets a value indicating whether <see cref="First"/> is small enough to be searched for member by member (see <see cref="CharSet.IsSmall"/>).</summary>
     public bool FirstIsSmall { get; }
+
+    /// <summary>
+    /// Gets the shape of a program the search answers without running the matcher: a literal alone, one class
+    /// alone, or a case-insensitive ASCII literal alone (see <see cref="SimpleShape"/>). Only for a program that
+    /// tracks no group.
+    /// </summary>
+    public SimpleShape Shape { get; private set; }
+
+    /// <summary>Gets the class of a <see cref="SimpleShape.Set"/> program.</summary>
+    public CharSet? ShapeSet { get; private set; }
+
+    /// <summary>Decides <see cref="Shape"/> from the instructions.</summary>
+    internal void SetShape()
+    {
+        Inst[] insts = this.Insts;
+        if (this.Groups != 0 || this.Anchored || insts.Length < 2 || insts[insts.Length - 1].Op != Op.Match)
+        {
+            return;
+        }
+
+        if (insts.Length == 2 && (insts[0].Op == Op.Lit || insts[0].Op == Op.Char) && this.Utf16Prefix.Length != 0)
+        {
+            this.Shape = SimpleShape.Literal;
+            return;
+        }
+
+        if (insts.Length == 2 && insts[0].Op == Op.Set)
+        {
+            this.Shape = SimpleShape.Set;
+            this.ShapeSet = insts[0].Set;
+            return;
+        }
+
+#if NET
+        if (this.CasePrefixUtf16.Length == insts.Length - 1 && this.CaseExtras is null)
+        {
+            for (int k = 0; k < insts.Length - 1; k++)
+            {
+                if (insts[k].Op != Op.Set && insts[k].Op != Op.Char)
+                {
+                    return;
+                }
+            }
+
+            this.Shape = SimpleShape.CaseLiteral;
+        }
+#endif
+    }
 
     /// <summary>Gets the distance from the start of a match to its required literal over UTF-8, or -1 when the terms before it are not all ASCII (over UTF-16 <see cref="RequiredOffset"/> holds for any term of one code unit).</summary>
     public int RequiredOffsetUtf8 { get; }
@@ -685,14 +749,18 @@ internal sealed class Compiler
 
         if (referenced.Count == 0 && afterLoop.Length == 0)
         {
-            // A leading atomic loop (after the entry of a group, if any): a failed start may skip its run.
+            // A leading single-character loop (after the entry of a group): a failed start may skip its run.
+            // Whether what follows the loop succeeds depends only on the position (no backreference reads a group),
+            // and every position a later start of the run could leave the loop at was tried from the first. An
+            // assertion before the loop would make success depend on the start (\B holds inside a word and not at
+            // its start), so none may come before it.
             int at = 0;
             while (at < insts.Length && insts[at].Op == Op.SaveTmp)
             {
                 at++;
             }
 
-            if (at < insts.Length && insts[at].Op == Op.Rep && insts[at].Atomic && insts[at].Max < 0 && insts[at].Min <= 1 && insts[at].Set is not null)
+            if (at < insts.Length && insts[at].Op == Op.Rep && insts[at].Max < 0 && insts[at].Min <= 1 && insts[at].Set is not null)
             {
                 skipRun = true;
                 loopSet = insts[at].Set;
@@ -700,7 +768,9 @@ internal sealed class Compiler
             }
         }
 
-        return new Program(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, casePrefix, requiredOffsetUtf8, caseExtras, loopSet, loopMin, afterLoop, skipRun, requiredCount);
+        Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, casePrefix, requiredOffsetUtf8, caseExtras, loopSet, loopMin, afterLoop, skipRun, requiredCount);
+        program.SetShape();
+        return program;
     }
 
     /// <summary>

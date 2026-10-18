@@ -338,6 +338,12 @@ internal static class Matcher
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
+        if (p.Shape != SimpleShape.None)
+        {
+            stop = MatchStop.None;
+            return Simple<TUnit, TEncoding>(p, input, start, sticky, out _, out _);
+        }
+
         MatchState st = MatchState.Acquire();
         try
         {
@@ -374,6 +380,13 @@ internal static class Matcher
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
+        if (p.Shape != SimpleShape.None)
+        {
+            stop = MatchStop.None;
+            bool found = Simple<TUnit, TEncoding>(p, input, start, sticky, out captures[0], out captures[1]);
+            return found;
+        }
+
         MatchState st = MatchState.Acquire();
         try
         {
@@ -399,6 +412,104 @@ internal static class Matcher
         {
             st.Release();
         }
+    }
+
+    /// <summary>
+    /// The search for a program of a simple shape (see <see cref="SimpleShape"/>): the match is where the search
+    /// finds the literal or the member, and nothing of the matcher runs.
+    /// </summary>
+    private static bool Simple<TUnit, TEncoding>(Program p, ReadOnlySpan<TUnit> input, int start, bool sticky, out int from, out int to)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        from = -1;
+        to = -1;
+        int len = input.Length;
+        switch (p.Shape)
+        {
+            case SimpleShape.Literal:
+            {
+                int i = enc.IndexOfPrefix(input, start, p);
+                if (i < 0 || (sticky && i != start))
+                {
+                    return false;
+                }
+
+                from = i;
+                to = i + enc.PrefixLength(p);
+                return true;
+            }
+
+            case SimpleShape.Set:
+            {
+                CharSet set = p.ShapeSet!;
+                bool units = p.Units;
+                int pos = start;
+                while (pos < len)
+                {
+#if NET
+                    if (!sticky)
+                    {
+                        int i = enc.IndexOfCandidate(input, pos, set, p.FirstIsSmall);
+                        if (i < 0)
+                        {
+                            return false;
+                        }
+
+                        pos = enc.AlignStart(input, i, units);
+                        if (pos >= len)
+                        {
+                            return false;
+                        }
+                    }
+#endif
+                    int c = enc.Unit(input, pos);
+                    int w = 1;
+                    if (c >= 0x80)
+                    {
+                        c = units ? enc.UnitAt(input, pos, out w) : enc.Decode(input, pos, out w);
+                    }
+
+                    if (set.Contains(c))
+                    {
+                        from = pos;
+                        to = pos + w;
+                        return true;
+                    }
+
+                    if (sticky)
+                    {
+                        return false;
+                    }
+
+                    pos += w;
+                }
+
+                return false;
+            }
+
+#if NET
+            case SimpleShape.CaseLiteral:
+            {
+                int n = p.CasePrefixUtf16.Length;
+                int i = enc.IndexOfCasePrefix(input, start, p);
+                if (i < 0 || (sticky && i != start))
+                {
+                    return false;
+                }
+
+                from = i;
+                to = i + n;
+                return true;
+            }
+#endif
+
+            default:
+                break;
+        }
+
+        return false;
     }
 
     private static void Prepare(MatchState st, Program p, int length, TimeSpan limit)
