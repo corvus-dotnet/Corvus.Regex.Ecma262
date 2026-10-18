@@ -557,7 +557,7 @@ internal static class Matcher
 #if NET
                     if (!sticky)
                     {
-                        int i = p.Shape == SimpleShape.Sequence ? enc.IndexOfCaseSequence(input, pos, p) : -2;
+                        int i = enc.IndexOfAnyNeedle(input, pos, p, p.Shape == SimpleShape.LiteralAlternation);
                         if (i == -2)
                         {
                             i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);

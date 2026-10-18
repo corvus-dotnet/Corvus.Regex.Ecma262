@@ -583,9 +583,11 @@ internal sealed class Program
             this.Shape = SimpleShape.LiteralAlternation;
             this.Alternatives = alternatives;
             this.AlternativesUtf8 = new byte[alternatives.Length][];
+            this.AlternativeNeedles = new Utf8Needle[alternatives.Length];
             for (int k = 0; k < alternatives.Length; k++)
             {
                 this.AlternativesUtf8[k] = Encoding.UTF8.GetBytes(alternatives[k]);
+                this.AlternativeNeedles[k] = new Utf8Needle(this.AlternativesUtf8[k]);
             }
 
             return;
@@ -610,65 +612,86 @@ internal sealed class Program
         if (this.First is not null)
         {
             this.Shape = SimpleShape.Sequence;
-            this.CaseSequence = InvariantCaseSequence(insts);
+            this.PairNeedles = MakePairNeedles(insts);
+            this.PairNeedlesUtf8 = new Utf8Needle[this.PairNeedles.Length];
+            for (int k = 0; k < this.PairNeedles.Length; k++)
+            {
+                this.PairNeedlesUtf8[k] = new Utf8Needle(Encoding.UTF8.GetBytes(this.PairNeedles[k]));
+            }
         }
     }
 
     /// <summary>
-    /// Gets, for a <see cref="SimpleShape.Sequence"/> program each of whose classes is exactly the set of characters
-    /// the invariant culture's upper-casing makes equal to one character (which is what an ordinal comparison that
-    /// ignores case tests), one such character for each, as a string: the sequence is then searched for over UTF-16
-    /// by <c>IndexOf</c> with <c>OrdinalIgnoreCase</c>, which is vectorised. Empty otherwise.
+    /// Gets, for a <see cref="SimpleShape.Sequence"/> program whose first two classes are small, every pair of a
+    /// member of the first and a member of the second as a UTF-16 needle, so that the search for a start is a
+    /// vectorised search for two characters rather than one. Empty otherwise.
     /// </summary>
-    public string CaseSequence { get; private set; } = string.Empty;
+    public string[] PairNeedles { get; private set; } = [];
 
-    private static string InvariantCaseSequence(Inst[] insts)
+    /// <summary>Gets <see cref="PairNeedles"/> as UTF-8 searches.</summary>
+    public Utf8Needle[] PairNeedlesUtf8 { get; private set; } = [];
+
+    /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program as UTF-8 searches.</summary>
+    public Utf8Needle[] AlternativeNeedles { get; private set; } = [];
+
+    private static string[] MakePairNeedles(Inst[] insts)
     {
-        StringBuilder sb = new();
-        for (int k = 0; k < insts.Length - 1; k++)
+        if (insts.Length < 3)
         {
-            ref Inst i = ref insts[k];
-            if (i.Set is null)
-            {
-                if (i.R > 0xFFFF || InvariantCaseClass.Of(i.R).Length != 1)
-                {
-                    return string.Empty;
-                }
-
-                sb.Append((char)i.R);
-                continue;
-            }
-
-            int[] ranges = i.Set.Ranges;
-            if (ranges.Length == 0 || ranges[ranges.Length - 1] > 0xFFFF)
-            {
-                return string.Empty;
-            }
-
-            int[] cls = InvariantCaseClass.Of(ranges[0]);
-            int n = 0;
-            for (int r = 0; r < ranges.Length; r += 2)
-            {
-                for (int c = ranges[r]; c <= ranges[r + 1]; c++)
-                {
-                    if (n >= cls.Length || cls[n] != c)
-                    {
-                        return string.Empty;
-                    }
-
-                    n++;
-                }
-            }
-
-            if (n != cls.Length)
-            {
-                return string.Empty;
-            }
-
-            sb.Append((char)ranges[0]);
+            return [];
         }
 
-        return sb.ToString();
+        List<int> first = Members(insts[0], 4);
+        List<int> second = Members(insts[1], 4);
+        if (first.Count == 0 || second.Count == 0)
+        {
+            return [];
+        }
+
+        List<string> needles = [];
+        foreach (int a in first)
+        {
+            foreach (int b in second)
+            {
+                StringBuilder sb = new();
+                Compiler.AppendRune(sb, a);
+                Compiler.AppendRune(sb, b);
+                needles.Add(sb.ToString());
+            }
+        }
+
+        return [.. needles];
+    }
+
+    /// <summary>The members of a character or class instruction, when there are at most <paramref name="most"/> and none is a surrogate; empty otherwise.</summary>
+    private static List<int> Members(Inst i, int most)
+    {
+        List<int> members = [];
+        if (i.Set is null)
+        {
+            if (Compiler.IsLiteralRune(i.R))
+            {
+                members.Add(i.R);
+            }
+
+            return members;
+        }
+
+        int[] ranges = i.Set.Ranges;
+        for (int k = 0; k < ranges.Length; k += 2)
+        {
+            for (int c = ranges[k]; c <= ranges[k + 1]; c++)
+            {
+                if (!Compiler.IsLiteralRune(c) || members.Count >= most)
+                {
+                    return [];
+                }
+
+                members.Add(c);
+            }
+        }
+
+        return members;
     }
 
     /// <summary>Gets the distance from the start of a match to its required literal over UTF-8, or -1 when the terms before it are not all ASCII (over UTF-16 <see cref="RequiredOffset"/> holds for any term of one code unit).</summary>
@@ -1970,7 +1993,10 @@ internal sealed class Compiler
         }
     }
 
-    private static void AppendRune(StringBuilder sb, int r)
+    /// <summary>Appends a code point as UTF-16.</summary>
+    /// <param name="sb">The builder.</param>
+    /// <param name="r">The code point.</param>
+    internal static void AppendRune(StringBuilder sb, int r)
     {
         if (r > 0xFFFF)
         {

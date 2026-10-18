@@ -41,11 +41,22 @@ internal sealed class Utf8Needle
 
         // A first character of three or four bytes (CJK, emoji) is searched for as a whole by the span search,
         // whose first-and-last-byte scan then needs its lead and its last continuation byte at a fixed distance,
-        // which is rarer than any one byte.
+        // which is rarer than any one byte. An ASCII literal with no rare byte (a capital, a digit, punctuation,
+        // j, x, q or z) is left to the span search too: two common anchors beat one.
         int lead = bytes[0];
         int firstWidth = lead >= 0xF0 ? 4 : lead >= 0xE0 ? 3 : 1;
         this.FirstCharacter = firstWidth >= 3 && bytes.Length >= firstWidth ? bytes.AsSpan(0, firstWidth).ToArray() : null;
+        bool ascii = true;
+        foreach (byte b in bytes)
+        {
+            ascii &= b < 0x80;
+        }
+
+        this.WholeSpan = this.FirstCharacter is null && ascii && bytes.Length >= 2 && Rarity[this.Rare] < 250;
     }
+
+    /// <summary>Gets a value indicating whether the literal is searched for whole by the span search.</summary>
+    public bool WholeSpan { get; }
 
     /// <summary>Gets the bytes of the first character when it is three or four bytes, or null.</summary>
     public byte[]? FirstCharacter { get; }
@@ -68,6 +79,12 @@ internal sealed class Utf8Needle
     {
         byte[] bytes = this.Bytes;
         int n = bytes.Length;
+        if (this.WholeSpan)
+        {
+            int k = input.Slice(from).IndexOf(bytes);
+            return k < 0 ? -1 : from + k;
+        }
+
         byte[]? first = this.FirstCharacter;
         if (first is not null)
         {
@@ -115,51 +132,46 @@ internal sealed class Utf8Needle
 
     private static byte[] MakeRarity()
     {
-        // Higher is rarer. Letters by their frequency in English, capitals rarer than small letters, digits and
-        // punctuation rarer still; UTF-8 lead bytes of two and three bytes are the commonest bytes of their
-        // scripts, continuation bytes spread over 64 values, four-byte leads are rare.
+        // Higher is rarer: 255 less the byte's share of text in parts per thousand, by the frequency of English
+        // letters, with capitals at a thirtieth of their small letters, and by what UTF-8 makes of the others:
+        // two- and three-byte lead bytes are the commonest bytes of their scripts, continuation bytes spread over
+        // sixty-four values, four-byte leads are rare.
         byte[] r = new byte[256];
         for (int b = 0; b < 256; b++)
         {
-            r[b] = 200;
+            r[b] = 254;
         }
 
-        const string letters = "etaoinshrdlcumwfgypbvkjxqz";
-        for (int k = 0; k < letters.Length; k++)
+        (char Letter, int PerMille)[] letters =
+        [
+            ('e', 102), ('t', 73), ('a', 66), ('o', 60), ('i', 56), ('n', 54), ('s', 50), ('h', 49), ('r', 48),
+            ('d', 34), ('l', 32), ('c', 22), ('u', 22), ('m', 19), ('w', 19), ('f', 18), ('g', 16), ('y', 16),
+            ('p', 15), ('b', 12), ('v', 8), ('k', 6), ('j', 2), ('x', 2), ('q', 1), ('z', 1),
+        ];
+        foreach ((char letter, int perMille) in letters)
         {
-            r[letters[k]] = (byte)(20 + (k * 5));
-            r[char.ToUpperInvariant(letters[k])] = (byte)(90 + (k * 4));
+            r[letter] = (byte)(255 - perMille);
+            r[char.ToUpperInvariant(letter)] = (byte)(255 - Math.Max(1, perMille / 30));
         }
 
-        r[' '] = 10;
-        r['\n'] = 60;
-        r['\r'] = 60;
-        r['.'] = 120;
-        r[','] = 110;
-        r['\''] = 140;
-        for (int b = '0'; b <= '9'; b++)
-        {
-            r[b] = 150;
-        }
-
+        r[' '] = 255 - 170;
+        r['\n'] = 255 - 20;
+        r['\r'] = 255 - 20;
+        r['.'] = 255 - 7;
+        r[','] = 255 - 8;
         for (int b = 0xC0; b < 0xE0; b++)
         {
-            r[b] = 15;
+            r[b] = 255 - 200;
         }
 
         for (int b = 0xE0; b < 0xF0; b++)
         {
-            r[b] = 25;
+            r[b] = 255 - 150;
         }
 
         for (int b = 0x80; b < 0xC0; b++)
         {
-            r[b] = 100;
-        }
-
-        for (int b = 0xF0; b < 256; b++)
-        {
-            r[b] = 220;
+            r[b] = 255 - 15;
         }
 
         return r;

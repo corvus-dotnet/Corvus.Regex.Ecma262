@@ -184,12 +184,13 @@ internal interface ITextEncoding<TUnit>
     /// <returns>The length.</returns>
     int PrefixLength(Program program);
 
-    /// <summary>The first position at or after a position of the program's case sequence, when this encoding can search for one ignoring case, or -2 when it cannot (see <see cref="Program.CaseSequence"/>).</summary>
+    /// <summary>The first position at or after a position where one of the program's pair needles or literal alternatives is, or -2 when the program has none for this search (see <see cref="Program.PairNeedles"/> and <see cref="Program.AlternativeNeedles"/>).</summary>
     /// <param name="input">The text.</param>
     /// <param name="from">The position.</param>
     /// <param name="program">The program.</param>
+    /// <param name="alternatives">Whether to search for the alternatives rather than the pair needles.</param>
     /// <returns>The position, -1 for none, or -2.</returns>
-    int IndexOfCaseSequence(ReadOnlySpan<TUnit> input, int from, Program program);
+    int IndexOfAnyNeedle(ReadOnlySpan<TUnit> input, int from, Program program, bool alternatives);
 
     /// <summary>The length in units of the first of the program's literal alternatives that is at a position, or -1.</summary>
     /// <param name="input">The text.</param>
@@ -595,8 +596,31 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     public int PrefixLength(Program program) => program.Utf8Prefix.Length;
 
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int IndexOfCaseSequence(ReadOnlySpan<byte> input, int from, Program program) => -2;
+    public int IndexOfAnyNeedle(ReadOnlySpan<byte> input, int from, Program program, bool alternatives)
+    {
+        Utf8Needle[] needles = alternatives ? program.AlternativeNeedles : program.PairNeedlesUtf8;
+        if (needles.Length == 0)
+        {
+            return -2;
+        }
+
+        // Each needle after the first is looked for only up to the best so far.
+        int best = -1;
+        foreach (Utf8Needle needle in needles)
+        {
+            int i = needle.IndexOf(best < 0 ? input : input.Slice(0, Math.Min(input.Length, best + needle.Bytes.Length)), from);
+            if (i >= 0 && (best < 0 || i < best))
+            {
+                best = i;
+                if (i == from)
+                {
+                    break;
+                }
+            }
+        }
+
+        return best;
+    }
 
     /// <inheritdoc/>
     public int AlternativeAt(ReadOnlySpan<byte> input, int pos, Program program)
@@ -835,15 +859,31 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     public int PrefixLength(Program program) => program.Utf16Prefix.Length;
 
     /// <inheritdoc/>
-    public int IndexOfCaseSequence(ReadOnlySpan<char> input, int from, Program program)
+    public int IndexOfAnyNeedle(ReadOnlySpan<char> input, int from, Program program, bool alternatives)
     {
-        if (program.CaseSequence.Length == 0)
+        string[] needles = alternatives ? program.Alternatives : program.PairNeedles;
+        if (needles.Length == 0 || alternatives)
         {
+            // The alternatives are found by their first characters, a vectorised search for a few values.
             return -2;
         }
 
-        int i = input.Slice(from).IndexOf(program.CaseSequence.AsSpan(), StringComparison.OrdinalIgnoreCase);
-        return i < 0 ? -1 : from + i;
+        int best = -1;
+        foreach (string needle in needles)
+        {
+            ReadOnlySpan<char> scope = best < 0 ? input.Slice(from) : input.Slice(from, Math.Min(input.Length, best + needle.Length) - from);
+            int i = scope.IndexOf(needle.AsSpan());
+            if (i >= 0 && (best < 0 || from + i < best))
+            {
+                best = from + i;
+                if (i == 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        return best;
     }
 
     /// <inheritdoc/>

@@ -29,7 +29,6 @@
     <Compile Include="Engine\CaseFolding.cs" />
     <Compile Include="Engine\CharSet.cs" />
     <Compile Include="Engine\Dfa.cs" />
-    <Compile Include="Engine\InvariantCaseClass.cs" />
     <Compile Include="Engine\Matcher.cs" />
     <Compile Include="Engine\Program.cs" />
     <Compile Include="Engine\TextEncoding.cs" />
