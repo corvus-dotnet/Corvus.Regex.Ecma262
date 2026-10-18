@@ -80,6 +80,12 @@ internal sealed class Dfa
         /// <summary>Goes to <c>Out</c> at the end of the text.</summary>
         Eol,
 
+        /// <summary>Goes to <c>Out</c> where exactly one of the units either side is a word character.</summary>
+        WordBoundary,
+
+        /// <summary>Goes to <c>Out</c> where both or neither of the units either side is a word character.</summary>
+        NotWordBoundary,
+
         /// <summary>The match.</summary>
         Match,
     }
@@ -108,8 +114,9 @@ internal sealed class Dfa
         char[] signature = new char[(nfa.Count / 8) + 1];
         for (int c = 0; c < 128; c++)
         {
-            int acc = 0;
-            int n = 0;
+            // Whether the unit is a word character is part of the class, since a boundary turns on it.
+            int acc = Utf8Encoding.IsWordUnit(c) ? 1 : 0;
+            int n = 1;
             int len = 0;
             foreach (NfaState s in nfa)
             {
@@ -154,9 +161,9 @@ internal sealed class Dfa
         // The search is unanchored: a match may start at any position, so after every unit the states the pattern
         // starts in (not at the start of the text) join the set.
         List<int> restart = [];
-        b.Closure(restart, [start], false, false);
+        b.Closure(restart, [start], false, false, null, null);
         List<int> atBoth = [];
-        b.Closure(atBoth, [start], true, true);
+        b.Closure(atBoth, [start], true, true, false, false);
         d.empty = b.HasMatch(atBoth);
 
         Dictionary<string, byte> ids = [];
@@ -175,15 +182,21 @@ internal sealed class Dfa
             trans[(DfaBail * stride) + cls] = DfaBail;
         }
 
+        // A state is a set of the pattern's states, whether the unit before was a word character, which a
+        // boundary still to pass turns on (the boundaries are passed when the next unit is known), and whether
+        // it is at the start of the text, where a start anchor after a boundary still passes.
+        List<bool> wordBefore = [false, false, false];
+        List<bool> atStart = [false, false, false];
         List<int> first = [];
-        b.Closure(first, [start], true, false);
-        byte? s0 = Intern(b, ids, sets, trans, atEnd, stride, first);
+        b.Closure(first, [start], true, false, false, null);
+        byte? s0 = Intern(b, ids, sets, trans, atEnd, wordBefore, atStart, stride, first, false, true);
         if (s0 is null)
         {
             return null;
         }
 
         d.start = s0.Value;
+        List<int> resolved = [];
         List<int> moved = [];
         List<int> next = [];
         for (int id = DfaFirst; id < sets.Count; id++)
@@ -198,8 +211,18 @@ internal sealed class Dfa
                 }
 
                 int c = sample[cls];
+                bool word = Utf8Encoding.IsWordUnit(c);
+                resolved.Clear();
+                b.Closure(resolved, sets[id], atStart[id], false, wordBefore[id], word);
+                if (b.HasMatch(resolved))
+                {
+                    // A boundary before the unit let the match through: the match is at this position.
+                    trans[(id * stride) + cls] = DfaAccept;
+                    continue;
+                }
+
                 moved.Clear();
-                foreach (int i in sets[id])
+                foreach (int i in resolved)
                 {
                     NfaState s = nfa[i];
                     if (s.Kind == NfaKind.Set && s.Has(c))
@@ -210,8 +233,8 @@ internal sealed class Dfa
 
                 moved.AddRange(restart);
                 next.Clear();
-                b.Closure(next, moved, false, false);
-                byte? to = Intern(b, ids, sets, trans, atEnd, stride, next);
+                b.Closure(next, moved, false, false, word, null);
+                byte? to = Intern(b, ids, sets, trans, atEnd, wordBefore, atStart, stride, next, word, false);
                 if (to is null || b.Steps < 0)
                 {
                     return null;
@@ -269,7 +292,7 @@ internal sealed class Dfa
     }
 
     /// <summary>Gives a set its state. Null when there are too many.</summary>
-    private static byte? Intern(DfaBuilder b, Dictionary<string, byte> ids, List<int[]> sets, List<byte> trans, List<bool> atEnd, int stride, List<int> set)
+    private static byte? Intern(DfaBuilder b, Dictionary<string, byte> ids, List<int[]> sets, List<byte> trans, List<bool> atEnd, List<bool> wordBefore, List<bool> atStart, int stride, List<int> set, bool word, bool start)
     {
         if (b.HasMatch(set))
         {
@@ -282,10 +305,11 @@ internal sealed class Dfa
         }
 
         set.Sort();
-        char[] keyChars = new char[set.Count];
+        char[] keyChars = new char[set.Count + 1];
+        keyChars[0] = (char)((word ? 'w' : 'n') + (start ? 2 : 0));
         for (int k = 0; k < set.Count; k++)
         {
-            keyChars[k] = (char)set[k];
+            keyChars[k + 1] = (char)set[k];
         }
 
         string key = new(keyChars);
@@ -302,28 +326,17 @@ internal sealed class Dfa
         id = (byte)sets.Count;
         ids[key] = id;
         sets.Add([.. set]);
+        wordBefore.Add(word);
+        atStart.Add(start);
         for (int k = 0; k < stride; k++)
         {
             trans.Add(0);
         }
 
-        // At the end of the text the end anchors are passed.
-        List<int> ends = [];
-        foreach (int i in set)
-        {
-            if (b.Nfa[i].Kind == NfaKind.Eol)
-            {
-                ends.Add(b.Nfa[i].Out);
-            }
-        }
-
+        // At the end of the text the end anchors are passed, and a boundary sees no word character after.
         List<int> closed = [];
-        if (ends.Count > 0)
-        {
-            b.Closure(closed, ends, false, true);
-        }
-
-        atEnd.Add(ends.Count > 0 && b.HasMatch(closed));
+        b.Closure(closed, set, start, true, word, false);
+        atEnd.Add(b.HasMatch(closed));
         return id;
     }
 
@@ -464,8 +477,13 @@ internal sealed class Dfa
                     return this.Add(new NfaState(NfaKind.Bol, next));
                 case EcmaRegexNodeKind.Eol:
                     return this.Add(new NfaState(NfaKind.Eol, next));
+                case EcmaRegexNodeKind.WordBoundary when !n.Fold:
+                    return this.Add(new NfaState(NfaKind.WordBoundary, next));
+                case EcmaRegexNodeKind.NotWordBoundary when !n.Fold:
+                    return this.Add(new NfaState(NfaKind.NotWordBoundary, next));
                 default:
-                    // A word boundary, or anything that needs the backtracking matcher.
+                    // A word boundary under the i and u flags together (which folds), or anything that needs the
+                    // backtracking matcher.
                     this.Failed = true;
                     return 0;
             }
@@ -487,10 +505,12 @@ internal sealed class Dfa
 
         /// <summary>
         /// Adds to <paramref name="set"/> every state that reading nothing reaches from the states in
-        /// <paramref name="from"/>, keeping the states that read a unit, the end anchors still to pass, and the
-        /// match. A start anchor is passed only <paramref name="atStart"/>, and an end anchor only <paramref name="atEnd"/>.
+        /// <paramref name="from"/>, keeping the states that read a unit, the end anchors and word boundaries still
+        /// to pass, and the match. A start anchor is passed only <paramref name="atStart"/>, an end anchor only
+        /// <paramref name="atEnd"/>, and a word boundary only when whether the units before and after are word
+        /// characters is known (<paramref name="wordBefore"/> and <paramref name="wordAfter"/>), and it holds.
         /// </summary>
-        public void Closure(List<int> set, List<int> from, bool atStart, bool atEnd)
+        public void Closure(List<int> set, IEnumerable<int> from, bool atStart, bool atEnd, bool? wordBefore, bool? wordAfter)
         {
             this.generation++;
             this.stack.Clear();
@@ -531,6 +551,18 @@ internal sealed class Dfa
                         else
                         {
                             set.Add(i);
+                        }
+
+                        break;
+                    case NfaKind.WordBoundary:
+                    case NfaKind.NotWordBoundary:
+                        if (wordBefore is null || wordAfter is null)
+                        {
+                            set.Add(i);
+                        }
+                        else if ((wordBefore.Value != wordAfter.Value) == (s.Kind == NfaKind.WordBoundary))
+                        {
+                            this.stack.Push(s.Out);
                         }
 
                         break;

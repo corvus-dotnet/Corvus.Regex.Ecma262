@@ -42,6 +42,8 @@
     <Compile Include="MatchEvaluator.cs" />
     <Compile Include="Regex.cs" />
     <Compile Include="Regex.Matching.cs" />
+    <Compile Include="Regex.Spans.cs" />
+    <Compile Include="PooledBufferWriter.cs" />
     <Compile Include="ValueMatch.cs" />
     <Compile Include="ValueMatchEnumerator.cs" />
     <Compile Include="RegexFlags.cs" />

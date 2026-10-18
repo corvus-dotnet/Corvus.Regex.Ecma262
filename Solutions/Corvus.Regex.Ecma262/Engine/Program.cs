@@ -939,8 +939,9 @@ internal sealed class Compiler
                 at++;
             }
 
-            if (at < insts.Length && insts[at].Op == Op.Rep && insts[at].Max < 0 && insts[at].Min <= 1 && insts[at].Set is not null)
+            if (at < insts.Length && insts[at].Op == Op.Rep && insts[at].Max < 0 && insts[at].Set is not null)
             {
+                // Any least count: a later start of the run can leave the loop only where the first could.
                 skipRun = true;
                 loopSet = insts[at].Set;
                 loopMin = insts[at].Min;

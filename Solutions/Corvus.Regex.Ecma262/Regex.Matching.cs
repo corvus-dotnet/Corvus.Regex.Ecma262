@@ -425,22 +425,24 @@ public sealed partial class Regex
             return matches ? [] : [input];
         }
 
+        // The specification probes every position from q with a sticky match; the first position the probe
+        // succeeds at is the start of the leftmost match at or after q, which one search finds.
         int p = 0;
         int q = 0;
         while (q < size)
         {
-            bool ok = Matcher.Match<char, Utf16Encoding>(program, input.AsSpan(), q, sticky: true, this.Limit, slots, out MatchStop stop);
+            bool ok = Matcher.Match<char, Utf16Encoding>(program, input.AsSpan(), q, sticky: false, this.Limit, slots, out MatchStop stop);
             if (stop != MatchStop.None)
             {
                 throw this.Abandoned(stop);
             }
 
-            if (!ok)
+            if (!ok || slots[0] >= size)
             {
-                q = this.AdvanceAfterEmptyMatch(input.AsSpan(), q);
-                continue;
+                break;
             }
 
+            q = slots[0];
             int e = Math.Min(slots[1], size);
             if (e == p)
             {
@@ -542,15 +544,21 @@ public sealed partial class Regex
     }
 
     /// <summary>Where the first match at or after a position is, with no captures.</summary>
-    internal bool TryMatchBounds(ReadOnlySpan<char> input, int startAt, out int from, out int to)
+    internal bool TryMatchBounds(ReadOnlySpan<char> input, int startAt, out int from, out int to) => this.TryMatchBounds(input, startAt, this.Sticky, out from, out to);
+
+    /// <summary>Where the first match at or after a position is, with no captures, over UTF-8.</summary>
+    internal bool TryMatchBounds(ReadOnlySpan<byte> input, int startAt, out int from, out int to) => this.TryMatchBounds(input, startAt, this.Sticky, out from, out to);
+
+    /// <summary>Where the first match at or after a position is, with no captures, sticky or not as asked.</summary>
+    internal bool TryMatchBounds(ReadOnlySpan<char> input, int startAt, bool sticky, out int from, out int to)
     {
         if (this.program.Shape != SimpleShape.None)
         {
-            return Matcher.Simple<char, Utf16Encoding>(this.program, input, startAt, this.Sticky, out from, out to);
+            return Matcher.Simple<char, Utf16Encoding>(this.program, input, startAt, sticky, out from, out to);
         }
 
         Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
-        bool ok = Matcher.Match<char, Utf16Encoding>(this.program, input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
+        bool ok = Matcher.Match<char, Utf16Encoding>(this.program, input, startAt, sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
             throw this.Abandoned(stop);
@@ -561,16 +569,16 @@ public sealed partial class Regex
         return ok;
     }
 
-    /// <summary>Where the first match at or after a position is, with no captures.</summary>
-    internal bool TryMatchBounds(ReadOnlySpan<byte> input, int startAt, out int from, out int to)
+    /// <summary>Where the first match at or after a position is, with no captures, over UTF-8, sticky or not as asked.</summary>
+    internal bool TryMatchBounds(ReadOnlySpan<byte> input, int startAt, bool sticky, out int from, out int to)
     {
         if (this.program.Shape != SimpleShape.None)
         {
-            return Matcher.Simple<byte, Utf8Encoding>(this.program, input, startAt, this.Sticky, out from, out to);
+            return Matcher.Simple<byte, Utf8Encoding>(this.program, input, startAt, sticky, out from, out to);
         }
 
         Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
-        bool ok = Matcher.Match<byte, Utf8Encoding>(this.program, input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
+        bool ok = Matcher.Match<byte, Utf8Encoding>(this.program, input, startAt, sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
             throw this.Abandoned(stop);
@@ -706,6 +714,19 @@ public sealed partial class Regex
         if (input is null)
         {
             throw new ArgumentNullException(nameof(input));
+        }
+
+        if (replacement is not null)
+        {
+            // The result is built in pooled memory and copied out once: the string is the only allocation.
+            using PooledBufferWriter<char> writer = new(input.Length + 16);
+            WriterOutput<char> output = new(writer);
+            if (!this.ReplaceInto<char, Utf16Encoding, WriterOutput<char>>(input.AsSpan(), replacement.AsSpan(), ref output))
+            {
+                return input;
+            }
+
+            return writer.WrittenLength == input.Length && writer.WrittenSpan.SequenceEqual(input.AsSpan()) ? input : writer.ToString();
         }
 
         Match m = this.MatchAt(input, 0);

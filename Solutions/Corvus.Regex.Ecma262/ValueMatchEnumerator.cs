@@ -11,13 +11,20 @@ public ref struct ValueMatchEnumerator
 {
     private readonly Regex regex;
     private readonly ReadOnlySpan<char> input;
+    private readonly Span<ValueCapture> captures;
     private int next;
     private bool done;
 
     internal ValueMatchEnumerator(Regex regex, ReadOnlySpan<char> input, int startAt)
+        : this(regex, input, startAt, default)
+    {
+    }
+
+    internal ValueMatchEnumerator(Regex regex, ReadOnlySpan<char> input, int startAt, Span<ValueCapture> captures)
     {
         this.regex = regex;
         this.input = input;
+        this.captures = captures;
         this.next = startAt;
         this.Current = default;
     }
@@ -40,7 +47,20 @@ public ref struct ValueMatchEnumerator
             return false;
         }
 
-        if (!this.regex.TryMatchBounds(this.input, this.next, out int from, out int to))
+        int from;
+        int to;
+        if (this.captures.Length != 0)
+        {
+            if (!this.regex.TryMatchCaptures(this.input, this.next, this.captures, out ValueMatch match))
+            {
+                this.done = true;
+                return false;
+            }
+
+            from = match.Index;
+            to = from + match.Length;
+        }
+        else if (!this.regex.TryMatchBounds(this.input, this.next, out from, out to))
         {
             this.done = true;
             return false;
@@ -57,13 +77,20 @@ public ref struct Utf8ValueMatchEnumerator
 {
     private readonly Regex regex;
     private readonly ReadOnlySpan<byte> input;
+    private readonly Span<ValueCapture> captures;
     private int next;
     private bool done;
 
     internal Utf8ValueMatchEnumerator(Regex regex, ReadOnlySpan<byte> input, int startAt)
+        : this(regex, input, startAt, default)
+    {
+    }
+
+    internal Utf8ValueMatchEnumerator(Regex regex, ReadOnlySpan<byte> input, int startAt, Span<ValueCapture> captures)
     {
         this.regex = regex;
         this.input = input;
+        this.captures = captures;
         this.next = startAt;
         this.Current = default;
     }
@@ -86,7 +113,20 @@ public ref struct Utf8ValueMatchEnumerator
             return false;
         }
 
-        if (!this.regex.TryMatchBounds(this.input, this.next, out int from, out int to))
+        int from;
+        int to;
+        if (this.captures.Length != 0)
+        {
+            if (!this.regex.TryMatchCaptures(this.input, this.next, this.captures, out ValueMatch match))
+            {
+                this.done = true;
+                return false;
+            }
+
+            from = match.Index;
+            to = from + match.Length;
+        }
+        else if (!this.regex.TryMatchBounds(this.input, this.next, out from, out to))
         {
             this.done = true;
             return false;

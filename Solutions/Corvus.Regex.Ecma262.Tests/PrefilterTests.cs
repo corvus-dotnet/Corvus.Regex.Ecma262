@@ -126,6 +126,18 @@ public class PrefilterTests
     [DataRow(@"ss", "iu", "x\u017fxs", false, "")]
     [DataRow(@"k\u0428", "iu", "x\u212a\u0448", true, "the Kelvin sign before a letter beyond ASCII: an extra whose window is wider than the literal over UTF-8")]
     [DataRow(@"k\u0428", "iu", "x\u212a\u0418", false, "")]
+    [DataRow(@"\b\d{1,2}\/\d{1,2}\/\d{2,4}\b", "u", "Today is 11/18/2019", true, "a word boundary in the automaton")]
+    [DataRow(@"\b\d{1,2}\/\d{1,2}\/\d{2,4}\b", "u", "Today is 111/18/2019", false, "")]
+    [DataRow(@"\b\d{1,2}\/\d{1,2}\/\d{2,4}\b", "u", "11/18/2019x", false, "")]
+    [DataRow(@"\B^([a-z]+\.)*.$", "u", "$", true, "a start anchor after a boundary at the start is still at the start")]
+    [DataRow(@"\b(?:\b|\B)^", "u", "aaa", true, "")]
+    [DataRow(@"(\B){3}^a?", "u", "}", true, "")]
+    [DataRow(@"\Bx\b", "u", "ax b", true, "a boundary after a unit")]
+    [DataRow(@"\Bx\b", "u", "axb", false, "")]
+    [DataRow(@"x\b", "u", "x", true, "a boundary at the end of the text")]
+    [DataRow(@"x\B", "u", "x", false, "")]
+    [DataRow(@"\w{10,}", "u", "the consectetur word", true, "a leading loop of any least count skips its run")]
+    [DataRow(@"\w{10,}", "u", "the consecte word", false, "")]
     public void TheScansAgreeWithThePlainSearchOverBothEncodings(string pattern, string flags, string text, bool expected, string why)
     {
         Regex r = new(pattern, flags);
