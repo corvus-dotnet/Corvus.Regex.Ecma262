@@ -162,7 +162,7 @@ supplementary character at its third byte, is the UTF-8 cursor's code-unit mode.
 is the natural one.
 
 Literal runs are stored in both encodings at compile time (a few bytes each), so `opLit` is a span comparison and,
-for a literal prefix, a vectorised `IndexOf`.
+for a literal prefix, an anchored search (section 5.3).
 
 ### 5.2 Program and working memory
 
@@ -175,10 +175,45 @@ steps, as the ports do, so a match that ends before the first check never reads 
 ### 5.3 Finding where to start
 
 Before the matcher runs, the `Regex` applies what it learned at compile time, in this order: an anchored pattern
-starts only at 0; a required literal prefix is found by `IndexOf`; a first set is found by `SearchValues<byte>` /
-`SearchValues<char>` (net8.0 and later; a table on netstandard2.0); a minimum length rules out short rests. This is
-the part of .NET's `RegexFindOptimizations` that applies to ECMA-262 patterns, and it is where most of the time of
-a search on a long text goes.
+starts only at 0; a literal every match starts with, or holds at a fixed distance from its start, or holds after a
+leading loop, is found by an anchored search; a first set is found by `SearchValues<byte>` / `SearchValues<char>`
+(a table on netstandard2.0); a minimum length rules out short rests. This is the part of .NET's
+`RegexFindOptimizations` that applies to ECMA-262 patterns, and it is where most of the time of a search on a long
+text goes.
+
+**The anchored search** (`Needle<T>`, one class for `byte` and `ushort`). The span search finds a literal by its
+first and last units, and in UTF-8 those are often the units every character of a script shares: every Cyrillic
+letter starts with D0 or D1, every common CJK character with E4 to E9, so it compares at nearly every character.
+The needle instead picks the two (or three) positions of the literal that text makes rarest, by a table of how
+common each unit is (English letter frequencies for ASCII, and what UTF-8 makes of other scripts: lead bytes
+common, continuation bytes spread over sixty-four values), compares those positions over a vector of starts, and
+compares the literal in full only where every anchor agrees. A unit rare enough on its own (q, z, a digit,
+punctuation) is searched for alone by the span search for one value, which is the fastest search there is. Over
+UTF-16 a literal matched exactly keeps the span search, which is as fast as any for that. The loop that compares
+the anchors is a static method whose constants are its arguments and which makes no call, so everything stays in
+registers; the full comparison is made outside it.
+
+The same search is case-insensitive. Under the i flag the parser reads a letter as the class of its forms, and a
+run of such classes (or characters, or any small class of single characters: `[ab][cd]`) at the start of the
+pattern is one needle whose positions each allow up to three values; two forms that differ in the bits of a mask
+(a letter's cases differ in 0x20, in ASCII, in UTF-16 for Latin, Greek and Cyrillic, and in the last byte of
+UTF-8) are one comparison of the unit with those bits set, and ASCII anchors over UTF-16 are packed thirty-two to
+a vector. A form whose encoding is longer than the character's own (the long s and the Kelvin sign over UTF-8,
+which are two and three bytes where s and k are one) cannot be at a fixed position: it is looked for apart, and
+every start from which the literal could reach it is tried. This replaced the `OrdinalIgnoreCase` span search and
+an ASCII-only fold scan, which left a Cyrillic literal under the i flag at fourteen times .NET over UTF-16.
+
+**Several literals at once** (`MultiNeedle<T>`): an alternation of literals, the pairs of first characters of a
+sequence of classes, and the forms a case-insensitive search leaves out. One position that every literal has is
+chosen, or two, by a cost model (the comparisons at every vector against the full comparisons at the starts the
+units let through); one position is the span search for any of several values, two are a straight-line loop over
+up to six distinct units at each, and over UTF-8 two adjacent positions are compared as one sixteen-bit value,
+which admits only the literals' own pairs of bytes rather than every pairing of a unit of one position with a unit
+of the other.
+
+**What this cannot do.** A CJK literal over UTF-8 in a text that fits the cache runs at about 1.2 to 1.5 times
+.NET over UTF-16: every character is three bytes and no byte of it is rare, where UTF-16 has one rare unit per
+character for the span search to find alone. Over a text larger than the cache the smaller encoding wins back.
 
 ### 5.4 Linear patterns
 
@@ -214,7 +249,7 @@ parser and compiler source, and Corvus.Text.Json targets netstandard2.0 and test
 **The modern target never pays for netstandard2.0** (owner, 2026-10-18: "Do not sacrifice .NET 11 performance for
 netstandard2.0 compatibility. Consider conditional compilation."). Wherever the current runtime has a faster way,
 the code takes it under `#if NET` and netstandard2.0 gets a plain fallback, never the other way round:
-`SearchValues` and `IndexOfAny` for first sets, the vectorised span `IndexOf` for prefixes, `Vector128` scans for
+`SearchValues` and `IndexOfAny` for first sets, the anchored `Vector256` / `Vector128` searches for literals, `Vector128` scans for
 ASCII class loops, static abstract interface members and `allows ref struct` where they remove a cost, `Unsafe`
 reads where bounds checks show in a profile. The benchmarks of section 9 run on the modern target; the
 netstandard2.0 build is held to correctness (the same data set) and not to the same speed.

@@ -35,6 +35,9 @@ internal sealed class Needle<T>
     private readonly bool exact;
     private readonly T[]? foldLower;
     private readonly T[]? foldMask;
+    private readonly T[]? unitA;
+    private readonly T[]? unitB;
+    private readonly T[]? unitC;
     private readonly Mode mode;
     private readonly int o1;
     private readonly int o2;
@@ -77,6 +80,39 @@ internal sealed class Needle<T>
         if (!this.exact)
         {
             this.MakeFold(out this.foldLower, out this.foldMask);
+            bool few = true;
+            Span<T> seen = stackalloc T[MaxRows];
+            for (int j = 0; j < n && few; j++)
+            {
+                int distinctCount = 0;
+                foreach (T[] row in rows)
+                {
+                    bool dup = false;
+                    for (int k = 0; k < distinctCount; k++)
+                    {
+                        dup |= seen[k].Equals(row[j]);
+                    }
+
+                    if (!dup)
+                    {
+                        seen[distinctCount++] = row[j];
+                    }
+                }
+
+                few &= distinctCount <= 3;
+            }
+
+            if (this.foldLower is null && starts.Length - 1 == n && few)
+            {
+                // Every character is one unit: each position allows up to three values, compared in place.
+                this.unitA = new T[n];
+                this.unitB = new T[n];
+                this.unitC = new T[n];
+                for (int j = 0; j < n; j++)
+                {
+                    this.ValuesAt(j, out this.unitA[j], out this.unitB[j], out this.unitC[j]);
+                }
+            }
         }
 
         // The values each position allows, and how common they are together.
@@ -104,7 +140,13 @@ internal sealed class Needle<T>
             }
 
             counts[j] = count;
-            shares[j] = share;
+
+            // A position of three values costs three comparisons and two ors at every vector, and one of two
+            // values that no mask joins costs two and one, where one value (or a masked pair) costs one: the
+            // extra work is charged as if the position let more starts through.
+            T first = rows[0][j];
+            bool maskable = count == 1 || (count == 2 && Mask(first, values[1], values[1], out _));
+            shares[j] = share + (count >= 3 ? 24 : maskable ? 0 : 8);
         }
 
         int p1 = Rarest(shares, counts, -1, -1);
@@ -176,6 +218,16 @@ internal sealed class Needle<T>
         // Latin, Greek and Cyrillic, and in the last byte of UTF-8) are tested by one comparison of the unit with
         // those bits set.
         this.masked = Mask(this.a1, this.b1, this.c1, out this.m1) & Mask(this.a2, this.b2, this.c2, out this.m2);
+        if (p3 >= 0)
+        {
+            // A third anchor that no mask joins would cost the mask (and the packing) on all three.
+            this.ValuesAt(p3, out T a3, out T b3, out T c3);
+            if (this.masked && !Mask(a3, b3, c3, out _))
+            {
+                p3 = -1;
+            }
+        }
+
         if (p3 >= 0)
         {
             this.o3 = p3;
@@ -397,6 +449,24 @@ internal sealed class Needle<T>
             for (int k = 0; k < lower.Length; k++)
             {
                 if ((Unit(at[k]) | Unit(mask[k])) != Unit(lower[k]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        T[]? ua = this.unitA;
+        if (ua is not null)
+        {
+            T[] ub = this.unitB!;
+            T[] uc = this.unitC!;
+            ReadOnlySpan<T> at = input.Slice(pos, ua.Length);
+            for (int k = 0; k < ua.Length; k++)
+            {
+                T x = at[k];
+                if (!x.Equals(ua[k]) && !x.Equals(ub[k]) && !x.Equals(uc[k]))
                 {
                     return false;
                 }
@@ -1210,7 +1280,8 @@ internal sealed class MultiNeedle<T>
 
     /// <summary>Initializes a new instance of the <see cref="MultiNeedle{T}"/> class.</summary>
     /// <param name="needles">The literals, each matched exactly.</param>
-    public MultiNeedle(Needle<T>[] needles)
+    /// <param name="leadOnly">Whether to search by the first position alone whatever the cost model says: for the forms a case-insensitive search leaves out (the long s, the Kelvin sign), whose lead bytes are rare in any text the pattern's own script is written in, where the table of shares cannot know that.</param>
+    public MultiNeedle(Needle<T>[] needles, bool leadOnly = false)
     {
         this.needles = needles;
         int k = needles.Length;
@@ -1255,6 +1326,12 @@ internal sealed class MultiNeedle<T>
         double cost = ((2.0 * distinct[best1].Length) / units) + (share[best1] * StartCost);
         int bestA = best1;
         int bestB = -1;
+        if (leadOnly)
+        {
+            bestA = 0;
+            cost = double.NegativeInfinity;
+        }
+
         for (int d = 0; d < positions; d++)
         {
             for (int e = d + 1; e < positions; e++)
@@ -1832,8 +1909,9 @@ internal static class Needles
     /// <typeparam name="T">The unit: byte for UTF-8, ushort for UTF-16.</typeparam>
     /// <param name="texts">The literals, none empty.</param>
     /// <param name="utf8">Whether the encoding is UTF-8 (otherwise UTF-16).</param>
+    /// <param name="leadOnly">Whether to search by the first position alone (see <see cref="MultiNeedle{T}"/>).</param>
     /// <returns>The search.</returns>
-    public static MultiNeedle<T> Multi<T>(string[] texts, bool utf8)
+    public static MultiNeedle<T> Multi<T>(string[] texts, bool utf8, bool leadOnly = false)
         where T : unmanaged, IEquatable<T>
     {
         Needle<T>[] needles = new Needle<T>[texts.Length];
@@ -1844,7 +1922,7 @@ internal static class Needles
                 : MemoryMarshal.Cast<char, T>(texts[k].AsSpan()).ToArray());
         }
 
-        return new MultiNeedle<T>(needles);
+        return new MultiNeedle<T>(needles, leadOnly);
     }
 
     /// <summary>

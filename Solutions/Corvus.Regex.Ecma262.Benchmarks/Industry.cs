@@ -112,6 +112,22 @@ public static class Workloads
     /// <summary>Every workload that counts matches over a text.</summary>
     public static IEnumerable<Workload> All => Mariomka.Concat(Sherlock).Concat(Leipzig).Concat(Rebar);
 
+    /// <summary>The workloads a run takes: every one, or when the CORVUS_REGEX_WORKLOADS environment variable is set, those whose name holds one of its comma-separated texts.</summary>
+    public static IEnumerable<Workload> Selected
+    {
+        get
+        {
+            string? only = Environment.GetEnvironmentVariable("CORVUS_REGEX_WORKLOADS");
+            if (string.IsNullOrEmpty(only))
+            {
+                return All;
+            }
+
+            string[] texts = only.Split(',');
+            return All.Where(w => Array.Exists(texts, t => w.ToString().Contains(t, StringComparison.Ordinal)));
+        }
+    }
+
     private static Workload S(string pattern, string flags = "") => new("sherlock", pattern, flags, ToOptions(flags), "sherlock.txt.gz");
 
     private static Workload L(string pattern, string flags = "") => new("leipzig", pattern, flags, ToOptions(flags), "3200.txt.gz");
@@ -157,8 +173,8 @@ public class IndustryCount
     [ParamsSource(nameof(Workloads))]
     public Workload Workload { get; set; } = null!;
 
-    /// <summary>Gets the workloads.</summary>
-    public IEnumerable<Workload> Workloads => RegularExpressions.Benchmarks.Workloads.All;
+    /// <summary>Gets the workloads: all of them, or those whose name holds the text of the CORVUS_REGEX_WORKLOADS environment variable, for a targeted run.</summary>
+    public IEnumerable<Workload> Workloads => RegularExpressions.Benchmarks.Workloads.Selected;
 
     /// <summary>Compiles the patterns and reads the text.</summary>
     [GlobalSetup]

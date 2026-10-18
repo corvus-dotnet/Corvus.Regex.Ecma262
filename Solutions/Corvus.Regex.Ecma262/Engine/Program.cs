@@ -424,7 +424,7 @@ internal sealed class Program
             this.CaseNeedleUtf16 = needle16.CanSearch ? needle16 : null;
             this.CaseNeedleUtf8 = needle8.CanSearch ? needle8 : null;
             this.CaseExtrasUtf16 = extras16.Length == 0 ? null : Needles.Multi<ushort>(Array.ConvertAll(extras16, Rune), false);
-            this.CaseExtrasUtf8 = extras8.Length == 0 ? null : Needles.Multi<byte>(Array.ConvertAll(extras8, Rune), true);
+            this.CaseExtrasUtf8 = extras8.Length == 0 ? null : Needles.Multi<byte>(Array.ConvertAll(extras8, Rune), true, leadOnly: true);
             this.CaseWindowUtf16 = window16;
             this.CaseWindowUtf8 = window8;
         }
@@ -639,8 +639,10 @@ internal sealed class Program
         }
 #endif
 
-        if (this.First is not null)
+        if (this.First is not null && this.RequiredUtf16.Length == 0)
         {
+            // A required literal is the better guide to a start than the first class (x after [a-q][^u-z]{13}),
+            // and the general search uses it.
             this.Shape = SimpleShape.Sequence;
             this.PairNeedles = MakePairNeedles(insts);
             this.PairNeedlesUtf8 = new Needle<byte>[this.PairNeedles.Length];
@@ -1007,9 +1009,37 @@ internal sealed class Compiler
             open.RemoveAt(open.Count - 1);
         }
 
+        if (n.Kind == EcmaRegexNodeKind.Cat && Array.Exists(n.Subs, sub => sub.Kind == EcmaRegexNodeKind.Cat))
+        {
+            // A sequence inside a sequence (a written-out repetition) is the same sequence: flat, so that what
+            // reads the terms (the required literal, the first characters) sees them all.
+            List<EcmaRegexNode> flat = [];
+            foreach (EcmaRegexNode sub in n.Subs)
+            {
+                if (sub.Kind == EcmaRegexNodeKind.Cat)
+                {
+                    flat.AddRange(sub.Subs);
+                }
+                else
+                {
+                    flat.Add(sub);
+                }
+            }
+
+            n.Subs = [.. flat];
+        }
+
         if (n.Kind == EcmaRegexNodeKind.Repeat && n.Max != 0 && !Consumes(n.Subs[0]))
         {
             return n.Min == 0 ? new EcmaRegexNode(EcmaRegexNodeKind.Empty) : n.Subs[0];
+        }
+
+        if (n.Kind == EcmaRegexNodeKind.Repeat && n.Min == n.Max && n.Max >= 2 && n.Max <= 32 && n.Subs[0].Kind is EcmaRegexNodeKind.Set or EcmaRegexNodeKind.Char)
+        {
+            // An exact count of one character or class is that many of it in a row: a straight run of tests
+            // without a loop's counting, which pays where a search tries the run at every occurrence of a literal
+            // after it ([a-q][^u-z]{13}x).
+            return Unroll(n);
         }
 
         if (n.Kind == EcmaRegexNodeKind.Repeat && n.Max > 0 && n.Max <= 4 && n.Min >= 1 && !Nullable(n.Subs[0]) && !HasCapture(n.Subs[0]) && Size(n.Subs[0]) <= 32
