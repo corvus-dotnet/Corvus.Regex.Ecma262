@@ -234,6 +234,36 @@ internal struct Quick : IEquatable<Quick>
     /// <summary>Gets or sets a value indicating whether a way reaches the end of its match at the end of the text.</summary>
     public bool End { get; set; }
 
+#if NET
+    private System.Buffers.SearchValues<byte>? allowedBytes;
+    private System.Buffers.SearchValues<char>? allowedChars;
+
+    /// <summary>Gets a value indicating whether the way can only go on from a character below 128 (and so the allowed characters can be searched for).</summary>
+    public bool AsciiOnly => !this.Other && !this.Mid;
+
+    /// <summary>Gets the characters below 128 the way can go on from, for a vectorised search over UTF-8. Only when <see cref="AsciiOnly"/>.</summary>
+    public System.Buffers.SearchValues<byte> AllowedBytes => this.allowedBytes ??= System.Buffers.SearchValues.Create(this.Allowed<byte>());
+
+    /// <summary>Gets the characters below 128 the way can go on from, for a vectorised search over UTF-16. Only when <see cref="AsciiOnly"/>.</summary>
+    public System.Buffers.SearchValues<char> AllowedChars => this.allowedChars ??= System.Buffers.SearchValues.Create(this.Allowed<char>());
+
+    private TUnit[] Allowed<TUnit>()
+        where TUnit : unmanaged
+    {
+        List<TUnit> units = [];
+        for (int c = 0; c < 128; c++)
+        {
+            bool on = c < 64 ? ((this.Ascii0 >> c) & 1) != 0 : ((this.Ascii1 >> (c - 64)) & 1) != 0;
+            if (on)
+            {
+                units.Add(typeof(TUnit) == typeof(byte) ? (TUnit)(object)(byte)c : (TUnit)(object)(char)c);
+            }
+        }
+
+        return [.. units];
+    }
+#endif
+
     /// <summary>Gets the quick that allows everything.</summary>
     public static Quick All => new() { Ascii0 = ~0UL, Ascii1 = ~0UL, Other = true, Mid = true, End = true };
 
@@ -1049,7 +1079,9 @@ internal sealed class Compiler
                     j++;
                 }
 
-                if (j - k >= 2)
+                // One character is enough when something comes before it: the search for it is vectorised, and the
+                // start it allows is tried once. At the very start one character would be a prefix.
+                if (j - k >= 2 || distance > 0)
                 {
                     offset = distance;
                     offsetUtf8 = ascii ? distance : -1;

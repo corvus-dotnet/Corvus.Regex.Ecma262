@@ -158,6 +158,14 @@ internal interface ITextEncoding<TUnit>
     /// <returns>The position, or -1.</returns>
     int IndexOfCasePrefix(ReadOnlySpan<TUnit> input, int from, Program program);
 
+    /// <summary>The last position in a range from which a way can go on, by the quick's allowed characters, or -1 (only when the quick is <see cref="Quick.AsciiOnly"/>).</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The start of the range.</param>
+    /// <param name="to">The end of the range, exclusive.</param>
+    /// <param name="quick">The quick.</param>
+    /// <returns>The position, or -1.</returns>
+    int LastAllowed(ReadOnlySpan<TUnit> input, int from, int to, ref Quick quick);
+
     /// <summary>The first position at or after a position of the literal after the program's leading loop, or -1 (see <see cref="Program.AfterLoopUtf16"/>).</summary>
     /// <param name="input">The text.</param>
     /// <param name="from">The position.</param>
@@ -460,10 +468,54 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     public int IndexOfCandidate(ReadOnlySpan<byte> input, int from, CharSet set, bool small)
     {
-        int i = small
-            ? input.Slice(from).IndexOfAny(set.LeadBytes)
-            : set.HasNonAscii ? input.Slice(from).IndexOfAnyExcept(set.NonMemberBytes) : input.Slice(from).IndexOfAny(set.MemberBytes);
-        return i < 0 ? -1 : from + i;
+        if (!small)
+        {
+            int i = set.HasNonAscii ? input.Slice(from).IndexOfAnyExcept(set.NonMemberBytes) : input.Slice(from).IndexOfAny(set.MemberBytes);
+            return i < 0 ? -1 : from + i;
+        }
+
+        if (!set.ScansByTrailByte)
+        {
+            int i = input.Slice(from).IndexOfAny(set.LeadBytes);
+            return i < 0 ? -1 : from + i;
+        }
+
+        // The last byte of a member's encoding tells members of one script apart where the first byte does not
+        // (every Cyrillic letter starts with D0 or D1). The character that ends at the byte found is decoded
+        // backwards; a byte that ends no character is a character of its own.
+        int at = from;
+        while (true)
+        {
+            int i = input.Slice(at).IndexOfAny(set.TrailBytes);
+            if (i < 0)
+            {
+                return -1;
+            }
+
+            int end = at + i + 1;
+            DecodeLastRune(input.Slice(0, end), out int w);
+            if (w == 1 && IsContinuation(input[end - 1]))
+            {
+                // A continuation byte that ends no character: inside a character (a middle byte that happens to be
+                // a trail value), in which case the search goes on after that character, or stray, in which case it
+                // is a character of its own.
+                if (this.AlignStart(input, end - 1, false) != end - 1)
+                {
+                    // Inside a character: its own last byte may be the trail looked for, so go on from the next byte.
+                    at = end;
+                    continue;
+                }
+            }
+
+            int start = end - w;
+            if (start >= from)
+            {
+                return start;
+            }
+
+            // The character that ends here began before the range.
+            at = end;
+        }
     }
 
     /// <inheritdoc/>
@@ -501,6 +553,14 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     }
 
     /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int LastAllowed(ReadOnlySpan<byte> input, int from, int to, ref Quick quick)
+    {
+        int i = input.Slice(from, to - from).LastIndexOfAny(quick.AllowedBytes);
+        return i < 0 ? -1 : from + i;
+    }
+
+    /// <inheritdoc/>
     public int IndexOfAfterLoop(ReadOnlySpan<byte> input, int from, Program program)
     {
         if (from > input.Length)
@@ -523,6 +583,8 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     {
         byte[] lower = program.CasePrefixUtf8;
         int n = lower.Length;
+        int second = lower[1];
+        bool secondIsLetter = second >= 'a' && second <= 'z';
         while (true)
         {
             if (input.Length - from < n)
@@ -537,7 +599,10 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
             }
 
             from += i;
-            if (System.Text.Ascii.EqualsIgnoreCase(input.Slice(from, n), lower))
+
+            // The second character is checked before the full comparison: most candidates fail there.
+            int b = input[from + 1];
+            if ((secondIsLetter ? (b | 0x20) : b) == second && System.Text.Ascii.EqualsIgnoreCase(input.Slice(from, n), lower))
             {
                 return from;
             }
@@ -701,6 +766,14 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     public int IndexOfCasePrefix(ReadOnlySpan<char> input, int from, Program program)
     {
         int i = input.Slice(from).IndexOf(program.CasePrefixUtf16.AsSpan(), StringComparison.OrdinalIgnoreCase);
+        return i < 0 ? -1 : from + i;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int LastAllowed(ReadOnlySpan<char> input, int from, int to, ref Quick quick)
+    {
+        int i = input.Slice(from, to - from).LastIndexOfAny(quick.AllowedChars);
         return i < 0 ? -1 : from + i;
     }
 

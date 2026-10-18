@@ -507,10 +507,20 @@ internal static class Matcher
             // every start from which the literal could reach it is tried, in order.
             int n = p.CasePrefixUtf16.Length;
             CharSet? extras = p.CaseExtras;
+
+            // The next extra character at or after pos, found once and kept until the search passes it: -1 once
+            // there is none left.
+            int e = -1;
+            bool extraKnown = extras is null;
             while (true)
             {
                 int i = enc.IndexOfCasePrefix(input, pos, p);
-                int e = extras is null ? -1 : enc.IndexOfCandidate(input, pos, extras, true);
+                if (!extraKnown || (e >= 0 && e < pos))
+                {
+                    e = enc.IndexOfCandidate(input, pos, extras!, true);
+                    extraKnown = true;
+                }
+
                 if (i < 0 && e < 0)
                 {
                     return false;
@@ -864,6 +874,34 @@ internal static class Matcher
         if (i.Set is not null ? !i.Set.Contains(r) : r != i.R)
         {
             return 0;
+        }
+
+        return w;
+    }
+
+    /// <summary>
+    /// The width of the last character before a position, to give it back. The characters of a run were decoded
+    /// going forward, and decoding the last of them going backward finds the same boundary.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GiveBack<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, int pos, bool units)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        if (enc.Unit(input, pos - 1) < 0x80)
+        {
+            return 1;
+        }
+
+        int w;
+        if (units)
+        {
+            enc.UnitBefore(input, pos, out w);
+        }
+        else
+        {
+            enc.DecodeBefore(input, pos, out w);
         }
 
         return w;
@@ -1673,22 +1711,30 @@ internal static class Matcher
                             SetMemoBit(memoBits, MemoIndex(p, st, rep.M, e.Pos));
                         }
 
-                        // Give back the last character taken. The characters between a and pos were decoded going
-                        // forward, and decoding the last of them going backward finds the same boundary.
-                        int w = 1;
-                        if (enc.Unit(input, e.Pos - 1) >= 0x80)
+                        int at;
+#if NET
+                        if (!marked && quick[e.Pc].AsciiOnly)
                         {
-                            if (units)
+                            // What follows can go on only from a character below 128: the last such position in
+                            // the run is found by a vectorised search, and the positions passed over are the ones
+                            // the check below would pass over one by one. None of them is marked, since the loop
+                            // has no memo point.
+                            int j = enc.LastAllowed(input, e.A, e.Pos, ref quick[e.Pc]);
+                            if (j < 0)
                             {
-                                enc.UnitBefore(input, e.Pos, out w);
+                                sp--;
+                                break;
                             }
-                            else
-                            {
-                                enc.DecodeBefore(input, e.Pos, out w);
-                            }
-                        }
 
-                        int at = e.Pos - w;
+                            at = j;
+                        }
+                        else
+                        {
+                            at = e.Pos - GiveBack<TUnit, TEncoding>(input, e.Pos, units);
+                        }
+#else
+                        at = e.Pos - GiveBack<TUnit, TEncoding>(input, e.Pos, units);
+#endif
                         stack[top].Pos = at;
                         pc = e.Pc;
                         pos = at;

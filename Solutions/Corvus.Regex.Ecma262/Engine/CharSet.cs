@@ -30,6 +30,7 @@ internal sealed class CharSet
     private SearchValues<char>? memberChars;
     private SearchValues<char>? nonMemberChars;
     private SearchValues<byte>? leadBytes;
+    private SearchValues<byte>? trailBytes;
     private SearchValues<char>? allChars;
 #endif
 
@@ -157,6 +158,45 @@ internal sealed class CharSet
         }
     }
 
+    /// <summary>
+    /// Gets a value indicating whether a small set is searched for over UTF-8 by the last byte of each member's
+    /// encoding (see <see cref="TrailBytes"/>) rather than the first: when no member is a surrogate code unit (which
+    /// is read inside a four-byte character) or U+FFFD (which any byte that is not UTF-8 reads as).
+    /// </summary>
+    public bool ScansByTrailByte => !this.Contains(0xFFFD) && !this.IntersectsSurrogates();
+
+    /// <summary>Gets the last UTF-8 byte of every member of a small set, for a vectorised search over UTF-8 that then decodes backwards. Only for a set that <see cref="IsSmall"/> and <see cref="ScansByTrailByte"/>.</summary>
+    public SearchValues<byte> TrailBytes
+    {
+        get
+        {
+            if (this.trailBytes is null)
+            {
+                bool[] seen = new bool[256];
+                for (int k = 0; k < this.ranges.Length; k += 2)
+                {
+                    for (int c = this.ranges[k]; c <= this.ranges[k + 1]; c++)
+                    {
+                        seen[c < 0x80 ? c : 0x80 | (c & 0x3F)] = true;
+                    }
+                }
+
+                List<byte> bytes = [];
+                for (int b = 0; b < 256; b++)
+                {
+                    if (seen[b])
+                    {
+                        bytes.Add((byte)b);
+                    }
+                }
+
+                this.trailBytes = SearchValues.Create(bytes.ToArray());
+            }
+
+            return this.trailBytes;
+        }
+    }
+
     /// <summary>Gets the first UTF-8 byte of every member of a small set, for a vectorised search over UTF-8. Only for a set that <see cref="IsSmall"/>.</summary>
     public SearchValues<byte> LeadBytes
     {
@@ -216,6 +256,19 @@ internal sealed class CharSet
 
             return this.leadBytes;
         }
+    }
+
+    private bool IntersectsSurrogates()
+    {
+        for (int k = 0; k < this.ranges.Length; k += 2)
+        {
+            if (this.ranges[k] <= 0xDFFF && this.ranges[k + 1] >= 0xD800)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private TUnit[] AsciiUnits<TUnit>(bool members)

@@ -58,6 +58,9 @@ public class PrefilterTests
     [DataRow(@"[^u-z]{3}xy", "", "a\ud83d\ude00xy", true, "")]
     [DataRow(@"[^u-z]{3}xy", "u", "a\ud83d\ude00xy", false, "")]
     [DataRow(@"(.*)$", "u", "\nabd", true, "a start the loop took nothing at begins no run to skip")]
+    [DataRow(@"[\ud83d\ude00-\ud83d\ude4f]", "u", "\ud83d\ude00,", true, "a trail-byte scan can land on a middle byte of the member it is looking for")]
+    [DataRow(@"[\u0428\u0448]x", "u", "\u0448x", true, "")]
+    [DataRow(@"[\u0428\u0448]x", "u", "\u0418x", false, "")]
     [DataRow(@"[a-z]*x", "u", "1ax", true, "")]
     public void TheScansAgreeWithThePlainSearchOverBothEncodings(string pattern, string flags, string text, bool expected, string why)
     {
