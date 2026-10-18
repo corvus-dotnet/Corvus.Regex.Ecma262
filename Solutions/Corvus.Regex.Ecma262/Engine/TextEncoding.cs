@@ -184,6 +184,13 @@ internal interface ITextEncoding<TUnit>
     /// <returns>The length.</returns>
     int PrefixLength(Program program);
 
+    /// <summary>The first position at or after a position of the program's case sequence, when this encoding can search for one ignoring case, or -2 when it cannot (see <see cref="Program.CaseSequence"/>).</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="program">The program.</param>
+    /// <returns>The position, -1 for none, or -2.</returns>
+    int IndexOfCaseSequence(ReadOnlySpan<TUnit> input, int from, Program program);
+
     /// <summary>The length in units of the first of the program's literal alternatives that is at a position, or -1.</summary>
     /// <param name="input">The text.</param>
     /// <param name="pos">The position.</param>
@@ -420,52 +427,13 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     }
 
     /// <inheritdoc/>
-    public int IndexOfPrefix(ReadOnlySpan<byte> input, int from, Program program)
-    {
-        byte[] prefix = program.Utf8Prefix;
-        if (prefix[0] < 0x80)
-        {
-            int i = input.Slice(from).IndexOf(prefix);
-            return i < 0 ? -1 : from + i;
-        }
-
-        // The first and last bytes of a prefix beyond ASCII are the first bytes of a script's characters, which
-        // every character of the script shares, so the span search would compare at nearly every character. The
-        // last byte of the first character tells characters apart; it is searched for, and the prefix compared
-        // from the character's start.
-        DecodeRune(prefix, out int firstWidth);
-        byte trail = prefix[firstWidth - 1];
-        int at = from + firstWidth - 1;
-        while (at < input.Length)
-        {
-            int j = input.Slice(at).IndexOf(trail);
-            if (j < 0)
-            {
-                return -1;
-            }
-
-            int start = at + j - firstWidth + 1;
-            if (start >= from && input.Length - start >= prefix.Length && input.Slice(start, prefix.Length).SequenceEqual(prefix))
-            {
-                return start;
-            }
-
-            at += j + 1;
-        }
-
-        return -1;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int IndexOfPrefix(ReadOnlySpan<byte> input, int from, Program program) => program.Utf8PrefixNeedle!.IndexOf(input, from);
 
     /// <inheritdoc/>
     public int IndexOfRequired(ReadOnlySpan<byte> input, int from, Program program)
     {
-        if (from > input.Length)
-        {
-            return -1;
-        }
-
-        int i = input.Slice(from).IndexOf(program.RequiredUtf8);
-        return i < 0 ? -1 : from + i;
+        return from > input.Length ? -1 : program.RequiredUtf8Needle!.IndexOf(input, from);
     }
 
     /// <inheritdoc/>
@@ -614,13 +582,7 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     public int IndexOfAfterLoop(ReadOnlySpan<byte> input, int from, Program program)
     {
-        if (from > input.Length)
-        {
-            return -1;
-        }
-
-        int i = input.Slice(from).IndexOf(program.AfterLoopUtf8);
-        return i < 0 ? -1 : from + i;
+        return from > input.Length ? -1 : program.AfterLoopUtf8Needle!.IndexOf(input, from);
     }
 #endif
 
@@ -631,6 +593,10 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int PrefixLength(Program program) => program.Utf8Prefix.Length;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int IndexOfCaseSequence(ReadOnlySpan<byte> input, int from, Program program) => -2;
 
     /// <inheritdoc/>
     public int AlternativeAt(ReadOnlySpan<byte> input, int pos, Program program)
@@ -678,48 +644,7 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     public int IndexOfCasePrefix(ReadOnlySpan<byte> input, int from, Program program)
     {
-        byte[] lower = program.CasePrefixUtf8;
-        int n = lower.Length;
-        byte[][] pairs = program.CasePrefixPairs;
-        while (true)
-        {
-            if (input.Length - from < n)
-            {
-                return -1;
-            }
-
-            // The first two characters in each of their cases, as two-byte needles the span search vectorises;
-            // the nearest occurrence is the candidate. Each needle after the first is looked for only up to the
-            // best so far, so a rare needle never scans the whole text at every step.
-            ReadOnlySpan<byte> window = input.Slice(from, input.Length - from - n + 2);
-            int best = -1;
-            foreach (byte[] pair in pairs)
-            {
-                ReadOnlySpan<byte> scope = best < 0 ? window : window.Slice(0, best + 1);
-                int j = scope.IndexOf(pair);
-                if (j >= 0 && (best < 0 || j < best))
-                {
-                    best = j;
-                    if (j == 0)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            if (best < 0)
-            {
-                return -1;
-            }
-
-            from += best;
-            if (System.Text.Ascii.EqualsIgnoreCase(input.Slice(from, n), lower))
-            {
-                return from;
-            }
-
-            from++;
-        }
+        return Utf8CaseSearch.IndexOf(input, from, program.CasePrefixUtf8);
     }
 #endif
 
@@ -908,6 +833,18 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int PrefixLength(Program program) => program.Utf16Prefix.Length;
+
+    /// <inheritdoc/>
+    public int IndexOfCaseSequence(ReadOnlySpan<char> input, int from, Program program)
+    {
+        if (program.CaseSequence.Length == 0)
+        {
+            return -2;
+        }
+
+        int i = input.Slice(from).IndexOf(program.CaseSequence.AsSpan(), StringComparison.OrdinalIgnoreCase);
+        return i < 0 ? -1 : from + i;
+    }
 
     /// <inheritdoc/>
     public int AlternativeAt(ReadOnlySpan<char> input, int pos, Program program)

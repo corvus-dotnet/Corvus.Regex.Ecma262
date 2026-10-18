@@ -418,7 +418,7 @@ internal static class Matcher
     /// The search for a program of a simple shape (see <see cref="SimpleShape"/>): the match is where the search
     /// finds the literal or the member, and nothing of the matcher runs.
     /// </summary>
-    private static bool Simple<TUnit, TEncoding>(Program p, ReadOnlySpan<TUnit> input, int start, bool sticky, out int from, out int to)
+    public static bool Simple<TUnit, TEncoding>(Program p, ReadOnlySpan<TUnit> input, int start, bool sticky, out int from, out int to)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
@@ -557,7 +557,12 @@ internal static class Matcher
 #if NET
                     if (!sticky)
                     {
-                        int i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);
+                        int i = p.Shape == SimpleShape.Sequence ? enc.IndexOfCaseSequence(input, pos, p) : -2;
+                        if (i == -2)
+                        {
+                            i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);
+                        }
+
                         if (i < 0)
                         {
                             return false;
@@ -592,16 +597,67 @@ internal static class Matcher
 #if NET
             case SimpleShape.CaseLiteral:
             {
+                // The ordinal search ignoring case, and where a letter also folds to a character beyond ASCII (the
+                // long s, the Kelvin sign) a check of every start that could reach one, as the general search does.
                 int n = p.CasePrefixUtf16.Length;
-                int i = enc.IndexOfCasePrefix(input, start, p);
-                if (i < 0 || (sticky && i != start))
+                CharSet? extras = p.CaseExtras;
+                bool units = p.Units;
+                int pos = start;
+                while (true)
                 {
-                    return false;
-                }
+                    int i = enc.IndexOfCasePrefix(input, pos, p);
+                    int e = -1;
+                    if (extras is not null)
+                    {
+                        int limit = i < 0 ? len : Math.Min(len, i + n);
+                        e = enc.IndexOfCandidate(input.Slice(0, limit), pos, extras, true);
+                    }
 
-                from = i;
-                to = i + n;
-                return true;
+                    if (i < 0 && e < 0)
+                    {
+                        return false;
+                    }
+
+                    if (e >= 0 && (i < 0 || e - n < i))
+                    {
+                        int s = Math.Max(pos, e - n + 1);
+                        while (s <= e)
+                        {
+                            s = enc.AlignStart(input, s, units);
+                            if (s > e)
+                            {
+                                break;
+                            }
+
+                            int end = SequenceAt<TUnit, TEncoding>(p, input, s, units);
+                            if (end >= 0 && (!sticky || s == start))
+                            {
+                                from = s;
+                                to = end;
+                                return true;
+                            }
+
+                            if (sticky)
+                            {
+                                return false;
+                            }
+
+                            s = NextPosition<TUnit, TEncoding>(input, s, units);
+                        }
+
+                        pos = enc.NextStart(input, e);
+                        continue;
+                    }
+
+                    if (sticky && i != start)
+                    {
+                        return false;
+                    }
+
+                    from = i;
+                    to = i + n;
+                    return true;
+                }
             }
 #endif
 
@@ -989,6 +1045,13 @@ internal static class Matcher
                 if (pos == len)
                 {
                     return false;
+                }
+
+                if (p.LeadingWordBoundary && pos > 0 && enc.Unit(input, pos - 1) < 0x80 && Utf8Encoding.IsWordUnit(enc.Unit(input, pos - 1)))
+                {
+                    // Inside a word, where \b cannot hold: the rest of the word is passed over.
+                    pos = EndOfRun<TUnit, TEncoding>(first, input, pos, units);
+                    continue;
                 }
             }
 #endif

@@ -432,6 +432,9 @@ internal sealed class Program
             : System.Buffers.SearchValues.Create([(byte)char.ToLowerInvariant(casePrefix[0]), (byte)char.ToUpperInvariant(casePrefix[0])]);
 #endif
         this.FirstIsSmall = first is not null && first.IsSmall;
+        this.Utf8PrefixNeedle = prefix.Length == 0 ? null : new Utf8Needle(Encoding.UTF8.GetBytes(prefix));
+        this.RequiredUtf8Needle = required.Length == 0 ? null : new Utf8Needle(Encoding.UTF8.GetBytes(required));
+        this.AfterLoopUtf8Needle = afterLoop.Length == 0 ? null : new Utf8Needle(Encoding.UTF8.GetBytes(afterLoop));
         this.RequiredUtf16 = required;
         this.RequiredUtf8 = Encoding.UTF8.GetBytes(required);
         this.RequiredOffset = requiredOffset;
@@ -470,6 +473,15 @@ internal sealed class Program
 
     /// <summary>Gets the literal text every match starts with, as UTF-8.</summary>
     public byte[] Utf8Prefix { get; }
+
+    /// <summary>Gets the prefix as a UTF-8 search by its rarest byte, or null.</summary>
+    public Utf8Needle? Utf8PrefixNeedle { get; }
+
+    /// <summary>Gets the required literal as a UTF-8 search by its rarest byte, or null.</summary>
+    public Utf8Needle? RequiredUtf8Needle { get; }
+
+    /// <summary>Gets the literal after the leading loop as a UTF-8 search by its rarest byte, or null.</summary>
+    public Utf8Needle? AfterLoopUtf8Needle { get; }
 
     /// <summary>Gets the least number of characters a match consumes (see <see cref="Compiler.SetNeeds"/>).</summary>
     public int Need { get; }
@@ -523,6 +535,13 @@ internal sealed class Program
     /// <summary>Gets the class of a <see cref="SimpleShape.Set"/> or <see cref="SimpleShape.Loop"/> program.</summary>
     public CharSet? ShapeSet { get; private set; }
 
+    /// <summary>
+    /// Gets a value indicating whether the program starts with <c>\b</c> and every character a match can start with
+    /// is an ASCII word character: a candidate inside a word then fails, and the search passes over the rest of
+    /// the word.
+    /// </summary>
+    public bool LeadingWordBoundary { get; internal set; }
+
     /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program, as UTF-16.</summary>
     public string[] Alternatives { get; private set; } = [];
 
@@ -572,17 +591,17 @@ internal sealed class Program
             return;
         }
 
-#if NET
-        if (this.CasePrefixUtf16.Length == insts.Length - 1 && this.CaseExtras is null)
+        for (int k = 0; k < insts.Length - 1; k++)
         {
-            for (int k = 0; k < insts.Length - 1; k++)
+            if (insts[k].Op != Op.Set && insts[k].Op != Op.Char)
             {
-                if (insts[k].Op != Op.Set && insts[k].Op != Op.Char)
-                {
-                    return;
-                }
+                return;
             }
+        }
 
+#if NET
+        if (this.CasePrefixUtf16.Length == insts.Length - 1)
+        {
             this.Shape = SimpleShape.CaseLiteral;
             return;
         }
@@ -590,16 +609,66 @@ internal sealed class Program
 
         if (this.First is not null)
         {
-            for (int k = 0; k < insts.Length - 1; k++)
+            this.Shape = SimpleShape.Sequence;
+            this.CaseSequence = InvariantCaseSequence(insts);
+        }
+    }
+
+    /// <summary>
+    /// Gets, for a <see cref="SimpleShape.Sequence"/> program each of whose classes is exactly the set of characters
+    /// the invariant culture's upper-casing makes equal to one character (which is what an ordinal comparison that
+    /// ignores case tests), one such character for each, as a string: the sequence is then searched for over UTF-16
+    /// by <c>IndexOf</c> with <c>OrdinalIgnoreCase</c>, which is vectorised. Empty otherwise.
+    /// </summary>
+    public string CaseSequence { get; private set; } = string.Empty;
+
+    private static string InvariantCaseSequence(Inst[] insts)
+    {
+        StringBuilder sb = new();
+        for (int k = 0; k < insts.Length - 1; k++)
+        {
+            ref Inst i = ref insts[k];
+            if (i.Set is null)
             {
-                if (insts[k].Op != Op.Set && insts[k].Op != Op.Char)
+                if (i.R > 0xFFFF || InvariantCaseClass.Of(i.R).Length != 1)
                 {
-                    return;
+                    return string.Empty;
+                }
+
+                sb.Append((char)i.R);
+                continue;
+            }
+
+            int[] ranges = i.Set.Ranges;
+            if (ranges.Length == 0 || ranges[ranges.Length - 1] > 0xFFFF)
+            {
+                return string.Empty;
+            }
+
+            int[] cls = InvariantCaseClass.Of(ranges[0]);
+            int n = 0;
+            for (int r = 0; r < ranges.Length; r += 2)
+            {
+                for (int c = ranges[r]; c <= ranges[r + 1]; c++)
+                {
+                    if (n >= cls.Length || cls[n] != c)
+                    {
+                        return string.Empty;
+                    }
+
+                    n++;
                 }
             }
 
-            this.Shape = SimpleShape.Sequence;
+            if (n != cls.Length)
+            {
+                return string.Empty;
+            }
+
+            sb.Append((char)ranges[0]);
         }
+
+        return sb.ToString();
     }
 
     /// <summary>Gets the distance from the start of a match to its required literal over UTF-8, or -1 when the terms before it are not all ASCII (over UTF-16 <see cref="RequiredOffset"/> holds for any term of one code unit).</summary>
@@ -820,6 +889,7 @@ internal sealed class Compiler
 
         Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, casePrefix, requiredOffsetUtf8, caseExtras, loopSet, loopMin, afterLoop, skipRun, requiredCount);
         program.SetShape(LiteralAlternatives(root));
+        program.LeadingWordBoundary = insts.Length > 1 && insts[0].Op == Op.WordBoundary && first is not null && !first.HasNonAscii && IsWordSubset(first);
         return program;
     }
 
@@ -884,7 +954,104 @@ internal sealed class Compiler
             return n.Min == 0 ? new EcmaRegexNode(EcmaRegexNodeKind.Empty) : n.Subs[0];
         }
 
+        if (n.Kind == EcmaRegexNodeKind.Repeat && n.Max > 0 && n.Max <= 4 && n.Min >= 1 && !Nullable(n.Subs[0]) && !HasCapture(n.Subs[0]) && Size(n.Subs[0]) <= 32
+            && (n.Subs[0].Kind is EcmaRegexNodeKind.Group or EcmaRegexNodeKind.Alt or EcmaRegexNodeKind.Cat))
+        {
+            // A small counted repetition of a body that holds no group and cannot be empty is the body written out,
+            // with the copies beyond the least count optional one inside the other: the same matches in the same
+            // order, without a loop's counting. A body of one character stays a counted loop, which the matcher
+            // runs without choices.
+            return Unroll(n);
+        }
+
         return n;
+    }
+
+    /// <summary>Writes out a counted repetition (see <see cref="Simplify"/>).</summary>
+    private static EcmaRegexNode Unroll(EcmaRegexNode n)
+    {
+        EcmaRegexNode body = n.Subs[0];
+        List<EcmaRegexNode> terms = [];
+        for (int k = 0; k < n.Min; k++)
+        {
+            terms.Add(Clone(body));
+        }
+
+        if (n.Max > n.Min)
+        {
+            // X{2,4} is X X (X (X)?)?: the optional copies one inside the other, so that a copy is tried only when
+            // the one before it matched.
+            EcmaRegexNode? optional = null;
+            for (int k = n.Max; k > n.Min; k--)
+            {
+                EcmaRegexNode copy = Clone(body);
+                EcmaRegexNode inner = optional is null ? copy : new EcmaRegexNode(EcmaRegexNodeKind.Cat) { Subs = [copy, optional] };
+                optional = new EcmaRegexNode(EcmaRegexNodeKind.Repeat) { Min = 0, Max = 1, Lazy = n.Lazy, Subs = [inner] };
+            }
+
+            terms.Add(optional!);
+        }
+
+        return terms.Count == 1 ? terms[0] : new EcmaRegexNode(EcmaRegexNodeKind.Cat) { Subs = [.. terms] };
+    }
+
+    private static EcmaRegexNode Clone(EcmaRegexNode n)
+    {
+        EcmaRegexNode copy = new(n.Kind)
+        {
+            CodePoint = n.CodePoint,
+            Set = n.Set,
+            Min = n.Min,
+            Max = n.Max,
+            Lazy = n.Lazy,
+            Group = n.Group,
+            Groups = n.Groups,
+            Name = n.Name,
+            Fold = n.Fold,
+            Behind = n.Behind,
+            Negative = n.Negative,
+        };
+        if (n.Subs.Length > 0)
+        {
+            EcmaRegexNode[] subs = new EcmaRegexNode[n.Subs.Length];
+            for (int k = 0; k < subs.Length; k++)
+            {
+                subs[k] = Clone(n.Subs[k]);
+            }
+
+            copy.Subs = subs;
+        }
+
+        return copy;
+    }
+
+    private static bool HasCapture(EcmaRegexNode n)
+    {
+        if ((n.Kind == EcmaRegexNodeKind.Group && n.Group > 0) || n.Kind == EcmaRegexNodeKind.Backref || n.Kind == EcmaRegexNodeKind.Look)
+        {
+            return true;
+        }
+
+        foreach (EcmaRegexNode sub in n.Subs)
+        {
+            if (HasCapture(sub))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static int Size(EcmaRegexNode n)
+    {
+        int size = 1;
+        foreach (EcmaRegexNode sub in n.Subs)
+        {
+            size += Size(sub);
+        }
+
+        return size;
     }
 
     /// <summary>
@@ -1498,6 +1665,20 @@ internal sealed class Compiler
             default:
                 return -1;
         }
+    }
+
+    /// <summary>Whether every member of a set is an ASCII word character.</summary>
+    private static bool IsWordSubset(CharSet set)
+    {
+        for (int c = 0; c < 128; c++)
+        {
+            if (set.HasAscii(c) && !Utf8Encoding.IsWordUnit(c))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Whether a code point can be matched by comparing its encoded units. A surrogate has no encoding in UTF-8, and U+FFFD is also what a malformed byte of the text decodes to.</summary>

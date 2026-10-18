@@ -63,6 +63,9 @@ public class PrefilterTests
     [DataRow(@"\b\w+n\b", "u", "the lion sleeps", true, "an assertion before the leading loop stops the skipping")]
     [DataRow(@"\b\w+n\b", "u", "the lions sleep", false, "")]
     [DataRow(@"\B\w+.{0,2}\S$", "u", "ab c", true, "a start inside the word holds \\B where the word's start does not")]
+    [DataRow(@"\bt\w+", "u", "at tab", true, "a leading word boundary passes over the rest of a word")]
+    [DataRow(@"\bt\w+", "u", "at", false, "")]
+    [DataRow(@"\b\w+", "u", "ſherlock", true, "the long s is no word character, so a word starts after it")]
     [DataRow(@"the", "u", "In the end", true, "a literal alone")]
     [DataRow(@"the", "yu", "In the end", false, "sticky: not at the start")]
     [DataRow(@"\p{Lu}", "u", "abcDef", true, "a class alone")]
@@ -75,6 +78,18 @@ public class PrefilterTests
     [DataRow(@"Sherlock", "iu", "and ſHERLOCK", true, "a sequence of classes alone, with a fold beyond ASCII")]
     [DataRow(@"Sherlock", "iyu", "and ſHERLOCK", false, "")]
     [DataRow(@"Шерлок", "iu", "mr шЕРЛОК", true, "a sequence of classes beyond ASCII")]
+    [DataRow(@"Шерлок", "iyu", "mr шЕРЛОК", false, "")]
+    [DataRow(@"Шерлок", "iyu", "шЕРЛОК", true, "")]
+    [DataRow(@"Holmes", "iu", "mr holmeſ", true, "the long s is in the fold class of s under the u flag")]
+    [DataRow(@"Holmes", "i", "mr holmeſ", false, "and not without it")]
+    [DataRow(@"Holmes", "iu", "mr HOLMES!", true, "")]
+    [DataRow(@"Holmes", "iyu", "mr HOLMES!", false, "")]
+    [DataRow(@"Kelvin", "iu", "a \u212aELVIN", true, "the Kelvin sign is in the fold class of k")]
+    [DataRow(@"Kelvin", "iu", "a \u212aELVI", false, "")]
+    [DataRow(@"Kelvin", "iu", "ſ \u212aELVIN", true, "an extra that is not a start")]
+    [DataRow(@"Шs", "iu", "x шſ", true, "a sequence beyond ASCII whose class of s holds the long s, which the ordinal comparison does not")]
+    [DataRow(@"Шs", "iu", "x шS", true, "")]
+    [DataRow(@"Шk", "iu", "x ш\u212a", true, "")]
     [DataRow(@"Шерлок", "iu", "mr шЕРЛО", false, "")]
     [DataRow(@"[ab]x[cd]", "u", "zzaxd", true, "")]
     [DataRow(@".*", "u", "", true, "a loop alone matches the empty text")]
@@ -104,7 +119,7 @@ public class PrefilterTests
     [TestMethod]
     public void TheCountOfMatchesIsTheSameOverBothEncodingsAndAsNetCountsThem()
     {
-        string text = "Шерлок Холмс and Джон Уотсон met 夏洛克 at 10.0.0.1, then x@y.z and TWAIN twain Twain, ſherlock \u212aing.";
+        string text = "Шерлок Холмс and Джон Уотсон met 夏洛克 at 10.0.0.1, then x@y.z and TWAIN twain Twain, ſherlock \u212aing. ababc aabc abab a1b2c3 t1 tab";
         byte[] utf8 = Encoding.UTF8.GetBytes(text);
         foreach ((string pattern, string flags, string netPattern, System.Text.RegularExpressions.RegexOptions options) in new[]
         {
@@ -126,6 +141,13 @@ public class PrefilterTests
             (@"and|met|at|x", "gu", @"and|met|at|x", System.Text.RegularExpressions.RegexOptions.None),
             (@"Шерлок Холмс|Джон Уотсон|夏洛克", "gu", @"Шерлок Холмс|Джон Уотсон|夏洛克", System.Text.RegularExpressions.RegexOptions.None),
             (@"TWAIN|twain", "gu", @"TWAIN|twain", System.Text.RegularExpressions.RegexOptions.None),
+            (@"(?:ab|a){2,3}c", "gu", @"(?:ab|a){2,3}c", System.Text.RegularExpressions.RegexOptions.None),
+            (@"(?:ab|a){1,2}?b", "gu", @"(?:ab|a){1,2}?b", System.Text.RegularExpressions.RegexOptions.None),
+            (@"(?:[a-z]\d){2}", "gu", @"(?:[a-z]\d){2}", System.Text.RegularExpressions.RegexOptions.None),
+            (@"(?:\d\.){3}\d", "gu", @"(?:\d\.){3}\d", System.Text.RegularExpressions.RegexOptions.None),
+            (@"Шерлок", "giu", @"Шерлок", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
+            (@"holmes", "giu", @"holmes", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
+            // (\b is not the same in .NET, whose word characters take every script, so it is not compared here.)
         })
         {
             int expected = System.Text.RegularExpressions.Regex.Count(text, netPattern, options);

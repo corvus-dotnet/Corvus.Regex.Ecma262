@@ -29,9 +29,11 @@
     <Compile Include="Engine\CaseFolding.cs" />
     <Compile Include="Engine\CharSet.cs" />
     <Compile Include="Engine\Dfa.cs" />
+    <Compile Include="Engine\InvariantCaseClass.cs" />
     <Compile Include="Engine\Matcher.cs" />
     <Compile Include="Engine\Program.cs" />
     <Compile Include="Engine\TextEncoding.cs" />
+    <Compile Include="Engine\Utf8Search.cs" />
     <Compile Include="Capture.cs" />
     <Compile Include="CaptureCollection.cs" />
     <Compile Include="Group.cs" />
