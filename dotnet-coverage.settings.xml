@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- dotnet-coverage settings: instrument the library alone. -->
+<Configuration>
+  <CodeCoverage>
+    <ModulePaths>
+      <Include>
+        <ModulePath>.*Corvus\.Regex\.Ecma262\.dll$</ModulePath>
+      </Include>
+    </ModulePaths>
+    <Sources>
+      <Exclude>
+        <!-- The generated Unicode tables are data. -->
+        <Source>.*EcmaRegexUnicodeData\.cs$</Source>
+        <Source>.*\\obj\\.*\.g\.cs$</Source>
+      </Exclude>
+    </Sources>
+  </CodeCoverage>
+</Configuration>

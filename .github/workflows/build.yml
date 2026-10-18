@@ -4,14 +4,17 @@ on:
     branches:
     - main
     tags:
-    - '*'
+    - '[0-9]+.[0-9]+.[0-9]+*'
   pull_request:
-    branches:
-    - main
   workflow_dispatch:
     inputs:
       forcePublish:
         description: When true the Publish stage will always be run, otherwise it only runs for tagged versions.
+        required: false
+        default: false
+        type: boolean
+      forcePublicNugetDestination:
+        description: When true the NuGet Publish destination will always be set to nuget.org. (Force publishing normally publishes to GitHub Packages, if not tagged version)
         required: false
         default: false
         type: boolean
@@ -29,6 +32,7 @@ permissions:
   actions: write  # enable cache clean-up
   checks: write  # enable test result annotations
   contents: write  # enable creating releases
+  id-token: write  # enable OIDC authentication
   issues: read
   packages: write  # enable publishing packages
   pull-requests: write  # enable test result annotations
@@ -41,41 +45,41 @@ jobs:
       RESOLVED_ENV_VARS: ${{ steps.prepareEnvVarsAndSecrets.outputs.environmentVariablesYamlBase64 }}
       RESOLVED_SECRETS: ${{ steps.prepareEnvVarsAndSecrets.outputs.secretsYamlBase64 }}
     steps:
-    # Declare any environment variables and/or secrets that need to be available inside the build process
     - uses: endjin/Endjin.RecommendedPractices.GitHubActions/actions/prepare-env-vars-and-secrets@main
       id: prepareEnvVarsAndSecrets
       with:
         environmentVariablesYaml: |
-          BUILDVAR_NuGetPublishSource: "${{ startsWith(github.ref, 'refs/tags/') && 'https://api.nuget.org/v3/index.json' || format('https://nuget.pkg.github.com/{0}/index.json', github.repository_owner) }}"
+          ZF_NUGET_PUBLISH_SOURCE: ${{ (startsWith(github.ref, 'refs/tags/') || github.event.inputs.forcePublicNugetDestination == 'true') && 'https://api.nuget.org/v3/index.json' || format('https://nuget.pkg.github.com/{0}/index.json', github.repository_owner) }}
         secretsYaml: |
           NUGET_API_KEY: "${{ startsWith(github.ref, 'refs/tags/') && secrets.NUGET_APIKEY || secrets.BUILD_PUBLISHER_PAT }}"
+        secretsEncryptionKey: ${{ secrets.SHARED_WORKFLOW_KEY }}
 
   build:
-    needs: prepareConfig
+    needs:
+      - prepareConfig
     uses: endjin/Endjin.RecommendedPractices.GitHubActions/.github/workflows/scripted-build-matrix-pipeline.yml@main
     with:
+      testPhaseMatrixJson: |
+          {
+            "os": ["ubuntu-latest", "windows-latest"],
+            "dotnetFramework": ["net10.0"]
+          }
+      compilePhaseRunnerOs: ubuntu-latest
+      packagePhaseRunnerOs: ubuntu-latest
       netSdkVersion: '10.0.x'
-      # additionalNetSdkVersion: '7.0.x'
       # workflow_dispatch inputs are always strings, the type property is just for the UI
       forcePublish: ${{ github.event.inputs.forcePublish == 'true' }}
       skipCleanup: ${{ github.event.inputs.skipCleanup == 'true' }}
-      testPhaseMatrixJson: |
-        {
-          "os": ["windows-latest", "ubuntu-latest"],
-          "dotnetFramework": ["net10.0"]
-        }
-      # testArtifactName: ''
-      # testArtifactPath: ''
       compilePhaseEnv: ${{ needs.prepareConfig.outputs.RESOLVED_ENV_VARS }}
       testPhaseEnv: ${{ needs.prepareConfig.outputs.RESOLVED_ENV_VARS }}
       packagePhaseEnv: ${{ needs.prepareConfig.outputs.RESOLVED_ENV_VARS }}
       publishPhaseEnv: ${{ needs.prepareConfig.outputs.RESOLVED_ENV_VARS }}
+      additionalCachePaths: |
+        **/bin
+        **/obj
+        .zf
     secrets:
       compilePhaseAzureCredentials: ${{ secrets.AZURE_READER_CREDENTIALS }}
-      # testPhaseAzureCredentials: ${{ secrets.TESTS_KV_READER_CREDENTIALS }}
-      # packagePhaseAzureCredentials: ${{ secrets.AZURE_PUBLISH_CREDENTIALS }}
-      # publishPhaseAzureCredentials: ${{ secrets.AZURE_PUBLISH_CREDENTIALS }}
-      # compilePhaseSecrets: ${{ needs.prepareConfig.outputs.RESOLVED_SECRETS }}
-      # testPhaseSecrets: ${{ needs.prepareConfig.outputs.RESOLVED_SECRETS }}
-      # packagePhaseSecrets: ${{ needs.prepareConfig.outputs.RESOLVED_SECRETS }}
+      compilePhaseSecrets: ${{ needs.prepareConfig.outputs.RESOLVED_SECRETS }}
       publishPhaseSecrets: ${{ needs.prepareConfig.outputs.RESOLVED_SECRETS }}
+      secretsEncryptionKey: ${{ secrets.SHARED_WORKFLOW_KEY }}

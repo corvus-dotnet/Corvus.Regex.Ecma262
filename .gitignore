@@ -343,3 +343,8 @@ coverage.cobertura.xml
 _codeCoverage/
 _packages/
 .tmpl/
+_local-nuget-feed/
+.zf/.cache/
+.zf/extensions/
+*.sbom.html
+*.sbom.json
