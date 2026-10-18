@@ -1,0 +1,19 @@
+# Hand-written in the shape pr-autoflow generates for the other corvus-dotnet repositories. Replace it with the
+# generated file when the repository joins pr-autoflow.
+mode: ContinuousDeployment
+branches:
+  master:
+    regex: ^main
+    tag: preview
+    increment: patch
+  dependabot-pr:
+    regex: ^dependabot
+    tag: dependabot
+    source-branches:
+    - develop
+    - master
+    - release
+    - feature
+    - support
+    - hotfix
+next-version: "0.1"

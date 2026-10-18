@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="Corvus.Regex.Ecma262/Corvus.Regex.Ecma262.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="Corvus.Regex.Ecma262.Tests/Corvus.Regex.Ecma262.Tests.csproj" />
+  </Folder>
+</Solution>
