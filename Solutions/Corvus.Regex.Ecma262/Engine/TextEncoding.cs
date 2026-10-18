@@ -6,6 +6,9 @@
 // takes from the unicode/utf8 package), generalised over the two encodings the library matches natively.
 
 using System;
+#if NET
+using System.Buffers;
+#endif
 using System.Runtime.CompilerServices;
 
 namespace Corvus.Ecma262.RegularExpressions;
@@ -102,6 +105,23 @@ internal interface ITextEncoding<TUnit>
     /// <param name="pos">The position, which is less than the length.</param>
     /// <returns>The position.</returns>
     int AdvanceUnit(ReadOnlySpan<TUnit> input, int pos);
+
+#if NET
+    /// <summary>The ASCII members of a set, in the unit of the text, for a vectorised search.</summary>
+    /// <param name="set">The set.</param>
+    /// <returns>The members.</returns>
+    SearchValues<TUnit> Members(CharSet set);
+
+    /// <summary>The ASCII characters that are not members of a set, in the unit of the text, for a vectorised search.</summary>
+    /// <param name="set">The set.</param>
+    /// <returns>The non-members.</returns>
+    SearchValues<TUnit> NonMembers(CharSet set);
+
+    /// <summary>A character below 128 as a unit of the text.</summary>
+    /// <param name="c">The character.</param>
+    /// <returns>The unit.</returns>
+    TUnit AsciiUnit(int c);
+#endif
 }
 
 /// <summary>Reads UTF-8 text.</summary>
@@ -364,6 +384,20 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
         return pos + width;
     }
 
+#if NET
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public SearchValues<byte> Members(CharSet set) => set.MemberBytes;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public SearchValues<byte> NonMembers(CharSet set) => set.NonMemberBytes;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public byte AsciiUnit(int c) => (byte)c;
+#endif
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsContinuation(int b) => (b & 0xC0) == 0x80;
 
@@ -466,4 +500,18 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int AdvanceUnit(ReadOnlySpan<char> input, int pos) => pos + 1;
+
+#if NET
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public SearchValues<char> Members(CharSet set) => set.MemberChars;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public SearchValues<char> NonMembers(CharSet set) => set.NonMemberChars;
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public char AsciiUnit(int c) => (char)c;
+#endif
 }

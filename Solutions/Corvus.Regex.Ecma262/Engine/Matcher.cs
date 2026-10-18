@@ -512,6 +512,27 @@ internal static class Matcher
                 return first is null && Run<TUnit, TEncoding>(p, st, input, pos, out to);
             }
 
+#if NET
+            if (first is not null)
+            {
+                // A start is a unit that is an ASCII member of the first set, or any unit that is not ASCII (looked
+                // at below). The scan for one is vectorised.
+                int i = first.HasNonAscii
+                    ? input.Slice(pos).IndexOfAnyExcept(enc.NonMembers(first))
+                    : input.Slice(pos).IndexOfAny(enc.Members(first));
+                if (i < 0)
+                {
+                    return false;
+                }
+
+                pos += i;
+                from = pos;
+                if (len - pos < p.Need)
+                {
+                    return false;
+                }
+            }
+#endif
             int c = enc.Unit(input, pos);
             int w = 1;
             if (c >= 0x80)
@@ -531,6 +552,94 @@ internal static class Matcher
 
             pos += w;
         }
+    }
+
+    /// <summary>
+    /// The end of the run of members of a set that starts at a position: the first position at which the character
+    /// is not in the set, or the end of the text. On .NET the ASCII part of the scan is vectorised; a character
+    /// that is not ASCII is decoded and looked up unless the set holds every such character.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int EndOfRun<TUnit, TEncoding>(CharSet set, ReadOnlySpan<TUnit> input, int at, bool units)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        int len = input.Length;
+#if NET
+        bool all = set.HoldsAllNonAscii(units);
+        while (at < len)
+        {
+            int i = all ? input.Slice(at).IndexOfAny(enc.NonMembers(set)) : input.Slice(at).IndexOfAnyExcept(enc.Members(set));
+            if (i < 0)
+            {
+                return len;
+            }
+
+            at += i;
+            int c = enc.Unit(input, at);
+            if (c < 0x80)
+            {
+                return at;
+            }
+
+            int r = units ? enc.UnitAt(input, at, out int w) : enc.Decode(input, at, out w);
+            if (!set.Contains(r))
+            {
+                return at;
+            }
+
+            at += w;
+        }
+
+        return at;
+#else
+        while (at < len)
+        {
+            int c = enc.Unit(input, at);
+            if (c < 0x80)
+            {
+                if (!set.HasAscii(c))
+                {
+                    return at;
+                }
+
+                at++;
+            }
+            else
+            {
+                int r = units ? enc.UnitAt(input, at, out int w) : enc.Decode(input, at, out w);
+                if (!set.Contains(r))
+                {
+                    return at;
+                }
+
+                at += w;
+            }
+        }
+
+        return at;
+#endif
+    }
+
+    /// <summary>The end of the run of one ASCII character that starts at a position.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int EndOfRun<TUnit, TEncoding>(int c, ReadOnlySpan<TUnit> input, int at)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+#if NET
+        int i = input.Slice(at).IndexOfAnyExcept(enc.AsciiUnit(c));
+        return i < 0 ? input.Length : at + i;
+#else
+        while (at < input.Length && enc.Unit(input, at) == c)
+        {
+            at++;
+        }
+
+        return at;
+#endif
     }
 
     /// <summary>The bit of the memory for the memo point <paramref name="m"/> at a position, with the state of the loops around the point: for each, whether it would refuse an iteration that ended here as empty.</summary>
@@ -1093,7 +1202,26 @@ internal static class Matcher
                     CharSet? set = i.Set;
                     int max = i.Max;
                     int min = i.Min;
-                    if (set is not null)
+                    if (max < 0 && min <= 1 && (set is not null || i.R < 0x80))
+                    {
+                        // No bound to count up to: the run is found by a scan. With a least count of one the first
+                        // character is matched on its own, so the floor is after it.
+                        if (min == 1)
+                        {
+                            int w = One<TUnit, TEncoding>(in i, input, at, units);
+                            if (w == 0)
+                            {
+                                break;
+                            }
+
+                            at += w;
+                            floor = at;
+                        }
+
+                        at = set is not null ? EndOfRun<TUnit, TEncoding>(set, input, at, units) : EndOfRun<TUnit, TEncoding>(i.R, input, at);
+                        n = min;
+                    }
+                    else if (set is not null)
                     {
                         while (n != max && at < len)
                         {
