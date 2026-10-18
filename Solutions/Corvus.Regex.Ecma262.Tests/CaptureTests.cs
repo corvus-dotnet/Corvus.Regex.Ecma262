@@ -175,6 +175,28 @@ public class CaptureTests
     }
 
     [TestMethod]
+    public void AStartInsideASurrogatePairIsTheCharacterWithTheUFlagAndAUnitWithout()
+    {
+        // RegExpBuiltinExec: with the u flag, lastIndex inside a pair means the character that holds it.
+        Regex u = new(@"()", RegexFlags.Unicode | RegexFlags.Sticky);
+        Assert.AreEqual(0, u.Match("\ud83d\ude00,", 1).Index);
+        Regex dot = new(@".", RegexFlags.Unicode);
+        Assert.AreEqual(2, dot.Match("\ud83d\ude00,", 1).Length);
+        Regex legacy = new(@"()", RegexFlags.Sticky);
+        Assert.AreEqual(1, legacy.Match("\ud83d\ude00,", 1).Index);
+
+        byte[] utf8 = Encoding.UTF8.GetBytes("\ud83d\ude00,");
+        Span<ValueCapture> caps = stackalloc ValueCapture[1];
+        Assert.IsTrue(dot.TryMatch(utf8, 2, caps, out ValueMatch vm));
+        Assert.AreEqual(0, vm.Index);
+        Assert.AreEqual(4, vm.Length);
+        Regex legacyDot = new(@".", RegexFlags.Sticky);
+        Assert.IsTrue(legacyDot.TryMatch(utf8, 2, caps, out vm), "the third byte is the low surrogate's position");
+        Assert.AreEqual(2, vm.Index);
+        Assert.AreEqual(2, vm.Length);
+    }
+
+    [TestMethod]
     public void NextMatchAndResult()
     {
         Match m = new Regex(@"(\w)").Match("ab");

@@ -245,6 +245,7 @@ public sealed partial class Regex
     public bool IsMatch(ReadOnlySpan<char> input, int startAt)
     {
         ValidateStart(input.Length, startAt);
+        startAt = this.Normalize(input, startAt);
         bool sticky = (this.Flags & RegexFlags.Sticky) != 0;
         if (startAt == 0 && !sticky)
         {
@@ -277,6 +278,7 @@ public sealed partial class Regex
     public bool IsMatch(ReadOnlySpan<byte> utf8, int startAt)
     {
         ValidateStart(utf8.Length, startAt);
+        startAt = this.Normalize(utf8, startAt);
         bool sticky = (this.Flags & RegexFlags.Sticky) != 0;
         if (startAt == 0 && !sticky)
         {

@@ -1,0 +1,397 @@
+// <copyright file="Captures.cs" company="Endjin Limited">
+// Copyright (c) Endjin Limited. All rights reserved.
+// </copyright>
+
+// Judges captures.jsonl: exec, the global search, the sticky flag, replace and split, as the generator of the data
+// (generate-captures.js) describes them. Positions in the data are UTF-16 code units; the UTF-8 forms are judged
+// through a map from each code unit to its byte offset, where the unit inside a surrogate pair is the position
+// between the halves of the character (its third byte).
+
+using System.Text;
+using System.Text.Json;
+using Corvus.Ecma262.RegularExpressions;
+
+internal static class Captures
+{
+    private const string Replacement = "<$&|$1|$2|$10|$<a>|$$|$`|$'>";
+
+    /// <summary>Judges one record. Returns the number of right answers and appends each wrong one.</summary>
+    public static int Judge(JsonElement r, string pattern, TimeSpan limit, Func<string, string> unescape, Action<string> wrong, out int wrongCount, out int limited)
+    {
+        int right = 0;
+        wrongCount = 0;
+        limited = 0;
+        string flags = r.GetProperty("flags").GetString()!;
+        JsonElement valid = r.GetProperty("valid");
+        foreach (JsonElement t in r.GetProperty("tests").EnumerateArray())
+        {
+            if (t.TryGetProperty("v8_deviation", out JsonElement dev) && dev.GetBoolean())
+            {
+                // V8's answers depart from ECMA-262 here (a match that starts inside a surrogate pair).
+                continue;
+            }
+
+            string text = unescape(t.GetProperty("text").GetRawText());
+            foreach ((string mode, bool isValid) in new[] { ("unicode", valid.GetProperty("unicode").GetBoolean()), ("legacy", valid.GetProperty("legacy").GetBoolean()) })
+            {
+                if (!isValid || !t.TryGetProperty(mode, out JsonElement a))
+                {
+                    continue;
+                }
+
+                string modeFlags = mode == "unicode" ? flags + "u" : flags;
+                string where = $"/{Escape(pattern)}/{modeFlags}\t{Escape(text)}";
+                try
+                {
+                    right += JudgeMode(pattern, modeFlags, text, a, limit, where, wrong, ref wrongCount);
+                }
+                catch (RegexMatchTimeoutException)
+                {
+                    limited++;
+                    wrong($"LIMIT\tcaptures.jsonl\t{where}");
+                }
+            }
+        }
+
+        return right;
+    }
+
+    private static int JudgeMode(string pattern, string modeFlags, string text, JsonElement a, TimeSpan limit, string where, Action<string> wrong, ref int wrongCount)
+    {
+        int right = 0;
+        RegexFlags flags = Regex.ParseFlags(modeFlags);
+        Regex re = new(pattern, flags, limit);
+        Regex g = new(pattern, flags | RegexFlags.Global, limit);
+        Regex y = new(pattern, flags | RegexFlags.Sticky, limit);
+        byte[] utf8 = Encoding.UTF8.GetBytes(text);
+        bool lone = HasLoneSurrogate(text);
+        int[] byteAt = lone ? [] : ByteOffsets(text);
+
+        // exec
+        int[][]? exec = Exec(a.GetProperty("exec"));
+        Check(ref right, ref wrongCount, wrong, "exec", where, Same(exec, re.Match(text)));
+        if (!lone)
+        {
+            Check(ref right, ref wrongCount, wrong, "exec-utf8", where, SameUtf8(exec, re, utf8, 0, false, byteAt));
+        }
+
+        // all
+        List<int[][]?> all = [];
+        foreach (JsonElement m in a.GetProperty("all").EnumerateArray())
+        {
+            all.Add(Exec(m));
+        }
+
+        bool allOk = true;
+        int n = 0;
+        foreach (Match m in g.Matches(text))
+        {
+            if (n >= all.Count)
+            {
+                break;
+            }
+
+            if (!Same(all[n], m))
+            {
+                allOk = false;
+                break;
+            }
+
+            n++;
+        }
+
+        if (all.Count < 20 && n != all.Count)
+        {
+            allOk = false;
+        }
+
+        if (all.Count == 20 && n < 20)
+        {
+            allOk = false;
+        }
+
+        Check(ref right, ref wrongCount, wrong, "all", where, allOk);
+        if (!lone)
+        {
+            bool utf8Ok = true;
+            n = 0;
+            foreach (ValueMatch vm in g.EnumerateMatches(utf8))
+            {
+                if (n >= all.Count)
+                {
+                    break;
+                }
+
+                int[][]? e = all[n];
+                if (e is null || byteAt[e[0][0]] != vm.Index || byteAt[e[0][1]] - byteAt[e[0][0]] != vm.Length)
+                {
+                    utf8Ok = false;
+                    break;
+                }
+
+                n++;
+            }
+
+            if ((all.Count < 20 && n != all.Count) || (all.Count == 20 && n < 20))
+            {
+                utf8Ok = false;
+            }
+
+            Check(ref right, ref wrongCount, wrong, "all-utf8", where, utf8Ok);
+        }
+
+        // sticky at 1
+        if (text.Length >= 1)
+        {
+            int[][]? sticky = Exec(a.GetProperty("sticky"));
+            Check(ref right, ref wrongCount, wrong, "sticky", where, Same(sticky, y.Match(text, 1)));
+            if (!lone && byteAt[1] < utf8.Length + 1 && IsCharStart(utf8, byteAt[1]))
+            {
+                Check(ref right, ref wrongCount, wrong, "sticky-utf8", where, SameUtf8(sticky, y, utf8, byteAt[1], true, byteAt));
+            }
+        }
+
+        // replace
+        Check(ref right, ref wrongCount, wrong, "replace", where, a.GetProperty("replace").GetRawText() == JsonText(re.Replace(text, Replacement)));
+        Check(ref right, ref wrongCount, wrong, "replaceAll", where, a.GetProperty("replaceAll").GetRawText() == JsonText(g.Replace(text, Replacement)));
+
+        // split
+        Check(ref right, ref wrongCount, wrong, "split", where, SameSplit(a.GetProperty("split"), re.Split(text)));
+        Check(ref right, ref wrongCount, wrong, "split3", where, SameSplit(a.GetProperty("split3"), re.Split(text, 3)));
+        return right;
+    }
+
+    private static void Check(ref int right, ref int wrongCount, Action<string> wrong, string what, string where, bool ok)
+    {
+        if (ok)
+        {
+            right++;
+        }
+        else
+        {
+            wrongCount++;
+            wrong($"WRONG\tcaptures.jsonl\t{where}\t{what}");
+        }
+    }
+
+    private static int[][]? Exec(JsonElement e)
+    {
+        if (e.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        List<int[]> groups = [];
+        foreach (JsonElement g in e.EnumerateArray())
+        {
+            groups.Add(g.ValueKind == JsonValueKind.Null ? [-1, -1] : [g[0].GetInt32(), g[1].GetInt32()]);
+        }
+
+        return [.. groups];
+    }
+
+    private static bool Same(int[][]? expected, Match m)
+    {
+        if (expected is null)
+        {
+            return !m.Success;
+        }
+
+        if (!m.Success || m.Groups.Count != expected.Length)
+        {
+            return false;
+        }
+
+        for (int k = 0; k < expected.Length; k++)
+        {
+            Group g = m.Groups[k];
+            if (expected[k][0] < 0)
+            {
+                if (g.Success)
+                {
+                    return false;
+                }
+            }
+            else if (!g.Success || g.Index != expected[k][0] || g.Index + g.Length != expected[k][1])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool SameUtf8(int[][]? expected, Regex re, byte[] utf8, int startAt, bool sticky, int[] byteAt)
+    {
+        ValueCapture[] caps = new ValueCapture[re.GroupCount + 1];
+        bool ok = re.TryMatch(utf8, startAt, caps, out ValueMatch vm);
+        if (expected is null)
+        {
+            return !ok;
+        }
+
+        if (!ok || caps.Length != expected.Length)
+        {
+            return false;
+        }
+
+        if (vm.Index != byteAt[expected[0][0]] || vm.Index + vm.Length != byteAt[expected[0][1]])
+        {
+            return false;
+        }
+
+        for (int k = 1; k < expected.Length; k++)
+        {
+            if (expected[k][0] < 0)
+            {
+                if (caps[k].Success)
+                {
+                    return false;
+                }
+            }
+            else if (!caps[k].Success || caps[k].Index != byteAt[expected[k][0]] || caps[k].Index + caps[k].Length != byteAt[expected[k][1]])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool SameSplit(JsonElement expected, string?[] actual)
+    {
+        if (expected.GetArrayLength() != actual.Length)
+        {
+            return false;
+        }
+
+        int k = 0;
+        foreach (JsonElement e in expected.EnumerateArray())
+        {
+            string? s = actual[k++];
+            if (e.ValueKind == JsonValueKind.Null ? s is not null : s is null || e.GetRawText() != JsonText(s))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>A string as the data writes it: JSON, ASCII, every other character a \u escape in lower case hex.</summary>
+    private static string JsonText(string s)
+    {
+        StringBuilder sb = new(s.Length + 2);
+        sb.Append('"');
+        foreach (char c in s)
+        {
+            switch (c)
+            {
+                case '"':
+                    sb.Append("\\\"");
+                    break;
+                case '\\':
+                    sb.Append("\\\\");
+                    break;
+                case '\n':
+                    sb.Append("\\n");
+                    break;
+                case '\r':
+                    sb.Append("\\r");
+                    break;
+                case '\t':
+                    sb.Append("\\t");
+                    break;
+                case '\b':
+                    sb.Append("\\b");
+                    break;
+                case '\f':
+                    sb.Append("\\f");
+                    break;
+                default:
+                    if (c < 0x20 || c > 0x7e)
+                    {
+                        sb.Append("\\u").Append(((int)c).ToString("x4"));
+                    }
+                    else
+                    {
+                        sb.Append(c);
+                    }
+
+                    break;
+            }
+        }
+
+        sb.Append('"');
+        return sb.ToString();
+    }
+
+    /// <summary>For each UTF-16 code unit index of a text (and the index past its end), the byte offset in UTF-8; the low half of a pair is its character's third byte.</summary>
+    private static int[] ByteOffsets(string s)
+    {
+        int[] at = new int[s.Length + 1];
+        int b = 0;
+        for (int k = 0; k < s.Length; k++)
+        {
+            at[k] = b;
+            char c = s[k];
+            if (char.IsHighSurrogate(c) && k + 1 < s.Length && char.IsLowSurrogate(s[k + 1]))
+            {
+                at[k + 1] = b + 2;
+                b += 4;
+                k++;
+            }
+            else
+            {
+                b += c < 0x80 ? 1 : c < 0x800 ? 2 : 3;
+            }
+        }
+
+        at[s.Length] = b;
+        return at;
+    }
+
+    private static bool IsCharStart(byte[] utf8, int pos) => pos >= utf8.Length || (utf8[pos] & 0xC0) != 0x80;
+
+    private static bool HasLoneSurrogate(string s)
+    {
+        for (int k = 0; k < s.Length; k++)
+        {
+            if (char.IsHighSurrogate(s[k]))
+            {
+                if (k + 1 < s.Length && char.IsLowSurrogate(s[k + 1]))
+                {
+                    k++;
+                    continue;
+                }
+
+                return true;
+            }
+
+            if (char.IsLowSurrogate(s[k]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string Escape(string s)
+    {
+        StringBuilder sb = new();
+        foreach (char c in s)
+        {
+            if (c < 0x20 || c > 0x7e || c == '\\')
+            {
+                sb.Append("\\u").Append(((int)c).ToString("x4"));
+            }
+            else
+            {
+                sb.Append(c);
+            }
+        }
+
+        return sb.ToString();
+    }
+}

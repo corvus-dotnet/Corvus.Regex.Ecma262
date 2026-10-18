@@ -47,6 +47,20 @@ foreach (string file in Directory.GetFiles(directory, filter).Order(StringCompar
 
         Interlocked.Increment(ref records);
         string pattern = Unescape(r.GetProperty("pattern").GetRawText());
+        if (name == "captures.jsonl")
+        {
+            if (!utf16)
+            {
+                return;
+            }
+
+            int ok = Captures.Judge(r, pattern, limit, Unescape, wrongCases.Enqueue, out int bad, out int lim);
+            Interlocked.Add(ref fileRight, ok);
+            Interlocked.Add(ref fileWrong, bad);
+            Interlocked.Add(ref fileLimited, lim);
+            return;
+        }
+
         string flags = r.GetProperty("flags").GetString()!;
         JsonElement valid = r.GetProperty("valid");
         bool validUnicode = valid.GetProperty("unicode").GetBoolean();

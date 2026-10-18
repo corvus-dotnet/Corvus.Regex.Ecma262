@@ -202,7 +202,7 @@ public sealed partial class Regex
         }
 
         ValidateStart(input.Length, startAt);
-        return this.MatchAt(input, startAt);
+        return this.MatchAt(input, this.Normalize(input.AsSpan(), startAt));
     }
 
     /// <summary>Every match in a text, as a global search finds them.</summary>
@@ -272,7 +272,7 @@ public sealed partial class Regex
     public ValueMatchEnumerator EnumerateMatches(ReadOnlySpan<char> input, int startAt)
     {
         ValidateStart(input.Length, startAt);
-        return new(this, input, startAt);
+        return new(this, input, this.Normalize(input, startAt));
     }
 
     /// <summary>Enumerates the matches in a UTF-8 text, allocating nothing.</summary>
@@ -287,7 +287,7 @@ public sealed partial class Regex
     public Utf8ValueMatchEnumerator EnumerateMatches(ReadOnlySpan<byte> utf8, int startAt)
     {
         ValidateStart(utf8.Length, startAt);
-        return new(this, utf8, startAt);
+        return new(this, utf8, this.Normalize(utf8, startAt));
     }
 
     /// <summary>
@@ -309,7 +309,7 @@ public sealed partial class Regex
         }
 
         Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
-        bool ok = Matcher.Match<char, Utf16Encoding>(this.CaptureProgram(), input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
+        bool ok = Matcher.Match<char, Utf16Encoding>(this.CaptureProgram(), input, this.Normalize(input, startAt), this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
             throw this.Abandoned(stop);
@@ -337,7 +337,7 @@ public sealed partial class Regex
         }
 
         Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
-        bool ok = Matcher.Match<byte, Utf8Encoding>(this.CaptureProgram(), utf8, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
+        bool ok = Matcher.Match<byte, Utf8Encoding>(this.CaptureProgram(), utf8, this.Normalize(utf8, startAt), this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
             throw this.Abandoned(stop);
@@ -606,6 +606,47 @@ public sealed partial class Regex
     }
 
     private bool Sticky => (this.Flags & RegexFlags.Sticky) != 0;
+
+    /// <summary>
+    /// The position a search from <paramref name="startAt"/> begins at. With the u flag ECMA-262 reads the text as
+    /// code points, and a <c>lastIndex</c> between the halves of a surrogate pair means the character that holds it,
+    /// so the search begins at the pair (RegExpBuiltinExec). Without it every code unit is a position.
+    /// </summary>
+    private int Normalize(ReadOnlySpan<char> input, int startAt)
+    {
+        if (this.unicode && startAt > 0 && startAt < input.Length && char.IsLowSurrogate(input[startAt]) && char.IsHighSurrogate(input[startAt - 1]))
+        {
+            return startAt - 1;
+        }
+
+        return startAt;
+    }
+
+    /// <summary>
+    /// The position a search from <paramref name="startAt"/> begins at over UTF-8: a position inside a character is
+    /// moved back to the character's first byte, except the position between the halves of a four-byte character
+    /// (its third byte), which is a code unit position without the u flag.
+    /// </summary>
+    private int Normalize(ReadOnlySpan<byte> input, int startAt)
+    {
+        if (startAt <= 0 || startAt >= input.Length || (input[startAt] & 0xC0) != 0x80)
+        {
+            return startAt;
+        }
+
+        int lead = startAt;
+        while (lead > 0 && (input[lead] & 0xC0) == 0x80)
+        {
+            lead--;
+        }
+
+        if (!this.unicode && input[lead] >= 0xF0 && startAt == lead + 2)
+        {
+            return startAt;
+        }
+
+        return lead;
+    }
 
     private static bool Fill(bool ok, Span<int> slots, Span<ValueCapture> captures, out ValueMatch match)
     {

@@ -29,8 +29,11 @@ in its section 10.
 
 - Phase 1 (the engine and `IsMatch`) passes the whole test data set: 98,777 patterns under each grammar V8 accepts
   them in, 15.95 million answers over UTF-16 and over UTF-8, 0 wrong, 0 refused, 0 matches at their limit, and 0
-  bytes allocated per match once warm. The flags `i`, `m`, `s`, `u` and `y` apply; `v` is not yet supported, and
-  `Match`, `Matches`, `Replace` and `Split` are phase 2.
+  bytes allocated per match once warm. The flags `i`, `m`, `s`, `u` and `y` apply; `v` is not yet supported.
+- Phase 2 (the surface: `Match`, `Groups`, `Matches`, `Replace`, `Split`, `Escape`, and `EnumerateMatches`, `Count`
+  and `TryMatch` over spans) passes the data set's new `captures.jsonl`: V8's `exec`, global, sticky, `replace` and
+  `split` answers for 5,188 patterns and 207,485 texts, 3.76 million answers, 0 wrong. The whole set is now
+  19.7 million answers at 0 wrong.
 
 ## Repository structure
 

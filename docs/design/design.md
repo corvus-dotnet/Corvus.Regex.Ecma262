@@ -276,8 +276,10 @@ by its own generator, with records for:
 | v flag | a new family of set-notation and string-property patterns: validity and `test` | `UnicodeSets` |
 | Named groups | `groups` of the `exec` result, duplicates in separate alternatives included | `Groups[name]` |
 
-Each is a new file (`captures.jsonl`, `global.jsonl`, `replace.jsonl`, `split.jsonl`, `unicode-sets.jsonl`) so the
-existing files and their consumers are untouched. Positions are given in UTF-16 code units, as V8 gives them; the
+The first five are one new file, `captures.jsonl` (each test holds `exec`, `all`, `sticky`, `replace`, `replaceAll`,
+`split` and `split3`), and the v flag is a file of its own, so the existing files and their consumers are untouched.
+A test on which V8 departs from ECMA-262 (a match that starts inside a surrogate pair) or answers unstably is marked
+on the test, as the other files mark records. Positions are given in UTF-16 code units, as V8 gives them; the
 runner derives the UTF-8 byte positions from the text. The generator scripts (`generate.js`, `families.js`) grow
 the record kinds; `verify.js` checks them; `manifest.json` lists the counts. The size of the data is kept in view:
 the capture file samples texts rather than repeating all 4.3 million.
@@ -349,7 +351,7 @@ time.
 |---|---|---|
 | 0 | Repository, build, package skeleton, this document, the Unicode tables and their generator | Builds warning-free on both OSes, packs |
 | 1 | Parser, compiler, matcher, both cursors, limits, `IsMatch` only, `None`/`Unicode`/`IgnoreCase`/`Multiline`/`DotAll`/`Sticky` | Existing data set 0 wrong on UTF-8 and UTF-16; lone surrogates right on UTF-16; allocation test 0 B. **Met 2026-10-18**: 15,954,941 right, 0 wrong, 0 refused, 0 at the limit, in 4.4 s; 8 allocation cases at 0 B |
-| 2 | The whole drop-in surface of section 4, `Sticky`, `Replace`, `Split`, enumerators, timeout, exceptions | Data set extensions of 8.2 written and green; swap test green |
+| 2 | The whole drop-in surface of section 4, `Sticky`, `Replace`, `Split`, enumerators, timeout, exceptions | Data set extensions of 8.2 written and green; swap test green. **Met 2026-10-18** apart from the swap test: `captures.jsonl` (exec, global, sticky, replace, split; 5,188 patterns, 207,485 texts) in the data repository at 95a64f0, 3,760,290 answers right, 0 wrong, over UTF-16 and UTF-8 |
 | 3 | Prefilters, `SearchValues`, literal search, automaton on UTF-16, benchmarks of section 9, first tables | Interpreter-against-interpreter at or below 1.0 on the industry set; set 3 finishes |
 | 4 | Source generator, stage 1 then stage 2, generator tests, diagnostics | Generated-against-generated at or below 1.0 on the industry set; AOT sample publishes |
 | 5 | `UnicodeSets` (v flag) | The new family of 8.2 green |
