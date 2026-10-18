@@ -489,6 +489,106 @@ internal static class Matcher
                 return false;
             }
 
+            case SimpleShape.Loop:
+            {
+                CharSet set = p.ShapeSet!;
+                bool units = p.Units;
+                int min = p.Insts[0].Min;
+                int pos = start;
+                if (min == 0)
+                {
+                    // The match is the run from the start, empty or not.
+                    from = pos;
+                    to = pos < len ? EndOfRun<TUnit, TEncoding>(set, input, pos, units) : pos;
+                    return true;
+                }
+
+                while (pos < len)
+                {
+#if NET
+                    if (!sticky)
+                    {
+                        int i = enc.IndexOfCandidate(input, pos, set, p.FirstIsSmall);
+                        if (i < 0)
+                        {
+                            return false;
+                        }
+
+                        pos = enc.AlignStart(input, i, units);
+                        if (pos >= len)
+                        {
+                            return false;
+                        }
+                    }
+#endif
+                    int c = enc.Unit(input, pos);
+                    int w = 1;
+                    if (c >= 0x80)
+                    {
+                        c = units ? enc.UnitAt(input, pos, out w) : enc.Decode(input, pos, out w);
+                    }
+
+                    if (set.Contains(c))
+                    {
+                        from = pos;
+                        to = EndOfRun<TUnit, TEncoding>(set, input, pos + w, units);
+                        return true;
+                    }
+
+                    if (sticky)
+                    {
+                        return false;
+                    }
+
+                    pos += w;
+                }
+
+                return false;
+            }
+
+            case SimpleShape.Sequence:
+            case SimpleShape.LiteralAlternation:
+            {
+                CharSet first = p.First!;
+                bool units = p.Units;
+                int pos = start;
+                while (pos < len)
+                {
+#if NET
+                    if (!sticky)
+                    {
+                        int i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);
+                        if (i < 0)
+                        {
+                            return false;
+                        }
+
+                        pos = enc.AlignStart(input, i, units);
+                        if (pos >= len)
+                        {
+                            return false;
+                        }
+                    }
+#endif
+                    int end = p.Shape == SimpleShape.Sequence ? SequenceAt<TUnit, TEncoding>(p, input, pos, units) : AlternativeEnd<TUnit, TEncoding>(p, input, pos);
+                    if (end >= 0)
+                    {
+                        from = pos;
+                        to = end;
+                        return true;
+                    }
+
+                    if (sticky)
+                    {
+                        return false;
+                    }
+
+                    pos = NextPosition<TUnit, TEncoding>(input, pos, units);
+                }
+
+                return false;
+            }
+
 #if NET
             case SimpleShape.CaseLiteral:
             {
@@ -510,6 +610,77 @@ internal static class Matcher
         }
 
         return false;
+    }
+
+    /// <summary>The end of the match of a <see cref="SimpleShape.Sequence"/> program at a position, or -1.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int SequenceAt<TUnit, TEncoding>(Program p, ReadOnlySpan<TUnit> input, int pos, bool units)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        Inst[] insts = p.Insts;
+        int len = input.Length;
+        for (int k = 0; k < insts.Length - 1; k++)
+        {
+            if (pos >= len)
+            {
+                return -1;
+            }
+
+            int c = enc.Unit(input, pos);
+            int w = 1;
+            if (c >= 0x80)
+            {
+                c = units ? enc.UnitAt(input, pos, out w) : enc.Decode(input, pos, out w);
+            }
+
+            ref Inst i = ref insts[k];
+            if (i.Set is not null ? !i.Set.Contains(c) : c != i.R)
+            {
+                return -1;
+            }
+
+            pos += w;
+        }
+
+        return pos;
+    }
+
+    /// <summary>The end of the match of a <see cref="SimpleShape.LiteralAlternation"/> program at a position, or -1.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int AlternativeEnd<TUnit, TEncoding>(Program p, ReadOnlySpan<TUnit> input, int pos)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        int n = enc.AlternativeAt(input, pos, p);
+        return n < 0 ? -1 : pos + n;
+    }
+
+    /// <summary>The position after the character at a position (a code unit with <paramref name="units"/>).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int NextPosition<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, int pos, bool units)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        if (enc.Unit(input, pos) < 0x80)
+        {
+            return pos + 1;
+        }
+
+        int w;
+        if (units)
+        {
+            enc.UnitAt(input, pos, out w);
+        }
+        else
+        {
+            enc.Decode(input, pos, out w);
+        }
+
+        return pos + w;
     }
 
     private static void Prepare(MatchState st, Program p, int length, TimeSpan limit)

@@ -376,6 +376,15 @@ internal enum SimpleShape : byte
 
     /// <summary>An ASCII literal matched ignoring case and nothing else.</summary>
     CaseLiteral,
+
+    /// <summary>A sequence of characters and classes of one character each and nothing else: a match is a run of members, one from each, at a start the first set allows.</summary>
+    Sequence,
+
+    /// <summary>One greedy single-character loop with no upper bound and nothing else: a match is the run of members from the start.</summary>
+    Loop,
+
+    /// <summary>An alternation of literals and nothing else: a match is the first alternative that is at a start its first character allows.</summary>
+    LiteralAlternation,
 }
 
 /// <summary>A pattern compiled for the backtracking matcher.</summary>
@@ -511,11 +520,18 @@ internal sealed class Program
     /// </summary>
     public SimpleShape Shape { get; private set; }
 
-    /// <summary>Gets the class of a <see cref="SimpleShape.Set"/> program.</summary>
+    /// <summary>Gets the class of a <see cref="SimpleShape.Set"/> or <see cref="SimpleShape.Loop"/> program.</summary>
     public CharSet? ShapeSet { get; private set; }
 
+    /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program, as UTF-16.</summary>
+    public string[] Alternatives { get; private set; } = [];
+
+    /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program, as UTF-8.</summary>
+    public byte[][] AlternativesUtf8 { get; private set; } = [];
+
     /// <summary>Decides <see cref="Shape"/> from the instructions.</summary>
-    internal void SetShape()
+    /// <param name="alternatives">The literals of an alternation that is the whole pattern, or empty.</param>
+    internal void SetShape(string[] alternatives)
     {
         Inst[] insts = this.Insts;
         if (this.Groups != 0 || this.Anchored || insts.Length < 2 || insts[insts.Length - 1].Op != Op.Match)
@@ -536,6 +552,26 @@ internal sealed class Program
             return;
         }
 
+        if (insts.Length == 2 && insts[0].Op == Op.Rep && insts[0].Max < 0 && insts[0].Min <= 1 && insts[0].Set is not null)
+        {
+            this.Shape = SimpleShape.Loop;
+            this.ShapeSet = insts[0].Set;
+            return;
+        }
+
+        if (alternatives.Length >= 2 && this.First is not null)
+        {
+            this.Shape = SimpleShape.LiteralAlternation;
+            this.Alternatives = alternatives;
+            this.AlternativesUtf8 = new byte[alternatives.Length][];
+            for (int k = 0; k < alternatives.Length; k++)
+            {
+                this.AlternativesUtf8[k] = Encoding.UTF8.GetBytes(alternatives[k]);
+            }
+
+            return;
+        }
+
 #if NET
         if (this.CasePrefixUtf16.Length == insts.Length - 1 && this.CaseExtras is null)
         {
@@ -548,8 +584,22 @@ internal sealed class Program
             }
 
             this.Shape = SimpleShape.CaseLiteral;
+            return;
         }
 #endif
+
+        if (this.First is not null)
+        {
+            for (int k = 0; k < insts.Length - 1; k++)
+            {
+                if (insts[k].Op != Op.Set && insts[k].Op != Op.Char)
+                {
+                    return;
+                }
+            }
+
+            this.Shape = SimpleShape.Sequence;
+        }
     }
 
     /// <summary>Gets the distance from the start of a match to its required literal over UTF-8, or -1 when the terms before it are not all ASCII (over UTF-16 <see cref="RequiredOffset"/> holds for any term of one code unit).</summary>
@@ -769,7 +819,7 @@ internal sealed class Compiler
         }
 
         Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, casePrefix, requiredOffsetUtf8, caseExtras, loopSet, loopMin, afterLoop, skipRun, requiredCount);
-        program.SetShape();
+        program.SetShape(LiteralAlternatives(root));
         return program;
     }
 
@@ -1215,6 +1265,59 @@ internal sealed class Compiler
         }
 
         return string.Empty;
+    }
+
+    /// <summary>The literals of an alternation that is the whole pattern (each alternative a run of literal characters), or empty.</summary>
+    /// <param name="root">The root of the tree.</param>
+    /// <returns>The literals.</returns>
+    public static string[] LiteralAlternatives(EcmaRegexNode root)
+    {
+        EcmaRegexNode n = root;
+        while (n.Kind == EcmaRegexNodeKind.Group && n.Group == 0)
+        {
+            n = n.Subs[0];
+        }
+
+        if (n.Kind != EcmaRegexNodeKind.Alt)
+        {
+            return [];
+        }
+
+        string[] literals = new string[n.Subs.Length];
+        for (int k = 0; k < n.Subs.Length; k++)
+        {
+            EcmaRegexNode alt = n.Subs[k];
+            StringBuilder sb = new();
+            if (alt.Kind == EcmaRegexNodeKind.Char && IsLiteralRune(alt.CodePoint))
+            {
+                AppendRune(sb, alt.CodePoint);
+            }
+            else if (alt.Kind == EcmaRegexNodeKind.Cat)
+            {
+                foreach (EcmaRegexNode term in alt.Subs)
+                {
+                    if (term.Kind != EcmaRegexNodeKind.Char || !IsLiteralRune(term.CodePoint))
+                    {
+                        return [];
+                    }
+
+                    AppendRune(sb, term.CodePoint);
+                }
+            }
+            else
+            {
+                return [];
+            }
+
+            if (sb.Length == 0)
+            {
+                return [];
+            }
+
+            literals[k] = sb.ToString();
+        }
+
+        return literals;
     }
 
     /// <summary>

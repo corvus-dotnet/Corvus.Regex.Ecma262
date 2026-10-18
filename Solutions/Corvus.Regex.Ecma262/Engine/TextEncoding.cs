@@ -184,6 +184,13 @@ internal interface ITextEncoding<TUnit>
     /// <returns>The length.</returns>
     int PrefixLength(Program program);
 
+    /// <summary>The length in units of the first of the program's literal alternatives that is at a position, or -1.</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="pos">The position.</param>
+    /// <param name="program">The program.</param>
+    /// <returns>The length, or -1.</returns>
+    int AlternativeAt(ReadOnlySpan<TUnit> input, int pos, Program program);
+
     /// <summary>The position a number of characters (code points, or code units when <paramref name="units"/>) before a position, or -1 when fewer lie between it and <paramref name="floor"/>.</summary>
     /// <param name="input">The text.</param>
     /// <param name="from">The position.</param>
@@ -626,6 +633,21 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     public int PrefixLength(Program program) => program.Utf8Prefix.Length;
 
     /// <inheritdoc/>
+    public int AlternativeAt(ReadOnlySpan<byte> input, int pos, Program program)
+    {
+        ReadOnlySpan<byte> rest = input.Slice(pos);
+        foreach (byte[] alternative in program.AlternativesUtf8)
+        {
+            if (rest.StartsWith(alternative))
+            {
+                return alternative.Length;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <inheritdoc/>
     public int WalkBack(ReadOnlySpan<byte> input, int from, int count, int floor, bool units)
     {
         int at = from;
@@ -886,6 +908,21 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int PrefixLength(Program program) => program.Utf16Prefix.Length;
+
+    /// <inheritdoc/>
+    public int AlternativeAt(ReadOnlySpan<char> input, int pos, Program program)
+    {
+        ReadOnlySpan<char> rest = input.Slice(pos);
+        foreach (string alternative in program.Alternatives)
+        {
+            if (rest.StartsWith(alternative.AsSpan()))
+            {
+                return alternative.Length;
+            }
+        }
+
+        return -1;
+    }
 
     /// <inheritdoc/>
     public int WalkBack(ReadOnlySpan<char> input, int from, int count, int floor, bool units)

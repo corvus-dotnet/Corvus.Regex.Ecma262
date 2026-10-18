@@ -72,6 +72,19 @@ public class PrefilterTests
     [DataRow(@"[\udc00-\udfff]", "", "a\ud83d\ude00", true, "and at the third")]
     [DataRow(@"[\udc00-\udfff]", "u", "a\ud83d\ude00", false, "by code point the pair is one character")]
     [DataRow(@"the", "iu", "In THE end", true, "a case-insensitive literal alone")]
+    [DataRow(@"Sherlock", "iu", "and ſHERLOCK", true, "a sequence of classes alone, with a fold beyond ASCII")]
+    [DataRow(@"Sherlock", "iyu", "and ſHERLOCK", false, "")]
+    [DataRow(@"Шерлок", "iu", "mr шЕРЛОК", true, "a sequence of classes beyond ASCII")]
+    [DataRow(@"Шерлок", "iu", "mr шЕРЛО", false, "")]
+    [DataRow(@"[ab]x[cd]", "u", "zzaxd", true, "")]
+    [DataRow(@".*", "u", "", true, "a loop alone matches the empty text")]
+    [DataRow(@"[a-z]+", "u", "123", false, "")]
+    [DataRow(@"[a-z]+", "yu", "1abc", false, "")]
+    [DataRow(@"[a-z]+", "yu", "abc1", true, "")]
+    [DataRow(@"Tom|Sawyer|Huckleberry|Finn", "u", "poor Huckleberry Finn", true, "an alternation of literals alone")]
+    [DataRow(@"Tom|Sawyer|Huckleberry|Finn", "yu", "poor Huckleberry Finn", false, "")]
+    [DataRow(@"Tom|Sawyer|Huckleberry|Finn", "u", "poor Huck", false, "")]
+    [DataRow(@"Шерлок Холмс|Джон Уотсон", "u", "где Джон Уотсон", true, "")]
     [DataRow(@"the", "iyu", "In THE end", false, "")]
     [DataRow(@"[\ud83d\ude00-\ud83d\ude4f]", "u", "\ud83d\ude00,", true, "a trail-byte scan can land on a middle byte of the member it is looking for")]
     [DataRow(@"[\u0428\u0448]x", "u", "\u0448x", true, "")]
@@ -108,6 +121,11 @@ public class PrefilterTests
             (@"n", "gu", @"n", System.Text.RegularExpressions.RegexOptions.None),
             (@"[a-z]", "gu", @"[a-z]", System.Text.RegularExpressions.RegexOptions.None),
             (@"and", "giu", @"and", System.Text.RegularExpressions.RegexOptions.IgnoreCase),
+            (@"[^\n]*", "gu", @"[^\n]*", System.Text.RegularExpressions.RegexOptions.None),
+            (@"[a-z]+", "gu", @"[a-z]+", System.Text.RegularExpressions.RegexOptions.None),
+            (@"and|met|at|x", "gu", @"and|met|at|x", System.Text.RegularExpressions.RegexOptions.None),
+            (@"Шерлок Холмс|Джон Уотсон|夏洛克", "gu", @"Шерлок Холмс|Джон Уотсон|夏洛克", System.Text.RegularExpressions.RegexOptions.None),
+            (@"TWAIN|twain", "gu", @"TWAIN|twain", System.Text.RegularExpressions.RegexOptions.None),
         })
         {
             int expected = System.Text.RegularExpressions.Regex.Count(text, netPattern, options);
