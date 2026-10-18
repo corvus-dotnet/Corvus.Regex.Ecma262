@@ -90,6 +90,21 @@ internal sealed class CharSet
     /// <summary>The most members a set may have for its search values over every member to be built: enumerating them must stay cheap.</summary>
     public const int SmallSet = 512;
 
+    /// <summary>Gets the number of members.</summary>
+    public long Count
+    {
+        get
+        {
+            long n = 0;
+            for (int k = 0; k < this.ranges.Length; k += 2)
+            {
+                n += this.ranges[k + 1] - this.ranges[k] + 1;
+            }
+
+            return n;
+        }
+    }
+
     /// <summary>Gets a value indicating whether the set has at most <see cref="SmallSet"/> members.</summary>
     public bool IsSmall
     {

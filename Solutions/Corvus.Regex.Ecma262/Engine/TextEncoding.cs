@@ -178,6 +178,15 @@ internal interface ITextEncoding<TUnit>
     /// <param name="program">The program.</param>
     /// <returns>The distance, or -1.</returns>
     int RequiredOffset(Program program);
+
+    /// <summary>The position a number of characters (code points, or code units when <paramref name="units"/>) before a position, or -1 when fewer lie between it and <paramref name="floor"/>.</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="count">The number of characters.</param>
+    /// <param name="floor">The position the walk may not go before.</param>
+    /// <param name="units">Whether the text is matched by UTF-16 code unit.</param>
+    /// <returns>The position, or -1.</returns>
+    int WalkBack(ReadOnlySpan<TUnit> input, int from, int count, int floor, bool units);
 }
 
 /// <summary>Reads UTF-8 text.</summary>
@@ -401,8 +410,38 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     public int IndexOfPrefix(ReadOnlySpan<byte> input, int from, Program program)
     {
-        int i = input.Slice(from).IndexOf(program.Utf8Prefix);
-        return i < 0 ? -1 : from + i;
+        byte[] prefix = program.Utf8Prefix;
+        if (prefix[0] < 0x80)
+        {
+            int i = input.Slice(from).IndexOf(prefix);
+            return i < 0 ? -1 : from + i;
+        }
+
+        // The first and last bytes of a prefix beyond ASCII are the first bytes of a script's characters, which
+        // every character of the script shares, so the span search would compare at nearly every character. The
+        // last byte of the first character tells characters apart; it is searched for, and the prefix compared
+        // from the character's start.
+        DecodeRune(prefix, out int firstWidth);
+        byte trail = prefix[firstWidth - 1];
+        int at = from + firstWidth - 1;
+        while (at < input.Length)
+        {
+            int j = input.Slice(at).IndexOf(trail);
+            if (j < 0)
+            {
+                return -1;
+            }
+
+            int start = at + j - firstWidth + 1;
+            if (start >= from && input.Length - start >= prefix.Length && input.Slice(start, prefix.Length).SequenceEqual(prefix))
+            {
+                return start;
+            }
+
+            at += j + 1;
+        }
+
+        return -1;
     }
 
     /// <inheritdoc/>
@@ -577,14 +616,40 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int RequiredOffset(Program program) => program.RequiredOffsetUtf8;
 
+    /// <inheritdoc/>
+    public int WalkBack(ReadOnlySpan<byte> input, int from, int count, int floor, bool units)
+    {
+        int at = from;
+        for (int k = 0; k < count; k++)
+        {
+            if (at <= floor)
+            {
+                return -1;
+            }
+
+            int w;
+            if (units)
+            {
+                this.UnitBefore(input, at, out w);
+            }
+            else
+            {
+                DecodeLastRune(input.Slice(0, at), out w);
+            }
+
+            at -= w;
+        }
+
+        return at < floor ? -1 : at;
+    }
+
 #if NET
     /// <inheritdoc/>
     public int IndexOfCasePrefix(ReadOnlySpan<byte> input, int from, Program program)
     {
         byte[] lower = program.CasePrefixUtf8;
         int n = lower.Length;
-        int second = lower[1];
-        bool secondIsLetter = second >= 'a' && second <= 'z';
+        byte[][] pairs = program.CasePrefixPairs;
         while (true)
         {
             if (input.Length - from < n)
@@ -592,17 +657,30 @@ internal readonly struct Utf8Encoding : ITextEncoding<byte>
                 return -1;
             }
 
-            int i = input.Slice(from, input.Length - from - n + 1).IndexOfAny(program.CasePrefixFirst);
-            if (i < 0)
+            // The first two characters in each of their cases, as two-byte needles the span search vectorises;
+            // the nearest occurrence is the candidate.
+            ReadOnlySpan<byte> window = input.Slice(from, input.Length - from - n + 2);
+            int best = -1;
+            foreach (byte[] pair in pairs)
+            {
+                int j = window.IndexOf(pair);
+                if (j >= 0 && (best < 0 || j < best))
+                {
+                    best = j;
+                    if (j == 0)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (best < 0)
             {
                 return -1;
             }
 
-            from += i;
-
-            // The second character is checked before the full comparison: most candidates fail there.
-            int b = input[from + 1];
-            if ((secondIsLetter ? (b | 0x20) : b) == second && System.Text.Ascii.EqualsIgnoreCase(input.Slice(from, n), lower))
+            from += best;
+            if (System.Text.Ascii.EqualsIgnoreCase(input.Slice(from, n), lower))
             {
                 return from;
             }
@@ -793,4 +871,29 @@ internal readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int RequiredOffset(Program program) => program.RequiredOffset;
+
+    /// <inheritdoc/>
+    public int WalkBack(ReadOnlySpan<char> input, int from, int count, int floor, bool units)
+    {
+        int at = from;
+        for (int k = 0; k < count; k++)
+        {
+            if (at <= floor)
+            {
+                return -1;
+            }
+
+            if (units)
+            {
+                at--;
+            }
+            else
+            {
+                this.DecodeBefore(input, at, out int w);
+                at -= w;
+            }
+        }
+
+        return at < floor ? -1 : at;
+    }
 }

@@ -387,11 +387,14 @@ internal sealed class Program
     /// <param name="loopMin">The least count of that loop.</param>
     /// <param name="afterLoop">The literal after that loop, or empty.</param>
     /// <param name="skipRun">Whether a failed start may be moved to the end of the run of the loop's set.</param>
-    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, string casePrefix, int requiredOffsetUtf8, int[] caseExtras, CharSet? loopSet, int loopMin, string afterLoop, bool skipRun)
+    /// <param name="requiredCount">The number of characters before the required literal, or -1.</param>
+    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, string casePrefix, int requiredOffsetUtf8, int[] caseExtras, CharSet? loopSet, int loopMin, string afterLoop, bool skipRun, int requiredCount)
     {
         this.CasePrefixUtf16 = casePrefix;
         this.CasePrefixUtf8 = Encoding.UTF8.GetBytes(casePrefix);
         this.RequiredOffsetUtf8 = requiredOffsetUtf8;
+        this.RequiredCount = requiredCount;
+        this.CasePrefixPairs = CasePairs(casePrefix);
         this.CaseExtras = caseExtras.Length == 0 ? null : new CharSet(EcmaRegexUnicode.SetOf(Pairs(caseExtras), caseExtras.Length * 2));
         this.LoopSet = loopSet;
         this.LoopMin = loopMin;
@@ -487,6 +490,33 @@ internal sealed class Program
 
     /// <summary>Gets the distance from the start of a match to its required literal over UTF-8, or -1 when the terms before it are not all ASCII (over UTF-16 <see cref="RequiredOffset"/> holds for any term of one code unit).</summary>
     public int RequiredOffsetUtf8 { get; }
+
+    /// <summary>Gets the number of characters (code points, or code units without the u flag) before the required literal, or -1 when there is none. Where the encoding has no fixed offset, the start is that many characters before the literal.</summary>
+    public int RequiredCount { get; }
+
+    /// <summary>Gets the first two characters of the case-insensitive prefix in each of their cases, as UTF-8 needles.</summary>
+    public byte[][] CasePrefixPairs { get; }
+
+    private static byte[][] CasePairs(string casePrefix)
+    {
+        if (casePrefix.Length < 2)
+        {
+            return [];
+        }
+
+        List<byte[]> pairs = [];
+        foreach (char a in Cases(casePrefix[0]))
+        {
+            foreach (char b in Cases(casePrefix[1]))
+            {
+                pairs.Add([(byte)a, (byte)b]);
+            }
+        }
+
+        return [.. pairs];
+
+        static char[] Cases(char c) => c >= 'a' && c <= 'z' ? [c, (char)(c - 32)] : [c];
+    }
 
     /// <summary>Gets the characters beyond ASCII that fold to a letter of the case-insensitive prefix (the long s, the Kelvin sign), which the ordinal comparison does not know, or null when there are none.</summary>
     public CharSet? CaseExtras { get; }
@@ -610,6 +640,7 @@ internal sealed class Compiler
         string required = string.Empty;
         int requiredOffset = -1;
         int requiredOffsetUtf8 = -1;
+        int requiredCount = -1;
         string casePrefix = string.Empty;
         int[] caseExtras = [];
         CharSet? loopSet = null;
@@ -630,7 +661,16 @@ internal sealed class Compiler
                     first = new CharSet(EcmaRegexUnicode.SetOf([.. pairs], pairs.Count));
                 }
 
-                required = RequiredLiteral(root, unicode, out requiredOffset, out requiredOffsetUtf8);
+                required = RequiredLiteral(root, unicode, out requiredOffset, out requiredOffsetUtf8, out requiredCount);
+                if (required.Length == 1 && first is not null && first.Count <= 8)
+                {
+                    // One common character is a poorer guide than a small first set.
+                    required = string.Empty;
+                    requiredOffset = -1;
+                    requiredOffsetUtf8 = -1;
+                    requiredCount = -1;
+                }
+
                 if (required.Length == 0)
                 {
                     casePrefix = CaseInsensitivePrefix(root, out caseExtras);
@@ -660,7 +700,7 @@ internal sealed class Compiler
             }
         }
 
-        return new Program(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, casePrefix, requiredOffsetUtf8, caseExtras, loopSet, loopMin, afterLoop, skipRun);
+        return new Program(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, casePrefix, requiredOffsetUtf8, caseExtras, loopSet, loopMin, afterLoop, skipRun, requiredCount);
     }
 
     /// <summary>
@@ -1048,11 +1088,13 @@ internal sealed class Compiler
     /// <param name="unicode">Whether the pattern is matched by code point.</param>
     /// <param name="offset">The distance over UTF-16, or -1.</param>
     /// <param name="offsetUtf8">The distance over UTF-8, or -1 when a term before the literal is not ASCII.</param>
+    /// <param name="count">The number of characters before the literal, or -1.</param>
     /// <returns>The literal, or empty.</returns>
-    public static string RequiredLiteral(EcmaRegexNode root, bool unicode, out int offset, out int offsetUtf8)
+    public static string RequiredLiteral(EcmaRegexNode root, bool unicode, out int offset, out int offsetUtf8, out int count)
     {
         offset = -1;
         offsetUtf8 = -1;
+        count = -1;
         EcmaRegexNode n = root;
         while (n.Kind == EcmaRegexNodeKind.Group)
         {
@@ -1066,6 +1108,7 @@ internal sealed class Compiler
 
         int distance = 0;
         bool ascii = true;
+        bool fixedUnits = true;
         for (int k = 0; k < n.Subs.Length; k++)
         {
             EcmaRegexNode term = n.Subs[k];
@@ -1083,19 +1126,21 @@ internal sealed class Compiler
                 // start it allows is tried once. At the very start one character would be a prefix.
                 if (j - k >= 2 || distance > 0)
                 {
-                    offset = distance;
+                    count = distance;
+                    offset = fixedUnits ? distance : -1;
                     offsetUtf8 = ascii ? distance : -1;
                     return sb.ToString();
                 }
             }
 
-            int width = FixedUnitWidth(term, unicode, out bool termAscii);
+            int width = FixedCharacterCount(term, unicode, out bool termAscii, out bool termFixedUnits);
             if (width < 0)
             {
                 return string.Empty;
             }
 
             ascii &= termAscii;
+            fixedUnits &= termFixedUnits;
             distance += width;
         }
 
@@ -1233,18 +1278,21 @@ internal sealed class Compiler
     }
 
     /// <summary>
-    /// The number of units a term always consumes over UTF-16, when it is a character or class of one code unit
-    /// or a counted repetition of one, or -1. <paramref name="ascii"/> says every character of it is ASCII, so the
-    /// width holds over UTF-8 too.
+    /// The number of characters a term always consumes, when it is one character or class or a counted
+    /// repetition of one, or -1. <paramref name="ascii"/> says every character of it is ASCII, so the count is a
+    /// count of units over either encoding; <paramref name="fixedUnits"/> says every character of it is one UTF-16
+    /// code unit, so the count is a count of units over UTF-16.
     /// </summary>
-    private static int FixedUnitWidth(EcmaRegexNode term, bool unicode, out bool ascii)
+    private static int FixedCharacterCount(EcmaRegexNode term, bool unicode, out bool ascii, out bool fixedUnits)
     {
         ascii = false;
+        fixedUnits = false;
         switch (term.Kind)
         {
             case EcmaRegexNodeKind.Char:
                 ascii = term.CodePoint < 0x80;
-                return term.CodePoint <= 0xFFFF ? 1 : -1;
+                fixedUnits = term.CodePoint <= 0xFFFF;
+                return 1;
             case EcmaRegexNodeKind.Set:
             {
                 if (term.Set.Length == 0)
@@ -1257,7 +1305,8 @@ internal sealed class Compiler
 
                 // By code point a character beyond the Basic Multilingual Plane is two units; by code unit every
                 // member is one unit.
-                return !unicode || last <= 0xFFFF ? 1 : -1;
+                fixedUnits = !unicode || last <= 0xFFFF;
+                return 1;
             }
 
             case EcmaRegexNodeKind.Repeat:
@@ -1267,12 +1316,12 @@ internal sealed class Compiler
                     return -1;
                 }
 
-                int w = FixedUnitWidth(term.Subs[0], unicode, out ascii);
+                int w = FixedCharacterCount(term.Subs[0], unicode, out ascii, out fixedUnits);
                 return w < 0 ? -1 : w * term.Min;
             }
 
             case EcmaRegexNodeKind.Group:
-                return term.Group == 0 ? FixedUnitWidth(term.Subs[0], unicode, out ascii) : -1;
+                return term.Group == 0 ? FixedCharacterCount(term.Subs[0], unicode, out ascii, out fixedUnits) : -1;
             default:
                 return -1;
         }

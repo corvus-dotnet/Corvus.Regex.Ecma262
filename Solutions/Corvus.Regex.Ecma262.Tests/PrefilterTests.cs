@@ -61,6 +61,9 @@ public class PrefilterTests
     [DataRow(@"[\ud83d\ude00-\ud83d\ude4f]", "u", "\ud83d\ude00,", true, "a trail-byte scan can land on a middle byte of the member it is looking for")]
     [DataRow(@"[\u0428\u0448]x", "u", "\u0448x", true, "")]
     [DataRow(@"[\u0428\u0448]x", "u", "\u0418x", false, "")]
+    [DataRow(@"\S{2}\ud801\udc00$", "u", "\ud801\udc00\ud801\udc00\ud801\udc00", true, "the literal's first occurrence has too few characters before it; a later one does")]
+    [DataRow(@"\S{2}\ud801\udc00$", "u", "\ud801\udc00\ud801\udc00", false, "")]
+    [DataRow(@"[^u-z]{13}x", "u", "\ud83d\ude00abcdefghijklx", true, "a required literal reached by walking back over characters of two units")]
     [DataRow(@"[a-z]*x", "u", "1ax", true, "")]
     public void TheScansAgreeWithThePlainSearchOverBothEncodings(string pattern, string flags, string text, bool expected, string why)
     {

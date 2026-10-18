@@ -71,5 +71,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Corvus.Regex.Ecma262.Tests" />
+    <InternalsVisibleTo Include="probe" />
   </ItemGroup>
 </Project>

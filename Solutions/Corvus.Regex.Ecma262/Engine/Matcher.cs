@@ -508,17 +508,18 @@ internal static class Matcher
             int n = p.CasePrefixUtf16.Length;
             CharSet? extras = p.CaseExtras;
 
-            // The next extra character at or after pos, found once and kept until the search passes it: -1 once
-            // there is none left.
-            int e = -1;
-            bool extraKnown = extras is null;
             while (true)
             {
                 int i = enc.IndexOfCasePrefix(input, pos, p);
-                if (!extraKnown || (e >= 0 && e < pos))
+
+                // An extra character matters only where a start before the ordinal candidate could reach it, so
+                // it is looked for up to the end of that candidate's prefix, or to the end of the text when there
+                // is no candidate.
+                int e = -1;
+                if (extras is not null)
                 {
-                    e = enc.IndexOfCandidate(input, pos, extras!, true);
-                    extraKnown = true;
+                    int limit = i < 0 ? len : Math.Min(len, i + n);
+                    e = enc.IndexOfCandidate(input.Slice(0, limit), pos, extras, true);
                 }
 
                 if (i < 0 && e < 0)
@@ -626,20 +627,32 @@ internal static class Matcher
             }
         }
 #endif
-        if (enc.RequiredOffset(p) >= 0)
+        if (p.RequiredCount >= 0)
         {
-            // Every match holds the literal at the offset from its start, so the literal's first occurrence at or
-            // after pos + offset allows one start, and a start before it can hold no match.
+            // Every match holds the literal after a fixed number of characters, so the literal's first occurrence
+            // at or after pos plus that many allows one start, and a start before it can hold no match. Where the
+            // characters are a fixed number of units of this encoding, the start is the occurrence less that;
+            // otherwise it is found by walking back over the characters.
             int offset = enc.RequiredOffset(p);
+            int count = p.RequiredCount;
+            int next = pos + (offset >= 0 ? offset : count);
             while (true)
             {
-                int i = enc.IndexOfRequired(input, pos + offset, p);
+                int i = enc.IndexOfRequired(input, next, p);
                 if (i < 0)
                 {
                     return false;
                 }
 
-                int at = i - offset;
+                next = enc.NextStart(input, i);
+                int at = offset >= 0 ? i - offset : enc.WalkBack(input, i, count, pos, units);
+                if (at < 0)
+                {
+                    // Fewer characters between the earliest start and the occurrence than the literal needs: the
+                    // next occurrence may do.
+                    continue;
+                }
+
                 if (len - at < p.Need)
                 {
                     return false;
