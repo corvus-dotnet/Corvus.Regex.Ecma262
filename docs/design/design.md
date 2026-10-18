@@ -124,10 +124,23 @@ absent.
 
 Every matching member has an overload for `string`, `ReadOnlySpan<char>` and `ReadOnlySpan<byte>` (UTF-8). A
 `Match` from a string input holds the input and gives `Value` as a substring, as .NET does. A `Match` from a span is
-not possible in .NET's shape (a class cannot hold a span), so the span overloads are the ones .NET itself gives spans:
-`IsMatch`, `Count`, `EnumerateMatches` (`ValueMatch` with `Index` and `Length`), and a new `EnumerateSplits`. For
-captures over a span there is a new `ValueMatchEnumerator` form that reports each group's `(Index, Length)` or
-unset, with no allocation. `Index` and `Length` are in the unit of the input: chars for UTF-16, bytes for UTF-8.
+not possible in .NET's shape (a class cannot hold a span), so the span overloads are the ones .NET itself gives spans
+and a few more, every one of them allocation-free (owner, 2026-10-18: "We should have allocation free options for
+matches, replacements etc."):
+
+- `IsMatch`, `Count`, and `EnumerateMatches` (`ValueMatch` with `Index` and `Length`), as .NET has them.
+- `EnumerateMatches(input, Span<ValueCapture> captures)`: after each `MoveNext` the caller's span holds the match
+  as element 0 and what each group captured (`Index`, `Length`, `Success`), so a loop over the matches reads the
+  groups without a `Match`. `TryMatch` does the same for one match.
+- `TryReplace(input, replacement, Span<T> destination, out int written)` and `Replace(input, replacement,
+  IBufferWriter<T> destination)`, with the template expanded as `GetSubstitution` expands it, and
+  `Replace(input, evaluator, IBufferWriter<T>)` where the evaluator writes its replacement rather than returning a
+  string. `Replace(string, string)` runs the same loop over pooled memory, so the result string is its only
+  allocation.
+- `EnumerateSplits(input[, count])`: the pieces of `Split` as positions, without the captures `Split` puts between
+  them (as .NET's `EnumerateSplits` leaves them out).
+
+`Index` and `Length` are in the unit of the input: chars for UTF-16, bytes for UTF-8.
 
 A UTF-8 input that is not valid UTF-8 is read a byte at a time as U+FFFD, as the Go engine reads it. A UTF-16 input
 can hold a lone surrogate, and it is matched as ECMA-262 matches it (a code unit without `u`, a code point of its
@@ -218,8 +231,11 @@ character for the span search to find alone. Over a text larger than the cache t
 ### 5.4 Linear patterns
 
 The ASCII automaton of the ports (256 states, lazy) is kept for both cursors: an ASCII text is one table read per
-unit either way, and any other unit hands the text to the matcher. A lazy automaton over full Unicode is a later
-phase (section 10) if the benchmarks show it is needed.
+unit either way, and any other unit hands the text to the matcher. It takes `\b` and `\B` (not under the i and u
+flags together, where they fold): a state carries whether the unit before was a word character and whether it is
+at the start of the text, and a boundary is passed when the next unit is known, so a pattern such as
+`\b\d{1,2}/\d{1,2}/\d{2,4}\b` is decided by the automaton rather than the backtracker, which halved its time. A
+lazy automaton over full Unicode is a later phase (section 10) if the benchmarks show it is needed.
 
 ### 5.5 The source generator
 

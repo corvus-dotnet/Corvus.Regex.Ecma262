@@ -11,7 +11,9 @@ An ECMA-262 regular expression engine for .NET.
   `Replace`, `Split`, `EnumerateMatches`), in the namespace `Corvus.Ecma262.RegularExpressions`.
 - Native matching over UTF-8 (`ReadOnlySpan<byte>`) and over UTF-16 (`string`, `ReadOnlySpan<char>`), with no
   transcoding either way.
-- Zero allocation per match once the per-thread working memory has grown.
+- Zero allocation per match once the per-thread working memory has grown, and allocation-free forms of the
+  members that otherwise allocate: `EnumerateMatches` with the groups into a span the caller gives, `TryReplace`
+  into a span, `Replace` into an `IBufferWriter`, and `EnumerateSplits`, each over UTF-8 and UTF-16.
 - A backtracking matcher that remembers where a way has failed, so a repetition inside a repetition takes time
   proportional to the pattern times the text; a deterministic automaton for the patterns that need no
   backtracking; a limit of time and of memory on every match; deterministic limits of size on every pattern.
@@ -34,6 +36,12 @@ in its section 10.
   and `TryMatch` over spans) passes the data set's new `captures.jsonl`: V8's `exec`, global, sticky, `replace` and
   `split` answers for 5,188 patterns and 207,485 texts, 3.76 million answers, 0 wrong. The whole set is now
   19.7 million answers at 0 wrong.
+- Phase 3 (the searches for where a match can start, and the measured run against `System.Text.RegularExpressions`
+  on dotnet/performance's workloads): see [docs/benchmarks](docs/benchmarks) for the table. On the Industry set
+  the library is at or below .NET's interpreter on 53 of 55 workloads over UTF-16 (median 0.55) and over UTF-8
+  (median 0.51); the exceptions are the two memory-bound literal searches over a 16 MB text, where both engines
+  run .NET's span search, and the two CJK searches over UTF-8, where three bytes a character with no rare byte
+  cannot be found as fast as one UTF-16 unit.
 
 ## Repository structure
 

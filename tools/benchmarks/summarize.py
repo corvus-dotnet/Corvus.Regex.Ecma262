@@ -52,9 +52,39 @@ def pick(means, *needles):
             return mean
     return None
 
+def members(title, workloads):
+    """The Common members class: one row per member, .NET's method beside this library's, with the allocations."""
+    print(f"## {title}\n")
+    print("| Member | .NET | this library | ratio | .NET allocated | this library allocated |")
+    print("|---|---|---|---|---|---|")
+    ratios = []
+    for params, means in workloads.items():
+        for m, (mean, allocated) in means.items():
+            if not m.startswith("Net_"):
+                continue
+            ours = means.get("Corvus_" + m[4:])
+            if ours is None:
+                continue
+            ratio = ours[0] / mean
+            ratios.append(ratio)
+            label = m[4:] + (f" ({params})" if params else "")
+            print(f"| {label} | {fmt(mean)} | {fmt(ours[0])} | {ratio:.2f} | {allocated} | {ours[1]} |")
+        for m, (mean, allocated) in means.items():
+            if m.endswith("_Utf8"):
+                net = means.get("Net_" + m[7:-5])
+                ratio = f"{mean / net[0]:.2f}" if net else ""
+                print(f"| {m[7:]} | | {fmt(mean)} | {ratio} | | {allocated} |")
+    if ratios:
+        print(f"\nThis library over .NET: median {statistics.median(ratios):.2f}, geometric mean {statistics.geometric_mean(ratios):.2f}, at or below 1.0 on {sum(1 for r in ratios if r <= 1)} of {len(ratios)}.")
+    print()
+
 def main():
     runs = load(sys.argv[1])
     for title, workloads in sorted(runs.items()):
+        if any(m.startswith("Net_") for w in workloads.values() for m in w):
+            members(title, workloads)
+            continue
+
         methods = []
         for w in workloads.values():
             for m in w:
