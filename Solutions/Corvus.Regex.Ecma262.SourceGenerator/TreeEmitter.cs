@@ -554,7 +554,12 @@ internal static class TreeEmitter
         }
 
         /// <summary>One member of a set at a position variable: taken or a jump to a label.</summary>
-        private void EmitSet(CharSet set, string at, string fail, bool bounded)
+        /// <param name="set">The set.</param>
+        /// <param name="at">The position variable.</param>
+        /// <param name="fail">The label to jump to when the position holds no member.</param>
+        /// <param name="bounded">Whether the position may be at the end of the text; when not, the caller has checked that as many units as the terms it emits together need are left.</param>
+        /// <param name="recheck">When the caller has checked the units left, the units the terms after this one need: a member beyond ASCII may take more than one unit, so the check is made again after one.</param>
+        private void EmitSet(CharSet set, string at, string fail, bool bounded, int recheck = 0)
         {
             if (set.IsEmpty)
             {
@@ -562,11 +567,10 @@ internal static class TreeEmitter
                 return;
             }
 
-            string bound = bounded ? at + " < len && " : string.Empty;
-            this.Line("c = " + bound + "true ? enc.Unit(input, " + at + ") : -1;");
+            this.Line(bounded ? "c = " + at + " < len ? enc.Unit(input, " + at + ") : -1;" : "c = enc.Unit(input, " + at + ");");
             if (!set.HasNonAscii)
             {
-                this.Line("if (c >= 0 && c < 0x80 && " + RunEmitter.AsciiTest(set, "c") + ")");
+                this.Line("if ((uint)c < 0x80 && " + RunEmitter.AsciiTest(set, "c") + ")");
                 this.Line("{");
                 this.Line("    " + at + "++;");
                 this.Line("}");
@@ -599,6 +603,14 @@ internal static class TreeEmitter
             this.Line("    }");
             sb_blank(this.code);
             this.Line("    " + at + " += w;");
+            if (!bounded && recheck > 0)
+            {
+                this.Line("    if (len - " + at + " < " + recheck + ")");
+                this.Line("    {");
+                this.Line("        goto " + fail + ";");
+                this.Line("    }");
+            }
+
             this.Line("}");
 
             static void sb_blank(StringBuilder sb) => sb.AppendLine();
@@ -618,28 +630,49 @@ internal static class TreeEmitter
             int i = 0;
             while (i < n.Subs.Length)
             {
-                // A run of ASCII characters is one bounds check and a comparison each.
+                // A run of terms that take one unit each where they are ASCII (characters, and sets, whose members
+                // beyond ASCII may take more and check again) is one bounds check for them all, then a comparison
+                // each: as the runtime's generator checks a match's least length once.
                 int j = i;
-                while (j < n.Subs.Length && n.Subs[j].Kind == EcmaRegexNodeKind.Char && IsLiteralRune(n.Subs[j].CodePoint))
+                while (j < n.Subs.Length && ((n.Subs[j].Kind == EcmaRegexNodeKind.Char && IsLiteralRune(n.Subs[j].CodePoint)) || (n.Subs[j].Kind == EcmaRegexNodeKind.Set && !this.Class(n.Subs[j]).IsEmpty)))
                 {
                     j++;
                 }
 
                 if (j - i >= 2)
                 {
-                    StringBuilder test = new();
-                    test.Append("len - pos < ").Append(j - i);
-                    for (int k = i; k < j; k++)
-                    {
-                        test.Append(" || enc.Unit(input, pos").Append(k == i ? string.Empty : " + " + (k - i)).Append(") != ").Append(n.Subs[k].CodePoint);
-                    }
-
-                    this.Line("if (" + test + ")");
+                    this.Line("if (len - pos < " + (j - i) + ")");
                     this.Line("{");
                     this.Line("    goto " + this.done + ";");
                     this.Line("}");
                     sb_blank(this.code);
-                    this.Line("pos += " + (j - i) + ";");
+                    int k = i;
+                    while (k < j)
+                    {
+                        if (n.Subs[k].Kind == EcmaRegexNodeKind.Set)
+                        {
+                            this.EmitSet(this.Class(n.Subs[k]), "pos", this.done, false, j - k - 1);
+                            k++;
+                            continue;
+                        }
+
+                        int k2 = k;
+                        StringBuilder test = new();
+                        while (k2 < j && n.Subs[k2].Kind == EcmaRegexNodeKind.Char)
+                        {
+                            test.Append(k2 == k ? string.Empty : " || ").Append("enc.Unit(input, pos").Append(k2 == k ? string.Empty : " + " + (k2 - k)).Append(") != ").Append(n.Subs[k2].CodePoint);
+                            k2++;
+                        }
+
+                        this.Line("if (" + test + ")");
+                        this.Line("{");
+                        this.Line("    goto " + this.done + ";");
+                        this.Line("}");
+                        sb_blank(this.code);
+                        this.Line("pos += " + (k2 - k) + ";");
+                        k = k2;
+                    }
+
                     i = j;
                     continue;
                 }
