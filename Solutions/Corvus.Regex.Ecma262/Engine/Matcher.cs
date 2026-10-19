@@ -7,6 +7,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Corvus.Ecma262.RegularExpressions;
 
@@ -79,6 +80,27 @@ public struct Entry
 
     /// <summary>Gets or sets the other value.</summary>
     public int A { get; set; }
+}
+
+/// <summary>
+/// What an enumeration learns about its text and carries from match to match: the range known to hold no rare
+/// line terminator, and the range known to hold no form the program's search leaves out. One pass over the text
+/// then serves every match rather than each match scanning again.
+/// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public struct ScanCursor
+{
+    /// <summary>The start of the range with no rare line terminator.</summary>
+    public int RareFrom;
+
+    /// <summary>The end of that range.</summary>
+    public int RareTo;
+
+    /// <summary>The start of the range with no extra form.</summary>
+    public int ExtraFrom;
+
+    /// <summary>The end of that range.</summary>
+    public int ExtraTo;
 }
 
 /// <summary>
@@ -161,6 +183,56 @@ public sealed class MatchState
     /// <summary>Gets or sets a value indicating whether every match takes its memory of failed places before its first step. The tests set it, to run every pattern they have with the memory in use.</summary>
     public static bool MemoFromTheStart { get; set; }
 
+    /// <summary>Gets or sets the start of the range of the text known to hold no rare line terminator (U+2028, U+2029), for runs of <c>.</c>.</summary>
+    public int RareFrom { get; set; }
+
+    /// <summary>Gets or sets the end of that range.</summary>
+    public int RareTo { get; set; }
+
+    /// <summary>Gets or sets the start of the range of the text known to hold no form the program's search leaves out (the long s, the Kelvin sign).</summary>
+    public int ExtraFrom { get; set; }
+
+    /// <summary>Gets or sets the end of that range.</summary>
+    public int ExtraTo { get; set; }
+
+    /// <summary>Takes the ranges an enumeration carries between its matches.</summary>
+    /// <param name="cursor">The ranges.</param>
+    public void LoadCursor(in ScanCursor cursor)
+    {
+        this.RareFrom = cursor.RareFrom;
+        this.RareTo = cursor.RareTo;
+        this.ExtraFrom = cursor.ExtraFrom;
+        this.ExtraTo = cursor.ExtraTo;
+    }
+
+    /// <summary>Gives the ranges back to the enumeration.</summary>
+    /// <param name="cursor">The ranges.</param>
+    public void SaveCursor(ref ScanCursor cursor)
+    {
+        cursor.RareFrom = this.RareFrom;
+        cursor.RareTo = this.RareTo;
+        cursor.ExtraFrom = this.ExtraFrom;
+        cursor.ExtraTo = this.ExtraTo;
+    }
+
+    /// <summary>
+    /// The state of the calling thread for a run of matches, or a new one when the thread is already inside a
+    /// match. It is not marked as in use: between the matches of the run anything may use it, and each match
+    /// prepares it afresh; nothing runs inside a match that could take it.
+    /// </summary>
+    /// <returns>The state.</returns>
+    public static MatchState Current()
+    {
+        MatchState? st = current;
+        if (st is null)
+        {
+            st = new MatchState();
+            current = st;
+        }
+
+        return st.InUse ? new MatchState() : st;
+    }
+
     /// <summary>The state of the calling thread, or a new one when the thread is already inside a match.</summary>
     /// <returns>The state.</returns>
     public static MatchState Acquire()
@@ -179,6 +251,11 @@ public sealed class MatchState
             return new MatchState();
         }
 
+        // One match on its own knows nothing of the text: what an enumeration on this thread learned is dropped.
+        st.RareFrom = 0;
+        st.RareTo = 0;
+        st.ExtraFrom = 0;
+        st.ExtraTo = 0;
         st.InUse = true;
         return st;
     }
@@ -345,7 +422,7 @@ public static class Matcher
         if (p.Shape != SimpleShape.None)
         {
             stop = MatchStop.None;
-            return Simple<TUnit, TEncoding>(p, input, start, sticky, out _, out _);
+            return Simple<TUnit, TEncoding>(p, null, input, start, sticky, out _, out _);
         }
 
         MatchState st = MatchState.Acquire();
@@ -387,30 +464,15 @@ public static class Matcher
         if (p.Shape != SimpleShape.None)
         {
             stop = MatchStop.None;
-            bool found = Simple<TUnit, TEncoding>(p, input, start, sticky, out captures[0], out captures[1]);
+            bool found = Simple<TUnit, TEncoding>(p, null, input, start, sticky, out captures[0], out captures[1]);
             return found;
         }
 
         MatchState st = MatchState.Acquire();
         try
         {
-            Prepare(st, p, input.Length, limit);
-            bool ok = Search<TUnit, TEncoding>(p, st, input, start, sticky, out int from, out int to);
-            stop = st.Stop;
-            if (!ok || stop != MatchStop.None)
-            {
-                return false;
-            }
-
-            captures[0] = from;
-            captures[1] = to;
-            int[] caps = st.Caps;
-            for (int k = 0; k < 2 * p.Groups; k++)
-            {
-                captures[2 + k] = caps[k];
-            }
-
-            return true;
+            ScanCursor cursor = default;
+            return MatchWith<TUnit, TEncoding>(st, ref cursor, p, input, start, sticky, limit, captures, out stop);
         }
         finally
         {
@@ -419,10 +481,60 @@ public static class Matcher
     }
 
     /// <summary>
+    /// Reports whether the program matches at or after a position, with a state the caller holds for a run of
+    /// matches (an enumeration), so that nothing is acquired and released for each one. The state is prepared
+    /// here; the caller keeps nothing of it between matches.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="st">The state.</param>
+    /// <param name="cursor">What the run of matches has learned about the text (see <see cref="ScanCursor"/>).</param>
+    /// <param name="p">The program.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="start">The position.</param>
+    /// <param name="sticky">Whether the match must start at the position.</param>
+    /// <param name="limit">The limit of time, or zero for none.</param>
+    /// <param name="captures">Receives the bounds of the match and of each group.</param>
+    /// <param name="stop">The reason the match was abandoned, or <see cref="MatchStop.None"/>.</param>
+    /// <returns>Whether the program matched.</returns>
+    public static bool MatchWith<TUnit, TEncoding>(MatchState st, ref ScanCursor cursor, Program p, ReadOnlySpan<TUnit> input, int start, bool sticky, TimeSpan limit, Span<int> captures, out MatchStop stop)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        st.LoadCursor(in cursor);
+        if (p.Shape != SimpleShape.None)
+        {
+            stop = MatchStop.None;
+            bool found = Simple<TUnit, TEncoding>(p, st, input, start, sticky, out captures[0], out captures[1]);
+            st.SaveCursor(ref cursor);
+            return found;
+        }
+
+        Prepare(st, p, input.Length, limit);
+        bool ok = Search<TUnit, TEncoding>(p, st, input, start, sticky, out int from, out int to);
+        st.SaveCursor(ref cursor);
+        stop = st.Stop;
+        if (!ok || stop != MatchStop.None)
+        {
+            return false;
+        }
+
+        captures[0] = from;
+        captures[1] = to;
+        int[] caps = st.Caps;
+        for (int k = 0; k < 2 * p.Groups; k++)
+        {
+            captures[2 + k] = caps[k];
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// The search for a program of a simple shape (see <see cref="SimpleShape"/>): the match is where the search
     /// finds the literal or the member, and nothing of the matcher runs.
     /// </summary>
-    public static bool Simple<TUnit, TEncoding>(Program p, ReadOnlySpan<TUnit> input, int start, bool sticky, out int from, out int to)
+    public static bool Simple<TUnit, TEncoding>(Program p, MatchState? st, ReadOnlySpan<TUnit> input, int start, bool sticky, out int from, out int to)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
@@ -503,7 +615,7 @@ public static class Matcher
                 {
                     // The match is the run from the start, empty or not.
                     from = pos;
-                    to = pos < len ? EndOfRun<TUnit, TEncoding>(set, input, pos, units) : pos;
+                    to = pos < len ? (set.IsLineRest ? EndOfLine<TUnit, TEncoding>(st, input, pos) : EndOfRun<TUnit, TEncoding>(set, input, pos, units)) : pos;
                     return true;
                 }
 
@@ -535,7 +647,7 @@ public static class Matcher
                     if (set.Contains(c))
                     {
                         from = pos;
-                        to = EndOfRun<TUnit, TEncoding>(set, input, pos + w, units);
+                        to = set.IsLineRest ? EndOfLine<TUnit, TEncoding>(st, input, pos + w) : EndOfRun<TUnit, TEncoding>(set, input, pos + w, units);
                         return true;
                     }
 
@@ -573,7 +685,14 @@ public static class Matcher
                             // it: every start from which an alternative could reach it is tried first, in order.
                             int window = enc.AlternativeWindow(alternation);
                             int limit = i < 0 ? len : Math.Min(len, i + window);
-                            int e = enc.IndexOfAlternativeExtra(input, pos, limit, alternation);
+                            int e = -1;
+                            if (!ExtrasClear(st, pos, limit))
+                            {
+                                int scanFrom = ExtrasFrom(st, pos);
+                                int scanTo = ExtrasTo(st, pos, limit, len);
+                                e = ExtrasSeen(st, pos, scanTo, enc.IndexOfAlternativeExtra(input, scanFrom, scanTo, alternation), limit);
+                            }
+
                             if (e >= 0 && (i < 0 || e - window < i))
                             {
                                 int s = Math.Max(pos, e - window + 1);
@@ -650,7 +769,12 @@ public static class Matcher
                     if (extras)
                     {
                         int limit = i < 0 ? len : Math.Min(len, i + window);
-                        e = enc.IndexOfCaseExtra(input, pos, limit, p);
+                        if (!ExtrasClear(st, pos, limit))
+                        {
+                            int scanFrom = ExtrasFrom(st, pos);
+                            int scanTo = ExtrasTo(st, pos, limit, len);
+                            e = ExtrasSeen(st, pos, scanTo, enc.IndexOfCaseExtra(input, scanFrom, scanTo, p), limit);
+                        }
                     }
 
                     if (i < 0 && e < 0)
@@ -959,7 +1083,12 @@ public static class Matcher
                 if (extras)
                 {
                     int limit = i < 0 ? len : Math.Min(len, i + window);
-                    e = enc.IndexOfCaseExtra(input, pos, limit, p);
+                    if (!ExtrasClear(st, pos, limit))
+                    {
+                        int scanFrom = ExtrasFrom(st, pos);
+                        int scanTo = ExtrasTo(st, pos, limit, len);
+                        e = ExtrasSeen(st, pos, scanTo, enc.IndexOfCaseExtra(input, scanFrom, scanTo, p), limit);
+                    }
                 }
 
                 if (i < 0 && e < 0)
@@ -1195,7 +1324,14 @@ public static class Matcher
                 if (extras)
                 {
                     int limit = i < 0 ? len : Math.Min(len, i + window);
-                    int e = enc.IndexOfAlternativeExtra(input, next, limit, alternation);
+                    int e = -1;
+                    if (!ExtrasClear(st, next, limit))
+                    {
+                        int scanFrom = ExtrasFrom(st, next);
+                        int scanTo = ExtrasTo(st, next, limit, len);
+                        e = ExtrasSeen(st, next, scanTo, enc.IndexOfAlternativeExtra(input, scanFrom, scanTo, alternation), limit);
+                    }
+
                     if (e >= 0 && (i < 0 || e - window < i))
                     {
                         i = Math.Max(next, e - window + 1);
@@ -1653,6 +1789,147 @@ public static class Matcher
 
         width = at - pos;
         return true;
+    }
+
+    /// <summary>The units an enumeration's pass looks ahead for rare terminators or extra forms at a time.</summary>
+    private const int CursorChunk = 1 << 16;
+
+    /// <summary>Whether the state knows a range holds no extra form.</summary>
+    private static bool ExtrasClear(MatchState? st, int pos, int limit) => st is not null && pos >= st.ExtraFrom && limit <= st.ExtraTo;
+
+    /// <summary>Where a scan for extra forms starts: after what is known clear.</summary>
+    private static int ExtrasFrom(MatchState? st, int pos) => st is not null && pos >= st.ExtraFrom && pos < st.ExtraTo ? st.ExtraTo : pos;
+
+    /// <summary>Where a scan for extra forms ends: beyond what this match needs, so that later matches need none.</summary>
+    private static int ExtrasTo(MatchState? st, int pos, int limit, int len) => st is null ? limit : Math.Max(limit, Math.Min(len, pos + CursorChunk));
+
+    /// <summary>Records what a scan for extra forms found, and gives the position within the range asked for, or -1.</summary>
+    private static int ExtrasSeen(MatchState? st, int pos, int scanTo, int e, int limit)
+    {
+        if (st is not null)
+        {
+            int clearTo = e < 0 ? scanTo : e;
+            if (pos >= st.ExtraFrom && pos <= st.ExtraTo)
+            {
+                st.ExtraTo = Math.Max(st.ExtraTo, clearTo);
+            }
+            else
+            {
+                st.ExtraFrom = pos;
+                st.ExtraTo = clearTo;
+            }
+        }
+
+        return e >= limit ? -1 : e;
+    }
+
+    /// <summary>
+    /// The end of the run of characters other than line terminators (<c>.</c> without the s flag) that starts at
+    /// a position: the common terminators (LF, CR) are searched for by vector, and the rare ones (U+2028, U+2029)
+    /// in passes of a chunk at a time whose result the state keeps, so that an enumeration scans the text for
+    /// them once rather than at every run.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="st">The state, or null.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="at">The position.</param>
+    /// <returns>The end of the run.</returns>
+    public static int EndOfLine<TUnit, TEncoding>(MatchState? st, ReadOnlySpan<TUnit> input, int at)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        int len = input.Length;
+        if (at < len)
+        {
+            // A run that is empty (the position is at a terminator, as two of every three matches of .* are) is
+            // answered without a vector call.
+            int first = typeof(TUnit) == typeof(byte) ? MemoryMarshal.Cast<TUnit, byte>(input)[at] : MemoryMarshal.Cast<TUnit, char>(input)[at];
+            if (first == 0x0A || first == 0x0D)
+            {
+                return at;
+            }
+        }
+
+        while (at < len)
+        {
+            int to;
+            if (st is not null && at >= st.RareFrom && at < st.RareTo)
+            {
+                to = st.RareTo;
+            }
+            else
+            {
+                int chunkEnd = Math.Min(len, at + CursorChunk);
+                int r = IndexOfRareTerminator<TUnit>(input, at, chunkEnd);
+                to = r < 0 ? chunkEnd : r;
+                if (st is not null)
+                {
+                    if (at >= st.RareFrom && at <= st.RareTo)
+                    {
+                        st.RareTo = Math.Max(st.RareTo, to);
+                    }
+                    else
+                    {
+                        st.RareFrom = at;
+                        st.RareTo = to;
+                    }
+                }
+
+                if (r == at)
+                {
+                    return at;
+                }
+            }
+
+            int i = typeof(TUnit) == typeof(byte)
+                ? MemoryMarshal.Cast<TUnit, byte>(input.Slice(at, to - at)).IndexOfAny((byte)0x0A, (byte)0x0D)
+                : MemoryMarshal.Cast<TUnit, char>(input.Slice(at, to - at)).IndexOfAny('\n', '\r');
+            if (i >= 0)
+            {
+                return at + i;
+            }
+
+            at = to;
+            if (at < len && IndexOfRareTerminator<TUnit>(input, at, Math.Min(len, at + 3)) == at)
+            {
+                return at;
+            }
+        }
+
+        return len;
+    }
+
+    /// <summary>The first U+2028 or U+2029 in a range, or -1 (over UTF-8, the bytes E2 80 A8 and E2 80 A9).</summary>
+    private static int IndexOfRareTerminator<TUnit>(ReadOnlySpan<TUnit> input, int from, int to)
+        where TUnit : unmanaged, IEquatable<TUnit>
+    {
+        if (typeof(TUnit) == typeof(byte))
+        {
+            ReadOnlySpan<byte> bytes = MemoryMarshal.Cast<TUnit, byte>(input);
+            int at = from;
+            while (at < to)
+            {
+                int i = bytes.Slice(at, to - at).IndexOf((byte)0xE2);
+                if (i < 0)
+                {
+                    return -1;
+                }
+
+                at += i;
+                if (at + 2 < bytes.Length && bytes[at + 1] == 0x80 && (bytes[at + 2] == 0xA8 || bytes[at + 2] == 0xA9))
+                {
+                    return at;
+                }
+
+                at++;
+            }
+
+            return -1;
+        }
+
+        int k = MemoryMarshal.Cast<TUnit, char>(input.Slice(from, to - from)).IndexOfAny('\u2028', '\u2029');
+        return k < 0 ? -1 : from + k;
     }
 
     /// <summary>The end of the run of one ASCII character that starts at a position.</summary>
@@ -2347,15 +2624,21 @@ public static class Matcher
                             floor = at;
                         }
 
-                        at = set is not null ? EndOfRun<TUnit, TEncoding>(set, input, at, units) : EndOfRun<TUnit, TEncoding>(i.R, input, at);
+                        // A run of one character (a space between words) is not worth a vector call: the next
+                        // unit is looked at first.
+                        if (at < len && (set is not null ? (enc.Unit(input, at) < 0x80 ? set.HasAscii(enc.Unit(input, at)) : set.HasNonAscii) : enc.Unit(input, at) == i.R))
+                        {
+                            at = set is not null ? (set.IsLineRest ? EndOfLine<TUnit, TEncoding>(st, input, at) : EndOfRun<TUnit, TEncoding>(set, input, at, units)) : EndOfRun<TUnit, TEncoding>(i.R, input, at);
+                        }
+
                         n = min;
                     }
                     else if (set is not null)
                     {
-                        if (max >= 20)
+                        if (max >= 12)
                         {
                             // The ASCII part of the run, within the bound, is found by vector (two calls, which
-                            // a loop of fewer than twenty characters beats); the loop goes on from where that stops.
+                            // a loop of fewer than twelve characters beats); the loop goes on from where that stops.
                             at = AsciiRun<TUnit, TEncoding>(set, input, at, max, units);
                             n = at - pos;
                             if (n >= min)

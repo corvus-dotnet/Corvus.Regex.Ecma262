@@ -55,6 +55,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Corvus.Regex.Ecma262.DatasetRunner" />
     <InternalsVisibleTo Include="Corvus.Regex.Ecma262.SourceGenerator.Tests" />
+    <InternalsVisibleTo Include="Corvus.Regex.Ecma262.Tests" />
   </ItemGroup>
 
   <!-- The generator's host (Visual Studio runs on .NET Framework) may lack System.Memory, so it is shipped beside the generator. -->

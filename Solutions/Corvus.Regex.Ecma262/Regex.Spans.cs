@@ -444,6 +444,32 @@ public sealed partial class Regex
     }
 
     /// <summary>The first match at or after a position, with what each group captured, for the enumerators.</summary>
+    /// <summary>The match at or after a position and its groups, with a state the caller holds for a run of matches.</summary>
+    internal bool TryMatchCaptures(MatchState st, ref ScanCursor cursor, ReadOnlySpan<char> input, int startAt, Span<ValueCapture> captures, out ValueMatch match)
+    {
+        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
+        bool ok = Matcher.MatchWith<char, Utf16Encoding>(st, ref cursor, this.CaptureProgram(), input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
+        if (stop != MatchStop.None)
+        {
+            throw this.Abandoned(stop);
+        }
+
+        return Fill(ok, slots, captures, out match);
+    }
+
+    /// <summary>The match at or after a position in UTF-8 and its groups, with a state the caller holds for a run of matches.</summary>
+    internal bool TryMatchCaptures(MatchState st, ref ScanCursor cursor, ReadOnlySpan<byte> utf8, int startAt, Span<ValueCapture> captures, out ValueMatch match)
+    {
+        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
+        bool ok = Matcher.MatchWith<byte, Utf8Encoding>(st, ref cursor, this.CaptureProgram(), utf8, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
+        if (stop != MatchStop.None)
+        {
+            throw this.Abandoned(stop);
+        }
+
+        return Fill(ok, slots, captures, out match);
+    }
+
     internal bool TryMatchCaptures(ReadOnlySpan<char> input, int startAt, Span<ValueCapture> captures, out ValueMatch match)
     {
         Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];

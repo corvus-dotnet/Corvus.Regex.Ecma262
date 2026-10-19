@@ -1,5 +1,7 @@
 <Project Sdk="MSTest.Sdk">
   <PropertyGroup>
+    <!-- The generator is built for netstandard2.0 and carries System.Memory 4.x; the test runs on the runtime's. -->
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3243;MSB3277</MSBuildWarningsAsMessages>
     <TargetFrameworks>net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Corvus.Ecma262.RegularExpressions.Tests</RootNamespace>
@@ -9,5 +11,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Corvus.Regex.Ecma262\Corvus.Regex.Ecma262.csproj" />
     <ProjectReference Include="..\Corvus.Regex.Ecma262.SourceGenerator\Corvus.Regex.Ecma262.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <!-- The generator again as a library (under an alias, so that its copy of the engine does not clash with the library's), so that a test can run a pattern as generated code too. -->
+    <ProjectReference Include="..\Corvus.Regex.Ecma262.SourceGenerator\Corvus.Regex.Ecma262.SourceGenerator.csproj" Aliases="Gen" SetTargetFramework="TargetFramework=netstandard2.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
 </Project>

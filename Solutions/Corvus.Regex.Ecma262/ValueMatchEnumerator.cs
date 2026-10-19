@@ -12,6 +12,8 @@ public ref struct ValueMatchEnumerator
     private readonly Regex regex;
     private readonly ReadOnlySpan<char> input;
     private readonly Span<ValueCapture> captures;
+    private MatchState? state;
+    private ScanCursor cursor;
     private int next;
     private bool done;
 
@@ -51,7 +53,8 @@ public ref struct ValueMatchEnumerator
         int to;
         if (this.captures.Length != 0)
         {
-            if (!this.regex.TryMatchCaptures(this.input, this.next, this.captures, out ValueMatch match))
+            this.state ??= MatchState.Current();
+            if (!this.regex.TryMatchCaptures(this.state, ref this.cursor, this.input, this.next, this.captures, out ValueMatch match))
             {
                 this.done = true;
                 return false;
@@ -60,7 +63,7 @@ public ref struct ValueMatchEnumerator
             from = match.Index;
             to = from + match.Length;
         }
-        else if (!this.regex.TryMatchBounds(this.input, this.next, out from, out to))
+        else if (!this.regex.TryMatchBounds(this.state ??= MatchState.Current(), ref this.cursor, this.input, this.next, out from, out to))
         {
             this.done = true;
             return false;
@@ -78,6 +81,8 @@ public ref struct Utf8ValueMatchEnumerator
     private readonly Regex regex;
     private readonly ReadOnlySpan<byte> input;
     private readonly Span<ValueCapture> captures;
+    private MatchState? state;
+    private ScanCursor cursor;
     private int next;
     private bool done;
 
@@ -117,7 +122,8 @@ public ref struct Utf8ValueMatchEnumerator
         int to;
         if (this.captures.Length != 0)
         {
-            if (!this.regex.TryMatchCaptures(this.input, this.next, this.captures, out ValueMatch match))
+            this.state ??= MatchState.Current();
+            if (!this.regex.TryMatchCaptures(this.state, ref this.cursor, this.input, this.next, this.captures, out ValueMatch match))
             {
                 this.done = true;
                 return false;
@@ -126,7 +132,7 @@ public ref struct Utf8ValueMatchEnumerator
             from = match.Index;
             to = from + match.Length;
         }
-        else if (!this.regex.TryMatchBounds(this.input, this.next, out from, out to))
+        else if (!this.regex.TryMatchBounds(this.state ??= MatchState.Current(), ref this.cursor, this.input, this.next, out from, out to))
         {
             this.done = true;
             return false;

@@ -33,6 +33,9 @@ public sealed class Needle<T>
     public const int MaxRows = 4;
 
     private readonly T[][] rows;
+#if NET
+    private readonly SearchValues<string>? spanString;
+#endif
     private readonly int[] starts;
     private readonly bool exact;
     private readonly T[]? foldLower;
@@ -192,6 +195,15 @@ public sealed class Needle<T>
                 // Over UTF-16 the span search, anchored on the first and last units, is as fast as any: it is
                 // kept for a literal that is matched exactly.
                 this.mode = Mode.Span;
+#if NET
+                if (typeof(T) == typeof(ushort) && n >= 2 && n <= 8 && (long)shares[0] * shares[n - 1] > 500)
+                {
+                    // Both ends common letters: the span search's first-and-last comparison lets many starts
+                    // through, where the runtime's fingerprint search does not (aei over Sherlock: 23 us to 28;
+                    // a literal with a rare end, such as ://, keeps the span search).
+                    this.spanString = SearchValues.Create([new string(MemoryMarshal.Cast<T, char>(rows[0]))], StringComparison.Ordinal);
+                }
+#endif
                 return;
             }
 
@@ -434,6 +446,15 @@ public sealed class Needle<T>
 #endif
             case Mode.Span:
             {
+#if NET
+                if (this.spanString is not null)
+                {
+                    // The runtime's search for a string by its fingerprints (Teddy): for a short literal of common
+                    // letters it beats the span search's first-and-last comparison (aei over Sherlock: 23 us to 28).
+                    int s = MemoryMarshal.Cast<T, char>(input.Slice(from)).IndexOfAny(this.spanString);
+                    return s < 0 ? -1 : from + s;
+                }
+#endif
                 int k = input.Slice(from).IndexOf(this.rows[0]);
                 return k < 0 ? -1 : from + k;
             }

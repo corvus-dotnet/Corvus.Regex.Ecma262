@@ -523,13 +523,15 @@ internal static class RunEmitter
             }
 
             Line(sb, indent + 1, set is not null
-                ? "at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(insts[" + k + "].Set!, input, at, units);"
+                ? (set.IsLineRest
+                    ? "at = " + Ns + "Matcher.EndOfLine<TUnit, TEncoding>(st, input, at);"
+                    : "at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(insts[" + k + "].Set!, input, at, units);")
                 : "at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(" + i.R + ", input, at);");
             Line(sb, indent + 1, "n = " + min + ";");
         }
         else if (set is not null)
         {
-            if (max >= 20)
+            if (max >= 12)
             {
                 Line(sb, indent + 1, "at = " + Ns + "Matcher.AsciiRun<TUnit, TEncoding>(insts[" + k + "].Set!, input, at, " + max + ", units);");
                 Line(sb, indent + 1, "n = at - pos;");

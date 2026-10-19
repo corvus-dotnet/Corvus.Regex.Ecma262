@@ -166,6 +166,9 @@ public sealed class CharSet
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HoldsAllNonAscii(bool units) => this.coversAbove128To >= (units ? 0xFFFF : 0x10FFFF);
 
+    /// <summary>Gets a value indicating whether the set is every character but a line terminator (<c>.</c> without the s flag), whose runs the matcher scans with the cursor for the rare terminators.</summary>
+    public bool IsLineRest => this.ranges.Length == 8 && this.ranges[0] == 0 && this.ranges[1] == 9 && this.ranges[2] == 11 && this.ranges[3] == 12 && this.ranges[4] == 14 && this.ranges[5] == 0x2027 && this.ranges[6] == 0x202A && (this.ranges[7] == 0xFFFF || this.ranges[7] == 0x10FFFF);
+
 #if NET
     /// <summary>Gets the ASCII members, for a vectorised search over UTF-8.</summary>
     public SearchValues<byte> MemberBytes => this.memberBytes ??= SearchValues.Create(this.AsciiUnits<byte>(members: true));

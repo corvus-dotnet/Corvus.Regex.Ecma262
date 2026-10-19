@@ -550,11 +550,57 @@ public sealed partial class Regex
     internal bool TryMatchBounds(ReadOnlySpan<byte> input, int startAt, out int from, out int to) => this.TryMatchBounds(input, startAt, this.Sticky, out from, out to);
 
     /// <summary>Where the first match at or after a position is, with no captures, sticky or not as asked.</summary>
+    /// <summary>Whether the pattern matches at or after a position, with a state the caller holds for a run of matches (see <see cref="MatchState.Current"/>).</summary>
+    internal bool TryMatchBounds(MatchState st, ref ScanCursor cursor, ReadOnlySpan<char> input, int startAt, out int from, out int to)
+    {
+        if (this.program.Shape != SimpleShape.None)
+        {
+            st.LoadCursor(in cursor);
+            bool found = Matcher.Simple<char, Utf16Encoding>(this.program, st, input, startAt, this.Sticky, out from, out to);
+            st.SaveCursor(ref cursor);
+            return found;
+        }
+
+        Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
+        bool ok = Matcher.MatchWith<char, Utf16Encoding>(st, ref cursor, this.program, input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
+        if (stop != MatchStop.None)
+        {
+            throw this.Abandoned(stop);
+        }
+
+        from = slots[0];
+        to = slots[1];
+        return ok;
+    }
+
+    /// <summary>Whether the pattern matches at or after a position in UTF-8, with a state the caller holds for a run of matches.</summary>
+    internal bool TryMatchBounds(MatchState st, ref ScanCursor cursor, ReadOnlySpan<byte> input, int startAt, out int from, out int to)
+    {
+        if (this.program.Shape != SimpleShape.None)
+        {
+            st.LoadCursor(in cursor);
+            bool found = Matcher.Simple<byte, Utf8Encoding>(this.program, st, input, startAt, this.Sticky, out from, out to);
+            st.SaveCursor(ref cursor);
+            return found;
+        }
+
+        Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
+        bool ok = Matcher.MatchWith<byte, Utf8Encoding>(st, ref cursor, this.program, input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
+        if (stop != MatchStop.None)
+        {
+            throw this.Abandoned(stop);
+        }
+
+        from = slots[0];
+        to = slots[1];
+        return ok;
+    }
+
     internal bool TryMatchBounds(ReadOnlySpan<char> input, int startAt, bool sticky, out int from, out int to)
     {
         if (this.program.Shape != SimpleShape.None)
         {
-            return Matcher.Simple<char, Utf16Encoding>(this.program, input, startAt, sticky, out from, out to);
+            return Matcher.Simple<char, Utf16Encoding>(this.program, null, input, startAt, sticky, out from, out to);
         }
 
         Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
@@ -574,7 +620,7 @@ public sealed partial class Regex
     {
         if (this.program.Shape != SimpleShape.None)
         {
-            return Matcher.Simple<byte, Utf8Encoding>(this.program, input, startAt, sticky, out from, out to);
+            return Matcher.Simple<byte, Utf8Encoding>(this.program, null, input, startAt, sticky, out from, out to);
         }
 
         Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];

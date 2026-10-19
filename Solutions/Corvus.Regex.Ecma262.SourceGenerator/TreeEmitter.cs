@@ -907,14 +907,28 @@ internal static class TreeEmitter
                     this.Line(floor + " = at;");
                 }
 
+                // A run of one character is not worth a vector call: the next unit is looked at first.
+                string more = set is not null
+                    ? (set.HasNonAscii ? "(c < 0x80 ? " + RunEmitter.AsciiTest(set, "c") + " : true)" : "(c < 0x80 && " + RunEmitter.AsciiTest(set, "c") + ")")
+                    : "c == " + body.CodePoint;
+                this.Line("if (at < len)");
+                this.Line("{");
+                this.Line("    c = enc.Unit(input, at);");
+                this.Line("    if (" + more + ")");
+                this.Line("    {");
                 this.Line(set is not null
-                    ? "at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(" + this.SetName(set) + ", input, at, units);"
-                    : "at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(" + body.CodePoint + ", input, at);");
+                    ? (set.IsLineRest
+                        ? "        at = " + Ns + "Matcher.EndOfLine<TUnit, TEncoding>(st, input, at);"
+                        : "        at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(" + this.SetName(set) + ", input, at, units);")
+                    : "        at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(" + body.CodePoint + ", input, at);");
+                this.Line("    }");
+                this.Line("}");
+                sb_blank(this.code);
                 this.Line("n = " + min + ";");
             }
             else
             {
-                if (set is not null && max >= 20)
+                if (set is not null && max >= 12)
                 {
                     this.Line("at = " + Ns + "Matcher.AsciiRun<TUnit, TEncoding>(" + this.SetName(set) + ", input, at, " + max + ", units);");
                     this.Line("n = at - pos;");

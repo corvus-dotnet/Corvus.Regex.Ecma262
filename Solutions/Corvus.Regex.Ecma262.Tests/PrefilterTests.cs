@@ -208,10 +208,38 @@ public class PrefilterTests
     [DataRow(@"Sherlock|Holmes|Watson", "iyu", "xHOLME\u017f", false, "")]
     public void TheScansAgreeWithThePlainSearchOverBothEncodings(string pattern, string flags, string text, bool expected, string why)
     {
-        Regex r = new(pattern, flags);
-        Assert.AreEqual(expected, r.IsMatch(text), $"UTF-16 {why}");
-        Assert.AreEqual(expected, r.IsMatch(Encoding.UTF8.GetBytes(text)), $"UTF-8 {why}");
-        Assert.AreEqual(expected, r.Match(text).Success, $"Match {why}");
+        (Regex interpreted, Regex generated) = Engines.Both(pattern, flags);
+        foreach ((Regex r, string engine) in new[] { (interpreted, "interpreted"), (generated, "generated") })
+        {
+            Assert.AreEqual(expected, r.IsMatch(text), $"UTF-16 {engine} {why}");
+            Assert.AreEqual(expected, r.IsMatch(Encoding.UTF8.GetBytes(text)), $"UTF-8 {engine} {why}");
+            Assert.AreEqual(expected, r.Match(text).Success, $"Match {engine} {why}");
+        }
+    }
+
+    [TestMethod]
+    public void WhatAnEnumerationLearnedOfOneTextDoesNotServeALaterMatchOnAnother()
+    {
+        // An enumeration carries the ranges it found clear of the long s and of the rare line terminators; a match
+        // on its own, on the same thread, starts with nothing.
+        (Regex namesInterpreted, Regex namesGenerated) = Engines.Both("Sher[a-z]+|Hol[a-z]+", "iu");
+        (Regex restInterpreted, Regex restGenerated) = Engines.Both(".*", "gu");
+        foreach ((Regex names, Regex rest) in new[] { (namesInterpreted, restInterpreted), (namesGenerated, restGenerated) })
+        {
+            Assert.AreEqual(4, names.Count("sherlock holmes sherlock holmes"));
+            Assert.IsTrue(names.IsMatch("\u017fherlock"));
+            Assert.IsTrue(names.Match("xx \u017fherlock").Success);
+            Assert.AreEqual(2, rest.Count("ab cd ef gh"));
+            Assert.AreEqual("ab", rest.Match("ab\u2028cd").Value);
+            Assert.IsTrue(rest.TryMatchBounds(Encoding.UTF8.GetBytes("ab\u2028cd"), 0, false, out int from8, out int to8) && from8 == 0 && to8 == 2);
+            int lines = 0;
+            foreach (ValueMatch m in rest.EnumerateMatches("ab\u2029cd\r\nef"))
+            {
+                lines++;
+            }
+
+            Assert.AreEqual(7, lines);
+        }
     }
 
     [TestMethod]
