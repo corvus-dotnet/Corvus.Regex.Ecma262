@@ -1397,7 +1397,7 @@ internal static class TreeEmitter
                 return true;
             }
 
-            if ((p.Shape == SimpleShape.CaseLiteral || p.Shape == SimpleShape.Sequence || p.Shape == SimpleShape.None) && p.CaseNeedleUtf16 is not null && AsciiFormsPrefix(p.CaseForms) >= 2)
+            if ((p.Shape == SimpleShape.CaseLiteral || p.Shape == SimpleShape.Sequence || p.Shape == SimpleShape.None) && p.CaseNeedleUtf16 is not null && p.CaseForms.Length >= 2 && p.CaseForms[0].All(x => x < 0x80))
             {
                 EmitCaseLiteral(p, find, statics, indent);
                 return true;
@@ -1509,14 +1509,48 @@ internal static class TreeEmitter
             int i1 = indent + 1;
             if (forms)
             {
-                // The runtime's search: it holds the search for any of several strings ignoring case where that
-                // pays and the packed fingerprint search where it does not, and its pass for the forms apart (the
-                // long s, the Kelvin sign) knows which of the two it chose.
-                RunEmitter.Line(find, i1, "TEncoding enc = default;");
-                RunEmitter.Line(find, i1, "int i = enc.IndexOfAlternation(input, pos, " + field + ");");
-                RunEmitter.Line(find, i1, p.Unicode
-                    ? "start = " + Ns + "Matcher.ExtraStart<TUnit, TEncoding>(st, input, pos, i, " + field + ");"
-                    : "start = i;");
+                int[] prefixes = alternation.Forms!.Select(AsciiFormsPrefix).ToArray();
+                bool parts = prefixes.All(n => n >= 2);
+                RunEmitter.Line(find, i1, "int i;");
+                if (parts)
+                {
+                    // Over UTF-16 the runtime's search ignoring case for each literal's leading part whose forms
+                    // are all ASCII (under the u flag s folds to the long s and k to the Kelvin sign, which that
+                    // search does not know): the match checks the rest, as .NET's generator searches for
+                    // "sherloc", "holmes" and "watson". Over UTF-8 the runtime's search, and its pass for the
+                    // forms apart.
+                    string[] heads = literals.Select((l, k) => l.Substring(0, prefixes[k])).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                    int minHead = heads.Min(h => h.Length);
+                    string name = "F" + Math.Abs(string.Join("|", heads).GetHashCode()).ToString(CultureInfo.InvariantCulture);
+                    RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> " + name + " = global::System.Buffers.SearchValues.Create(new string[] { " + string.Join(", ", heads.Select(Str)) + " }, global::System.StringComparison.OrdinalIgnoreCase);");
+                    RunEmitter.Line(find, i1, "if (typeof(TUnit) == typeof(char))");
+                    RunEmitter.Line(find, i1, "{");
+                    RunEmitter.Line(find, i1 + 1, "i = pos <= len - " + minHead + " ? " + Call("IndexOfAny", Chars + ".Slice(pos)", name) + " : -1;");
+                    RunEmitter.Line(find, i1 + 1, "i = i < 0 ? -1 : pos + i;");
+                    RunEmitter.Line(find, i1, "}");
+                    RunEmitter.Line(find, i1, "else");
+                    RunEmitter.Line(find, i1, "{");
+                    RunEmitter.Line(find, i1 + 1, "TEncoding enc = default;");
+                    RunEmitter.Line(find, i1 + 1, "i = enc.IndexOfAlternation(input, pos, " + field + ");");
+                    RunEmitter.Line(find, i1 + 1, p.Unicode
+                        ? "i = " + Ns + "Matcher.ExtraStart<TUnit, TEncoding>(st, input, pos, i, " + field + ");"
+                        : "_ = st;");
+                    RunEmitter.Line(find, i1, "}");
+                    sb_blank(find);
+                    RunEmitter.Line(find, i1, "start = i;");
+                }
+                else
+                {
+                    // The runtime's search: it holds the search for any of several strings ignoring case where
+                    // that pays and the packed fingerprint search where it does not, and its pass for the forms
+                    // apart (the long s, the Kelvin sign) knows which of the two it chose.
+                    RunEmitter.Line(find, i1, "TEncoding enc = default;");
+                    RunEmitter.Line(find, i1, "i = enc.IndexOfAlternation(input, pos, " + field + ");");
+                    RunEmitter.Line(find, i1, p.Unicode
+                        ? "start = " + Ns + "Matcher.ExtraStart<TUnit, TEncoding>(st, input, pos, i, " + field + ");"
+                        : "start = i;");
+                }
+
                 RunEmitter.Line(find, i1, "if (start < 0 || len - start < p.Need)");
                 RunEmitter.Line(find, i1, "{");
                 RunEmitter.Line(find, i1 + 1, "start = -1;");
@@ -1836,31 +1870,40 @@ internal static class TreeEmitter
             Tail(find, indent);
         }
 
-        /// <summary>The literal every match starts with in its forms, as far as those forms are all ASCII (see <see cref="AsciiFormsPrefix"/>): the runtime's search ignoring case, held in a static field; over UTF-8 the runtime's needle.</summary>
+        /// <summary>The literal every match starts with in its forms: where every form is ASCII, the runtime's search ignoring case, held in a static field (over UTF-8 the runtime's needle); else the runtime's needle and the cursor's pass, inside the generated loop.</summary>
         private static void EmitCaseLiteral(Program p, StringBuilder find, StringBuilder statics, int indent)
         {
-            string literal = new(p.CaseForms.Take(AsciiFormsPrefix(p.CaseForms)).Select(f => (char)f[0]).ToArray());
-            RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> C0 = global::System.Buffers.SearchValues.Create(new string[] { " + Str(literal) + " }, global::System.StringComparison.OrdinalIgnoreCase);");
+            bool ascii = AsciiFormsPrefix(p.CaseForms) == p.CaseForms.Length;
             Head(find, indent);
             int i1 = indent + 1;
             RunEmitter.Line(find, i1, "int i;");
-            RunEmitter.Line(find, i1, "if (typeof(TUnit) == typeof(char))");
-            RunEmitter.Line(find, i1, "{");
-            RunEmitter.Line(find, i1 + 1, "i = pos <= len - " + literal.Length + " ? " + Call("IndexOfAny", Chars + ".Slice(pos)", "C0") + " : -1;");
-            RunEmitter.Line(find, i1 + 1, "i = i < 0 ? -1 : pos + i;");
-            RunEmitter.Line(find, i1, "}");
-            RunEmitter.Line(find, i1, "else");
-            RunEmitter.Line(find, i1, "{");
-            RunEmitter.Line(find, i1 + 1, "TEncoding enc = default;");
-            RunEmitter.Line(find, i1 + 1, "i = enc.IndexOfCasePrefix(input, pos, p);");
-            if (AsciiFormsPrefix(p.CaseForms) < p.CaseForms.Length)
+            if (ascii)
             {
-                // Over UTF-8 the long s and the Kelvin sign take more bytes than the letters they fold to, which
-                // the needle leaves to the cursor's pass.
-                RunEmitter.Line(find, i1 + 1, "i = " + Ns + "Matcher.ExtraStartCase<TUnit, TEncoding>(p, st, input, pos, i);");
+                // Every form ASCII: the runtime's search ignoring case knows them all.
+                string literal = new(p.CaseForms.Select(f => (char)f[0]).ToArray());
+                RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> C0 = global::System.Buffers.SearchValues.Create(new string[] { " + Str(literal) + " }, global::System.StringComparison.OrdinalIgnoreCase);");
+                RunEmitter.Line(find, i1, "if (typeof(TUnit) == typeof(char))");
+                RunEmitter.Line(find, i1, "{");
+                RunEmitter.Line(find, i1 + 1, "i = pos <= len - " + literal.Length + " ? " + Call("IndexOfAny", Chars + ".Slice(pos)", "C0") + " : -1;");
+                RunEmitter.Line(find, i1 + 1, "i = i < 0 ? -1 : pos + i;");
+                RunEmitter.Line(find, i1, "}");
+                RunEmitter.Line(find, i1, "else");
+                RunEmitter.Line(find, i1, "{");
+                RunEmitter.Line(find, i1 + 1, "TEncoding enc = default;");
+                RunEmitter.Line(find, i1 + 1, "i = enc.IndexOfCasePrefix(input, pos, p);");
+                RunEmitter.Line(find, i1, "}");
+            }
+            else
+            {
+                // A form apart (under the u flag s folds to the long s and k to the Kelvin sign): the runtime's
+                // needle, which sees every form of one unit in its pass (Holmes: 41 us, against 44 by the
+                // string search for the part before the s), and the cursor's pass for the forms that take more
+                // units (over UTF-8).
+                RunEmitter.Line(find, i1, "TEncoding enc = default;");
+                RunEmitter.Line(find, i1, "i = enc.IndexOfCasePrefix(input, pos, p);");
+                RunEmitter.Line(find, i1, "i = " + Ns + "Matcher.ExtraStartCase<TUnit, TEncoding>(p, st, input, pos, i);");
             }
 
-            RunEmitter.Line(find, i1, "}");
             sb_blank(find);
             RunEmitter.Line(find, i1, "if (i < 0 || len - i < p.Need)");
             RunEmitter.Line(find, i1, "{");
