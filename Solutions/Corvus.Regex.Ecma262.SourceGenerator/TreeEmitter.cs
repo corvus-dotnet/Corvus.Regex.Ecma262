@@ -1433,6 +1433,25 @@ internal static class TreeEmitter
                 return;
             }
 
+            if (alternation.MultiUtf16.Two)
+            {
+                // No position is rare enough to search for alone: the needle compares two at every vector, which
+                // beats a search for one and a check of the other (Tom|river over sixteen million characters:
+                // 3.0 ms against 7.2). The needle is called, and gives the alternative's length.
+                RunEmitter.Line(find, i1, "TEncoding enc = default;");
+                RunEmitter.Line(find, i1, "int i = enc.IndexOfAlternation(input, pos, " + field + ");");
+                RunEmitter.Line(find, i1, "if (i < 0 || len - i < p.Need)");
+                RunEmitter.Line(find, i1, "{");
+                RunEmitter.Line(find, i1 + 1, "return false;");
+                RunEmitter.Line(find, i1, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i1, "start = i;");
+                RunEmitter.Line(find, i1, "scan.Next = i + 1;");
+                RunEmitter.Line(find, i1, "return true;");
+                Tail(find, indent);
+                return;
+            }
+
             // Exact: the position every alternative has whose distinct characters (up to three) are rarest in
             // text, searched for by the span search, as the needle chooses it (Tom|river: m and v, not T and the
             // common r); then up to two other positions at which the alternatives have at most two distinct
