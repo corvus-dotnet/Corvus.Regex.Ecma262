@@ -1469,7 +1469,9 @@ internal static class TreeEmitter
                 // long s, the Kelvin sign) knows which of the two it chose.
                 RunEmitter.Line(find, i1, "TEncoding enc = default;");
                 RunEmitter.Line(find, i1, "int i = enc.IndexOfAlternation(input, pos, " + field + ");");
-                RunEmitter.Line(find, i1, "start = " + Ns + "Matcher.ExtraStart<TUnit, TEncoding>(st, input, pos, i, " + field + ");");
+                RunEmitter.Line(find, i1, p.Unicode
+                    ? "start = " + Ns + "Matcher.ExtraStart<TUnit, TEncoding>(st, input, pos, i, " + field + ");"
+                    : "start = i;");
                 RunEmitter.Line(find, i1, "if (start < 0 || len - start < p.Need)");
                 RunEmitter.Line(find, i1, "{");
                 RunEmitter.Line(find, i1 + 1, "start = -1;");
@@ -1753,14 +1755,13 @@ internal static class TreeEmitter
             RunEmitter.Line(find, i1 + 1, "i = enc.IndexOfCasePrefix(input, pos, p);");
             RunEmitter.Line(find, i1, "}");
             sb_blank(find);
-            RunEmitter.Line(find, i1, "start = " + Ns + "Matcher.ExtraStartCase<TUnit, TEncoding>(p, st, input, pos, i);");
-            RunEmitter.Line(find, i1, "if (start < 0 || len - start < p.Need)");
+            RunEmitter.Line(find, i1, "if (i < 0 || len - i < p.Need)");
             RunEmitter.Line(find, i1, "{");
-            RunEmitter.Line(find, i1 + 1, "start = -1;");
             RunEmitter.Line(find, i1 + 1, "return false;");
             RunEmitter.Line(find, i1, "}");
             sb_blank(find);
-            RunEmitter.Line(find, i1, "scan.Next = start + 1;");
+            RunEmitter.Line(find, i1, "start = i;");
+            RunEmitter.Line(find, i1, "scan.Next = i + 1;");
             RunEmitter.Line(find, i1, "return true;");
             Tail(find, indent);
         }

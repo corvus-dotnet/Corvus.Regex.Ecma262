@@ -33,6 +33,7 @@ public sealed class Needle<T>
     public const int MaxRows = 4;
 
     private readonly T[][] rows;
+    private readonly bool prefersString;
 #if NET
     private readonly SearchValues<string>? spanString;
 #endif
@@ -195,8 +196,9 @@ public sealed class Needle<T>
                 // Over UTF-16 the span search, anchored on the first and last units, is as fast as any: it is
                 // kept for a literal that is matched exactly.
                 this.mode = Mode.Span;
+                this.prefersString = typeof(T) == typeof(ushort) && n >= 2 && n <= 8 && (long)shares[0] * shares[n - 1] > 500;
 #if NET
-                if (typeof(T) == typeof(ushort) && n >= 2 && n <= 8 && (long)shares[0] * shares[n - 1] > 500)
+                if (this.prefersString)
                 {
                     // Both ends common letters: the span search's first-and-last comparison lets many starts
                     // through, where the runtime's fingerprint search does not (aei over Sherlock: 23 us to 28;
@@ -480,17 +482,7 @@ public sealed class Needle<T>
     public bool SearchesOneUnit => this.mode == Mode.One;
 
     /// <summary>Gets a value indicating whether the literal is best searched for by the runtime's string search (common letters at both ends, over UTF-16).</summary>
-    public bool PrefersStringSearch
-    {
-        get
-        {
-#if NET
-            return this.spanString is not null;
-#else
-            return false;
-#endif
-        }
-    }
+    public bool PrefersStringSearch => this.prefersString;
 
     /// <summary>Whether the literal is at a position (in one of its forms).</summary>
     /// <param name="input">The text.</param>
