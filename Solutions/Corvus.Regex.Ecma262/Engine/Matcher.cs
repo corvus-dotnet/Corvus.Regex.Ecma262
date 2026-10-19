@@ -98,6 +98,9 @@ public struct CandidateScan
     /// <summary>The starts are the units that can begin a member of the first set, up to a last position.</summary>
     public const int First = 3;
 
+    /// <summary>The starts are found by the search the generated code emitted for itself.</summary>
+    public const int Emitted = 4;
+
     /// <summary>The kind.</summary>
     public int Kind;
 
@@ -454,7 +457,7 @@ public static class Matcher
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
-        if (p.Shape != SimpleShape.None)
+        if (p.Shape != SimpleShape.None && p.Runner is not { OwnsSearch: true })
         {
             stop = MatchStop.None;
             return Simple<TUnit, TEncoding>(p, null, input, start, sticky, out _, out _);
@@ -497,7 +500,7 @@ public static class Matcher
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
-        if (p.Shape != SimpleShape.None)
+        if (p.Shape != SimpleShape.None && p.Runner is not { OwnsSearch: true })
         {
             stop = MatchStop.None;
             bool found = Simple<TUnit, TEncoding>(p, null, input, start, sticky, out captures[0], out captures[1]);
@@ -571,7 +574,7 @@ public static class Matcher
             st.LoadCursor(in cursor);
         }
 
-        if (p.Shape != SimpleShape.None)
+        if (p.Shape != SimpleShape.None && p.Runner is not { OwnsSearch: true })
         {
             stop = MatchStop.None;
             bool found = Simple<TUnit, TEncoding>(p, st, input, start, sticky, out captures[0], out captures[1]);
@@ -1143,6 +1146,13 @@ public static class Matcher
             return start == 0 && Run<TUnit, TEncoding>(p, st, input, 0, out to);
         }
 
+        if (p.Runner is { OwnsSearch: true })
+        {
+            // The generated code finds its own starts.
+            scan = new() { Kind = CandidateScan.Emitted, Next = start, Floor = start, Last = -1 };
+            return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
+        }
+
         if (p.Utf16Prefix.Length != 0)
         {
             int at = start;
@@ -1677,6 +1687,9 @@ public static class Matcher
                 break;
             }
 
+            case CandidateScan.Emitted:
+                scan.Next = Math.Max(scan.Next, start);
+                break;
             default:
                 scan.Next = Math.Max(scan.Next, start);
                 scan.Floor = len;
@@ -1707,6 +1720,48 @@ public static class Matcher
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// The start to try after a search for an alternation of literals in their forms found one at a position (or
+    /// none): a form the search leaves out (the long s, the Kelvin sign) that an earlier start could reach comes
+    /// first, by the cursor's pass for them.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="st">The state.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="next">The position the search started from.</param>
+    /// <param name="i">The position the search found, or -1.</param>
+    /// <param name="alternation">The alternation.</param>
+    /// <returns>The start, or -1.</returns>
+    public static int ExtraStart<TUnit, TEncoding>(MatchState st, ReadOnlySpan<TUnit> input, int next, int i, AlternationSearch alternation)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        if (!enc.HasAlternativeExtras(alternation))
+        {
+            return i;
+        }
+
+        int len = input.Length;
+        int window = enc.AlternativeWindow(alternation);
+        int limit = i < 0 ? len : Math.Min(len, i + window);
+        int e = -1;
+        if (!ExtrasClear(st, next, limit))
+        {
+            int scanFrom = ExtrasFrom(st, next);
+            int scanTo = ExtrasTo(st, next, limit, len);
+            e = ExtrasSeen(st, next, scanTo, enc.IndexOfAlternativeExtra(input, scanFrom, scanTo, alternation), limit);
+        }
+
+        if (e >= 0 && (i < 0 || e - window < i))
+        {
+            return Math.Max(next, e - window + 1);
+        }
+
+        return i;
     }
 
     /// <summary>The generated code's loop over the starts of a search.</summary>

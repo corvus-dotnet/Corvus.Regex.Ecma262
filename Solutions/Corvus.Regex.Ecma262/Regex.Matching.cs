@@ -574,7 +574,7 @@ public sealed partial class Regex
             return again;
         }
 
-        if (this.program.Shape != SimpleShape.None)
+        if (this.program.Shape != SimpleShape.None && this.program.Runner is not { OwnsSearch: true })
         {
             if (!this.program.UsesCursor)
             {
@@ -623,7 +623,7 @@ public sealed partial class Regex
             return again;
         }
 
-        if (this.program.Shape != SimpleShape.None)
+        if (this.program.Shape != SimpleShape.None && this.program.Runner is not { OwnsSearch: true })
         {
             if (!this.program.UsesCursor)
             {
@@ -650,7 +650,7 @@ public sealed partial class Regex
 
     internal bool TryMatchBounds(ReadOnlySpan<char> input, int startAt, bool sticky, out int from, out int to)
     {
-        if (this.program.Shape != SimpleShape.None)
+        if (this.program.Shape != SimpleShape.None && this.program.Runner is not { OwnsSearch: true })
         {
             return Matcher.Simple<char, Utf16Encoding>(this.program, null, input, startAt, sticky, out from, out to);
         }
@@ -670,7 +670,7 @@ public sealed partial class Regex
     /// <summary>Where the first match at or after a position is, with no captures, over UTF-8, sticky or not as asked.</summary>
     internal bool TryMatchBounds(ReadOnlySpan<byte> input, int startAt, bool sticky, out int from, out int to)
     {
-        if (this.program.Shape != SimpleShape.None)
+        if (this.program.Shape != SimpleShape.None && this.program.Runner is not { OwnsSearch: true })
         {
             return Matcher.Simple<byte, Utf8Encoding>(this.program, null, input, startAt, sticky, out from, out to);
         }

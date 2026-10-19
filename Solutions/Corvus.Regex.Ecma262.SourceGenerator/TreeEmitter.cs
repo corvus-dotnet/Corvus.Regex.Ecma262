@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace Corvus.Ecma262.RegularExpressions.SourceGenerator;
@@ -39,7 +40,10 @@ internal static class TreeEmitter
         e.EmitBody(code, indent + 2, scan: false);
         Emitter e2 = new(p);
         StringBuilder scanCode = new();
-        e2.EmitBody(scanCode, indent + 2, scan: true);
+        StringBuilder findCode = new();
+        StringBuilder statics = new();
+        bool ownsSearch = Finder.TryEmit(p, findCode, statics, indent + 1);
+        e2.EmitBody(scanCode, indent + 2, scan: true, ownsSearch: ownsSearch);
 
         RunEmitter.Line(sb, indent, "/// <summary>The program as structured code (see <see cref=\"global::Corvus.Ecma262.RegularExpressions.GeneratedRunner\"/>).</summary>");
         RunEmitter.Line(sb, indent, "[global::System.CodeDom.Compiler.GeneratedCode(\"Corvus.Regex.Ecma262.SourceGenerator\", \"1.0\")]");
@@ -63,6 +67,25 @@ internal static class TreeEmitter
 
         if (e.Sets.Count > 0)
         {
+            sb.AppendLine();
+        }
+
+        if (statics.Length > 0)
+        {
+            RunEmitter.Line(sb, 0, "#if NET8_0_OR_GREATER");
+            sb.Append(statics);
+            RunEmitter.Line(sb, 0, "#endif");
+            sb.AppendLine();
+        }
+
+        if (ownsSearch)
+        {
+            RunEmitter.Line(sb, 0, "#if NET8_0_OR_GREATER");
+            RunEmitter.Line(sb, indent + 1, "/// <inheritdoc/>");
+            RunEmitter.Line(sb, indent + 1, "public override bool OwnsSearch => true;");
+            RunEmitter.Line(sb, 0, "#endif");
+            sb.AppendLine();
+            sb.Append(findCode);
             sb.AppendLine();
         }
 
@@ -165,7 +188,7 @@ internal static class TreeEmitter
 
         public List<CharSet> Sets { get; } = [];
 
-        public void EmitBody(StringBuilder output, int baseIndent, bool scan)
+        public void EmitBody(StringBuilder output, int baseIndent, bool scan, bool ownsSearch = false)
         {
             this.code = new StringBuilder();
             this.indent = baseIndent;
@@ -194,7 +217,19 @@ internal static class TreeEmitter
             if (scan)
             {
                 // The loop over the starts the search yields: the setting up above is done once for them all.
-                this.Line("while (" + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start))");
+                if (ownsSearch)
+                {
+                    RunEmitter.Line(this.code, 0, "#if NET8_0_OR_GREATER");
+                    this.Line("while (scan.Kind == " + Ns + "CandidateScan.Emitted ? Find<TUnit, TEncoding>(p, st, input, ref scan, out start) : " + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start))");
+                    RunEmitter.Line(this.code, 0, "#else");
+                    this.Line("while (" + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start))");
+                    RunEmitter.Line(this.code, 0, "#endif");
+                }
+                else
+                {
+                    this.Line("while (" + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start))");
+                }
+
                 this.Line("{");
                 this.indent++;
                 this.Line("pos = start;");
@@ -1245,5 +1280,438 @@ internal static class TreeEmitter
 
             static void sb_blank(StringBuilder sb) => sb.AppendLine();
         }
+    }
+
+    /// <summary>
+    /// The search for starts as code, the way .NET's generator emits it: direct span searches for the characters
+    /// that begin the alternatives, with checks of a position or two before a start is tried; a literal at a
+    /// fixed distance from the start; the leading literal; a first set as a range or a few values; and
+    /// <c>SearchValues</c> held in static fields where the runtime's search is the one to use, so that the JIT
+    /// knows their type and inlines them.
+    /// </summary>
+    private static class Finder
+    {
+        public static bool TryEmit(Program p, StringBuilder find, StringBuilder statics, int indent)
+        {
+            if (p.Anchored || p.Root is null)
+            {
+                return false;
+            }
+
+            AlternationSearch? alternation = p.Shape == SimpleShape.LiteralAlternation ? p.Alternation : (p.RequiredAlternation is not null && p.RequiredAlternationHi == 0 ? p.RequiredAlternation : null);
+            if (alternation is not null && alternation.Literals.All(IsAscii) && alternation.Literals.Length <= 8)
+            {
+                EmitAlternation(p, alternation, p.Shape == SimpleShape.LiteralAlternation ? "p.Alternation!" : "p.RequiredAlternation!", find, statics, indent);
+                return true;
+            }
+
+            if (p.Shape == SimpleShape.None && p.RequiredCount >= 0 && p.RequiredOffset >= 0 && p.RequiredUtf16.Length > 0 && IsAscii(p.RequiredUtf16) && p.RequiredAlternation is null)
+            {
+                EmitFixed(p, find, statics, indent);
+                return true;
+            }
+
+            if (p.Shape == SimpleShape.None && p.Utf16Prefix.Length > 0 && IsAscii(p.Utf16Prefix) && p.CaseNeedleUtf16 is null)
+            {
+                EmitPrefix(p, find, statics, indent);
+                return true;
+            }
+
+            if (p.Shape == SimpleShape.None && p.First is not null && !p.First.HasNonAscii && !p.First.IsEmpty && !p.SkipRun && !p.LeadingWordBoundary && p.Utf16Prefix.Length == 0 && p.RequiredCount < 0 && p.RequiredCountMax < 0 && p.AfterLoopUtf16.Length == 0 && p.AfterLoopAlternation is null && p.AfterLoopMax < 0 && p.CaseNeedleUtf16 is null && p.RequiredAlternation is null)
+            {
+                EmitFirst(p, find, statics, indent);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsAscii(string s)
+        {
+            foreach (char c in s)
+            {
+                if (c >= 0x80)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>A call of a span extension by its static name: the generated file has no using directive for System.</summary>
+        private static string Call(string method, string span, string args) => "global::System.MemoryExtensions." + method + "(" + span + (args.Length > 0 ? ", " + args : string.Empty) + ")";
+
+        private const string Chars = "global::System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(input)";
+        private const string Bytes8 = "global::System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, byte>(input)";
+
+        private static string Ch(int c) => "'\\u" + c.ToString("X4", CultureInfo.InvariantCulture) + "'";
+
+        private static string Str(string s)
+        {
+            StringBuilder sb = new("\"");
+            foreach (char c in s)
+            {
+                sb.Append("\\u").Append(((int)c).ToString("X4", CultureInfo.InvariantCulture));
+            }
+
+            return sb.Append('"').ToString();
+        }
+
+        private static string Bytes(string ascii)
+        {
+            StringBuilder sb = new("new byte[] { ");
+            for (int k = 0; k < ascii.Length; k++)
+            {
+                if (k > 0)
+                {
+                    sb.Append(", ");
+                }
+
+                sb.Append(((int)ascii[k]).ToString(CultureInfo.InvariantCulture));
+            }
+
+            return sb.Append(" }").ToString();
+        }
+
+        private static void Head(StringBuilder find, int indent)
+        {
+            RunEmitter.Line(find, 0, "#if NET8_0_OR_GREATER");
+            RunEmitter.Line(find, indent, "/// <summary>The search for starts, as code.</summary>");
+            RunEmitter.Line(find, indent, "private static bool Find<TUnit, TEncoding>(" + Ns + "Program p, " + Ns + "MatchState st, global::System.ReadOnlySpan<TUnit> input, ref " + Ns + "CandidateScan scan, out int start)");
+            RunEmitter.Line(find, indent + 1, "where TUnit : unmanaged, global::System.IEquatable<TUnit>");
+            RunEmitter.Line(find, indent + 1, "where TEncoding : struct, " + Ns + "ITextEncoding<TUnit>");
+            RunEmitter.Line(find, indent, "{");
+            RunEmitter.Line(find, indent + 1, "start = -1;");
+            RunEmitter.Line(find, indent + 1, "int len = input.Length;");
+            RunEmitter.Line(find, indent + 1, "int pos = scan.Next;");
+        }
+
+        private static void Tail(StringBuilder find, int indent)
+        {
+            RunEmitter.Line(find, indent, "}");
+            RunEmitter.Line(find, 0, "#endif");
+        }
+
+        /// <summary>An alternation of ASCII literals: exact, the characters that begin them searched for and a position or two checked; in their forms, the runtime's search ignoring case, with the forms it does not know found by the cursor's pass.</summary>
+        private static void EmitAlternation(Program p, AlternationSearch alternation, string field, StringBuilder find, StringBuilder statics, int indent)
+        {
+            string[] literals = alternation.Literals;
+            int minLen = literals.Min(l => l.Length);
+            bool forms = alternation.Forms is not null;
+            Head(find, indent);
+            int i1 = indent + 1;
+            if (forms)
+            {
+                string name = "F" + Math.Abs(string.Join("|", literals).GetHashCode()).ToString(CultureInfo.InvariantCulture);
+                RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> " + name + " = global::System.Buffers.SearchValues.Create(new string[] { " + string.Join(", ", literals.Select(Str)) + " }, global::System.StringComparison.OrdinalIgnoreCase);");
+                RunEmitter.Line(find, i1, "int i;");
+                RunEmitter.Line(find, i1, "if (typeof(TUnit) == typeof(char))");
+                RunEmitter.Line(find, i1, "{");
+                RunEmitter.Line(find, i1 + 1, "global::System.ReadOnlySpan<char> text = global::System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(input);");
+                RunEmitter.Line(find, i1 + 1, "i = pos <= len - " + minLen + " ? " + Call("IndexOfAny", "text.Slice(pos)", name) + " : -1;");
+                RunEmitter.Line(find, i1 + 1, "i = i < 0 ? -1 : pos + i;");
+                RunEmitter.Line(find, i1, "}");
+                RunEmitter.Line(find, i1, "else");
+                RunEmitter.Line(find, i1, "{");
+                RunEmitter.Line(find, i1 + 1, "TEncoding enc = default;");
+                RunEmitter.Line(find, i1 + 1, "i = enc.IndexOfAlternation(input, pos, " + field + ");");
+                RunEmitter.Line(find, i1, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i1, "start = " + Ns + "Matcher.ExtraStart<TUnit, TEncoding>(st, input, pos, i, " + field + ");");
+                RunEmitter.Line(find, i1, "if (start < 0 || len - start < p.Need)");
+                RunEmitter.Line(find, i1, "{");
+                RunEmitter.Line(find, i1 + 1, "start = -1;");
+                RunEmitter.Line(find, i1 + 1, "return false;");
+                RunEmitter.Line(find, i1, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i1, "scan.Next = start + 1;");
+                RunEmitter.Line(find, i1, "return true;");
+                Tail(find, indent);
+                return;
+            }
+
+            // Exact: the distinct first characters (up to three) by the span search, then up to two positions
+            // at which the alternatives have at most two distinct characters, the rarest first.
+            List<char> firsts = literals.Select(l => l[0]).Distinct().ToList();
+            List<(int Offset, char[] Values)> checks = [];
+            for (int d = 1; d < minLen; d++)
+            {
+                char[] values = literals.Select(l => l[d]).Distinct().ToArray();
+                if (values.Length <= 2)
+                {
+                    checks.Add((d, values));
+                }
+            }
+
+            checks = checks.OrderBy(c => c.Values.Sum(v => 255 - UnitRarity.Of((ushort)v))).Take(2).ToList();
+            RunEmitter.Line(find, i1, "TEncoding enc = default;");
+            RunEmitter.Line(find, i1, "int c = 0;");
+            RunEmitter.Line(find, i1, "_ = c;");
+            RunEmitter.Line(find, i1, "int limit = len - " + minLen + ";");
+            RunEmitter.Line(find, i1, "while (pos <= limit)");
+            RunEmitter.Line(find, i1, "{");
+            int i2 = i1 + 1;
+            string method = firsts.Count == 1 ? "IndexOf" : "IndexOfAny";
+            string args16 = string.Join(", ", firsts.Select(f => Ch(f)));
+            string args8 = string.Join(", ", firsts.Select(f => "(byte)" + Ch(f)));
+            if (firsts.Count > 3)
+            {
+                string name = "F" + Math.Abs(string.Join("|", literals).GetHashCode()).ToString(CultureInfo.InvariantCulture);
+                RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> " + name + " = global::System.Buffers.SearchValues.Create(new string[] { " + string.Join(", ", literals.Select(Str)) + " }, global::System.StringComparison.Ordinal);");
+                RunEmitter.Line(find, i2, "int i;");
+                RunEmitter.Line(find, i2, "if (typeof(TUnit) == typeof(char))");
+                RunEmitter.Line(find, i2, "{");
+                RunEmitter.Line(find, i2 + 1, "i = " + Call("IndexOfAny", Chars + ".Slice(pos)", name) + ";");
+                RunEmitter.Line(find, i2, "}");
+                RunEmitter.Line(find, i2, "else");
+                RunEmitter.Line(find, i2, "{");
+                RunEmitter.Line(find, i2 + 1, "i = enc.IndexOfAlternation(input, pos, " + field + ");");
+                RunEmitter.Line(find, i2 + 1, "i = i < 0 ? -1 : i - pos;");
+                RunEmitter.Line(find, i2, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i2, "if (i < 0)");
+                RunEmitter.Line(find, i2, "{");
+                RunEmitter.Line(find, i2 + 1, "break;");
+                RunEmitter.Line(find, i2, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i2, "pos += i;");
+            }
+            else
+            {
+                RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
+                RunEmitter.Line(find, i2 + 1, "? " + Call(method, Chars + ".Slice(pos)", args16));
+                RunEmitter.Line(find, i2 + 1, ": " + Call(method, Bytes8 + ".Slice(pos)", args8) + ";");
+                RunEmitter.Line(find, i2, "if (i < 0)");
+                RunEmitter.Line(find, i2, "{");
+                RunEmitter.Line(find, i2 + 1, "break;");
+                RunEmitter.Line(find, i2, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i2, "pos += i;");
+                RunEmitter.Line(find, i2, "if (pos > limit)");
+                RunEmitter.Line(find, i2, "{");
+                RunEmitter.Line(find, i2 + 1, "break;");
+                RunEmitter.Line(find, i2, "}");
+                sb_blank(find);
+                foreach ((int offset, char[] values) in checks)
+                {
+                    string unit = "enc.Unit(input, pos + " + offset + ")";
+                    string test = values.Length == 1 ? unit + " != " + (int)values[0] : "(c = " + unit + ") != " + (int)values[0] + " && c != " + (int)values[1];
+                    RunEmitter.Line(find, i2, "if (" + test + ")");
+                    RunEmitter.Line(find, i2, "{");
+                    RunEmitter.Line(find, i2 + 1, "pos++;");
+                    RunEmitter.Line(find, i2 + 1, "continue;");
+                    RunEmitter.Line(find, i2, "}");
+                    sb_blank(find);
+                }
+            }
+
+            RunEmitter.Line(find, i2, "if (len - pos < p.Need)");
+            RunEmitter.Line(find, i2, "{");
+            RunEmitter.Line(find, i2 + 1, "break;");
+            RunEmitter.Line(find, i2, "}");
+            sb_blank(find);
+            RunEmitter.Line(find, i2, "scan.Next = pos + 1;");
+            RunEmitter.Line(find, i2, "start = pos;");
+            RunEmitter.Line(find, i2, "return true;");
+            RunEmitter.Line(find, i1, "}");
+            sb_blank(find);
+            RunEmitter.Line(find, i1, "return false;");
+            Tail(find, indent);
+        }
+
+        /// <summary>A literal every match holds a fixed number of units after its start: found, then the start's own first characters checked before it is tried.</summary>
+        private static void EmitFixed(Program p, StringBuilder find, StringBuilder statics, int indent)
+        {
+            string literal = p.RequiredUtf16;
+            int offset16 = p.RequiredOffset;
+            int offset8 = p.RequiredOffsetUtf8;
+            if (literal.Length > 1)
+            {
+                RunEmitter.Line(statics, indent, "private static readonly byte[] B0 = " + Bytes(literal) + ";");
+            }
+
+            Head(find, indent);
+            int i1 = indent + 1;
+            RunEmitter.Line(find, i1, "TEncoding enc = default;");
+            RunEmitter.Line(find, i1, "int c;");
+            RunEmitter.Line(find, i1, "int offset = typeof(TUnit) == typeof(char) ? " + offset16 + " : " + offset8 + ";");
+            if (offset8 < 0)
+            {
+                RunEmitter.Line(find, i1, "if (offset < 0)");
+                RunEmitter.Line(find, i1, "{");
+                RunEmitter.Line(find, i1 + 1, "scan.Kind = " + Ns + "CandidateScan.Fixed;");
+                RunEmitter.Line(find, i1 + 1, "scan.Next = pos + " + p.RequiredCount + ";");
+                RunEmitter.Line(find, i1 + 1, "scan.Floor = pos;");
+                RunEmitter.Line(find, i1 + 1, "return " + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start);");
+                RunEmitter.Line(find, i1, "}");
+                sb_blank(find);
+            }
+
+            RunEmitter.Line(find, i1, "while (true)");
+            RunEmitter.Line(find, i1, "{");
+            int i2 = i1 + 1;
+            RunEmitter.Line(find, i2, "if (pos + offset > len - " + literal.Length + ")");
+            RunEmitter.Line(find, i2, "{");
+            RunEmitter.Line(find, i2 + 1, "return false;");
+            RunEmitter.Line(find, i2, "}");
+            sb_blank(find);
+            string args16 = literal.Length == 1 ? Ch(literal[0]) : Str(literal) + ".AsSpan()";
+            string args8 = literal.Length == 1 ? "(byte)" + (int)literal[0] : "B0";
+            RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
+            RunEmitter.Line(find, i2 + 1, "? " + Call("IndexOf", Chars + ".Slice(pos + offset)", args16));
+            RunEmitter.Line(find, i2 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(pos + offset)", args8) + ";");
+            RunEmitter.Line(find, i2, "if (i < 0)");
+            RunEmitter.Line(find, i2, "{");
+            RunEmitter.Line(find, i2 + 1, "return false;");
+            RunEmitter.Line(find, i2, "}");
+            sb_blank(find);
+            RunEmitter.Line(find, i2, "pos += i;");
+            RunEmitter.Line(find, i2, "if (len - pos < p.Need)");
+            RunEmitter.Line(find, i2, "{");
+            RunEmitter.Line(find, i2 + 1, "return false;");
+            RunEmitter.Line(find, i2, "}");
+            sb_blank(find);
+
+            // The start's first characters, where they are a character or an ASCII class: checked here, cheaply.
+            EcmaRegexNode root = p.Root!;
+            while (root.Kind == EcmaRegexNodeKind.Group)
+            {
+                root = root.Subs[0];
+            }
+
+            EcmaRegexNode[] terms = root.Kind == EcmaRegexNodeKind.Cat ? root.Subs : [root];
+            int at = 0;
+            for (int k = 0; k < terms.Length && k < 2; k++)
+            {
+                EcmaRegexNode t = terms[k];
+                string? test = null;
+                if (t.Kind == EcmaRegexNodeKind.Char && t.CodePoint < 0x80)
+                {
+                    test = "enc.Unit(input, pos + " + at + ") != " + t.CodePoint;
+                }
+                else if (t.Kind == EcmaRegexNodeKind.Set)
+                {
+                    CharSet set = new(t.Set);
+                    if (!set.HasNonAscii && !set.IsEmpty)
+                    {
+                        test = "(c = enc.Unit(input, pos + " + at + ")) >= 0x80 || !" + RunEmitter.AsciiTest(set, "c");
+                    }
+                }
+
+                if (test is null)
+                {
+                    break;
+                }
+
+                RunEmitter.Line(find, i2, "if (" + test + ")");
+                RunEmitter.Line(find, i2, "{");
+                RunEmitter.Line(find, i2 + 1, "pos++;");
+                RunEmitter.Line(find, i2 + 1, "continue;");
+                RunEmitter.Line(find, i2, "}");
+                sb_blank(find);
+                at++;
+            }
+
+            RunEmitter.Line(find, i2, "scan.Next = pos + 1;");
+            RunEmitter.Line(find, i2, "start = pos;");
+            RunEmitter.Line(find, i2, "return true;");
+            RunEmitter.Line(find, i1, "}");
+            Tail(find, indent);
+        }
+
+        /// <summary>The literal every match starts with: the span search for it.</summary>
+        private static void EmitPrefix(Program p, StringBuilder find, StringBuilder statics, int indent)
+        {
+            string literal = p.Utf16Prefix;
+            if (literal.Length > 1)
+            {
+                RunEmitter.Line(statics, indent, "private static readonly byte[] B0 = " + Bytes(literal) + ";");
+            }
+
+            Head(find, indent);
+            int i1 = indent + 1;
+            RunEmitter.Line(find, i1, "if (pos > len - " + literal.Length + ")");
+            RunEmitter.Line(find, i1, "{");
+            RunEmitter.Line(find, i1 + 1, "return false;");
+            RunEmitter.Line(find, i1, "}");
+            sb_blank(find);
+            string args16 = literal.Length == 1 ? Ch(literal[0]) : Str(literal) + ".AsSpan()";
+            string args8 = literal.Length == 1 ? "(byte)" + (int)literal[0] : "B0";
+            RunEmitter.Line(find, i1, "int i = typeof(TUnit) == typeof(char)");
+            RunEmitter.Line(find, i1 + 1, "? " + Call("IndexOf", Chars + ".Slice(pos)", args16));
+            RunEmitter.Line(find, i1 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(pos)", args8) + ";");
+            RunEmitter.Line(find, i1, "if (i < 0 || len - (pos + i) < p.Need)");
+            RunEmitter.Line(find, i1, "{");
+            RunEmitter.Line(find, i1 + 1, "return false;");
+            RunEmitter.Line(find, i1, "}");
+            sb_blank(find);
+            RunEmitter.Line(find, i1, "start = pos + i;");
+            RunEmitter.Line(find, i1, "scan.Next = start + 1;");
+            RunEmitter.Line(find, i1, "return true;");
+            Tail(find, indent);
+        }
+
+        /// <summary>A first set of ASCII: one range by the range search, up to three values by the span search, more by search values held in a static field.</summary>
+        private static void EmitFirst(Program p, StringBuilder find, StringBuilder statics, int indent)
+        {
+            CharSet first = p.First!;
+            List<int> members = [];
+            for (int c = 0; c < 128; c++)
+            {
+                if (first.HasAscii(c))
+                {
+                    members.Add(c);
+                }
+            }
+
+            bool range = members.Count > 1 && members[members.Count - 1] - members[0] == members.Count - 1;
+            string search16;
+            string search8;
+            string method;
+            if (range)
+            {
+                method = "IndexOfAnyInRange";
+                search16 = Ch(members[0]) + ", " + Ch(members[members.Count - 1]);
+                search8 = "(byte)" + members[0] + ", (byte)" + members[members.Count - 1];
+            }
+            else if (members.Count <= 3)
+            {
+                method = members.Count == 1 ? "IndexOf" : "IndexOfAny";
+                search16 = string.Join(", ", members.Select(Ch));
+                search8 = string.Join(", ", members.Select(m => "(byte)" + m));
+            }
+            else
+            {
+                string ascii = new(members.Select(m => (char)m).ToArray());
+                RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<char> G0c = global::System.Buffers.SearchValues.Create(" + Str(ascii) + ");");
+                RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<byte> G0b = global::System.Buffers.SearchValues.Create(" + Bytes(ascii) + ");");
+                method = "IndexOfAny";
+                search16 = "G0c";
+                search8 = "G0b";
+            }
+
+            Head(find, indent);
+            int i1 = indent + 1;
+            RunEmitter.Line(find, i1, "if (len - pos < p.Need)");
+            RunEmitter.Line(find, i1, "{");
+            RunEmitter.Line(find, i1 + 1, "return false;");
+            RunEmitter.Line(find, i1, "}");
+            sb_blank(find);
+            RunEmitter.Line(find, i1, "int i = typeof(TUnit) == typeof(char)");
+            RunEmitter.Line(find, i1 + 1, "? " + Call(method, Chars + ".Slice(pos)", search16));
+            RunEmitter.Line(find, i1 + 1, ": " + Call(method, Bytes8 + ".Slice(pos)", search8) + ";");
+            RunEmitter.Line(find, i1, "if (i < 0 || len - (pos + i) < p.Need)");
+            RunEmitter.Line(find, i1, "{");
+            RunEmitter.Line(find, i1 + 1, "return false;");
+            RunEmitter.Line(find, i1, "}");
+            sb_blank(find);
+            RunEmitter.Line(find, i1, "start = pos + i;");
+            RunEmitter.Line(find, i1, "scan.Next = start + 1;");
+            RunEmitter.Line(find, i1, "return true;");
+            Tail(find, indent);
+        }
+
+        private static void sb_blank(StringBuilder sb) => sb.AppendLine();
     }
 }

@@ -33,6 +33,9 @@ public abstract class GeneratedRunner
     /// <returns>Whether the program matched at the position.</returns>
     public abstract bool Run(Program p, MatchState st, ReadOnlySpan<byte> input, int start, out int end);
 
+    /// <summary>Gets a value indicating whether the runner's <c>Scan</c> finds its own starts (the search emitted as code), so that the matcher hands it every search from the start.</summary>
+    public virtual bool OwnsSearch => false;
+
     /// <summary>
     /// Tries the program at each start a search yields (see <see cref="CandidateScan"/>) until one matches: the
     /// generator's structured code loops here itself, so that its setting up is done once per search rather
