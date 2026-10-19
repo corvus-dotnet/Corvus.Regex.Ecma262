@@ -801,6 +801,9 @@ public sealed class Program
     /// <summary>Gets a value indicating whether the pattern has the u flag.</summary>
     internal bool Unicode { get; set; }
 
+    /// <summary>Gets a value indicating whether a match reads the cursor an enumeration carries: a run of <c>.</c>, or a form the search leaves out.</summary>
+    public bool UsesCursor { get; internal set; }
+
     /// <summary>Gets the least number of characters before any of those literals.</summary>
     public int RequiredAlternationLo { get; }
 
@@ -1016,6 +1019,16 @@ internal sealed class Compiler
         program.SetShape(LiteralAlternatives(root), CaseAlternatives(root));
         program.LeadingWordBoundary = insts.Length > 1 && insts[0].Op == Op.WordBoundary && first is not null && !first.HasNonAscii && IsWordSubset(first);
         program.Root = root;
+        bool lineRest = false;
+        foreach (Inst inst in insts)
+        {
+            lineRest |= inst.Set is not null && inst.Set.IsLineRest;
+        }
+
+        program.UsesCursor = lineRest || (program.ShapeSet is not null && program.ShapeSet.IsLineRest) || program.CaseExtrasUtf16 is not null || program.CaseExtrasUtf8 is not null
+            || program.Alternation?.ExtrasUtf16 is not null || program.Alternation?.ExtrasUtf8 is not null
+            || program.RequiredAlternation?.ExtrasUtf16 is not null || program.RequiredAlternation?.ExtrasUtf8 is not null
+            || program.AfterLoopAlternation?.ExtrasUtf16 is not null || program.AfterLoopAlternation?.ExtrasUtf8 is not null;
         program.TrackedGroups = c.tracked;
         program.PointOf = c.pointOf;
         program.Unicode = unicode;

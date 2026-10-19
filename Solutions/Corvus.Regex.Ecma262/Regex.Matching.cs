@@ -555,6 +555,11 @@ public sealed partial class Regex
     {
         if (this.program.Shape != SimpleShape.None)
         {
+            if (!this.program.UsesCursor)
+            {
+                return Matcher.Simple<char, Utf16Encoding>(this.program, st, input, startAt, this.Sticky, out from, out to);
+            }
+
             st.LoadCursor(in cursor);
             bool found = Matcher.Simple<char, Utf16Encoding>(this.program, st, input, startAt, this.Sticky, out from, out to);
             st.SaveCursor(ref cursor);
@@ -578,6 +583,11 @@ public sealed partial class Regex
     {
         if (this.program.Shape != SimpleShape.None)
         {
+            if (!this.program.UsesCursor)
+            {
+                return Matcher.Simple<byte, Utf8Encoding>(this.program, st, input, startAt, this.Sticky, out from, out to);
+            }
+
             st.LoadCursor(in cursor);
             bool found = Matcher.Simple<byte, Utf8Encoding>(this.program, st, input, startAt, this.Sticky, out from, out to);
             st.SaveCursor(ref cursor);

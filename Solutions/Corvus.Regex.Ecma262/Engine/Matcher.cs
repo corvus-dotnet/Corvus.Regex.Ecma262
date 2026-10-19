@@ -501,18 +501,31 @@ public static class Matcher
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
-        st.LoadCursor(in cursor);
+        bool uses = p.UsesCursor;
+        if (uses)
+        {
+            st.LoadCursor(in cursor);
+        }
+
         if (p.Shape != SimpleShape.None)
         {
             stop = MatchStop.None;
             bool found = Simple<TUnit, TEncoding>(p, st, input, start, sticky, out captures[0], out captures[1]);
-            st.SaveCursor(ref cursor);
+            if (uses)
+            {
+                st.SaveCursor(ref cursor);
+            }
+
             return found;
         }
 
         Prepare(st, p, input.Length, limit);
         bool ok = Search<TUnit, TEncoding>(p, st, input, start, sticky, out int from, out int to);
-        st.SaveCursor(ref cursor);
+        if (uses)
+        {
+            st.SaveCursor(ref cursor);
+        }
+
         stop = st.Stop;
         if (!ok || stop != MatchStop.None)
         {

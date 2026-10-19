@@ -22,6 +22,7 @@ public sealed partial class Regex
     private readonly Program program;
     private readonly EcmaRegexNode root;
     private readonly bool linear;
+    private readonly TimeSpan limit;
     private readonly bool unicode;
     private readonly GeneratedRunner? captureRunner;
     private Program? captureProgram;
@@ -100,6 +101,7 @@ public sealed partial class Regex
             dotAll: (flags & RegexFlags.DotAll) != 0);
         this.root = parser.Parse();
         this.linear = !parser.HasBackreferences;
+        this.limit = this.linear ? TimeSpan.Zero : (matchTimeout == InfiniteMatchTimeout ? TimeSpan.Zero : matchTimeout);
         this.unicode = unicode;
         this.GroupCount = parser.GroupCount;
         this.GroupNames = parser.GroupNames;
@@ -355,7 +357,7 @@ public sealed partial class Regex
         return result;
     }
 
-    private TimeSpan Limit => this.linear ? TimeSpan.Zero : (this.MatchTimeout == InfiniteMatchTimeout ? TimeSpan.Zero : this.MatchTimeout);
+    private TimeSpan Limit => this.limit;
 
     private static void ValidateFlags(RegexFlags flags)
     {
