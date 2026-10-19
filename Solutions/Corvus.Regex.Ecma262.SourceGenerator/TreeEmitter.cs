@@ -1398,7 +1398,9 @@ internal static class TreeEmitter
         {
             string[] literals = alternation.Literals;
             int minLen = literals.Min(l => l.Length);
-            bool forms = alternation.Forms is not null;
+            // Forms only where some character has more than one: a leading-literal alternation carries a forms
+            // table whether or not the pattern has the i flag.
+            bool forms = alternation.Forms is not null && alternation.Forms.Any(a => a.Any(f => f.Length > 1));
             Head(find, indent);
             int i1 = indent + 1;
             if (forms)
