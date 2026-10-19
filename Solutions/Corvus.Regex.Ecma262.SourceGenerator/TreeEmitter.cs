@@ -1397,7 +1397,7 @@ internal static class TreeEmitter
                 return true;
             }
 
-            if ((p.Shape == SimpleShape.CaseLiteral || p.Shape == SimpleShape.Sequence || p.Shape == SimpleShape.None) && p.CaseNeedleUtf16 is not null && p.CaseForms.Length >= 2 && p.CaseForms.All(f => f.All(x => x < 0x80)))
+            if ((p.Shape == SimpleShape.CaseLiteral || p.Shape == SimpleShape.Sequence || p.Shape == SimpleShape.None) && p.CaseNeedleUtf16 is not null && AsciiFormsPrefix(p.CaseForms) >= 2)
             {
                 EmitCaseLiteral(p, find, statics, indent);
                 return true;
@@ -1416,6 +1416,18 @@ internal static class TreeEmitter
             }
 
             return false;
+        }
+
+        /// <summary>The count of leading characters of a literal in its forms whose forms are all ASCII: under the u flag s folds to the long s and k to the Kelvin sign, which the search ignoring case does not know, so the search is for the part before the first such character and the match checks the rest (as .NET's generator searches for "sherloc").</summary>
+        private static int AsciiFormsPrefix(int[][] forms)
+        {
+            int n = 0;
+            while (n < forms.Length && forms[n].All(x => x < 0x80))
+            {
+                n++;
+            }
+
+            return n;
         }
 
         private static bool IsAscii(string s)
@@ -1824,10 +1836,10 @@ internal static class TreeEmitter
             Tail(find, indent);
         }
 
-        /// <summary>The literal every match starts with in its forms, all ASCII (the u flag's long s and Kelvin sign are one unit over UTF-16, which the runtime's needle carries as rows and the search ignoring case does not know): the runtime's search ignoring case, held in a static field.</summary>
+        /// <summary>The literal every match starts with in its forms, as far as those forms are all ASCII (see <see cref="AsciiFormsPrefix"/>): the runtime's search ignoring case, held in a static field; over UTF-8 the runtime's needle.</summary>
         private static void EmitCaseLiteral(Program p, StringBuilder find, StringBuilder statics, int indent)
         {
-            string literal = new(p.CaseForms.Select(f => (char)f[0]).ToArray());
+            string literal = new(p.CaseForms.Take(AsciiFormsPrefix(p.CaseForms)).Select(f => (char)f[0]).ToArray());
             RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> C0 = global::System.Buffers.SearchValues.Create(new string[] { " + Str(literal) + " }, global::System.StringComparison.OrdinalIgnoreCase);");
             Head(find, indent);
             int i1 = indent + 1;
@@ -1841,6 +1853,13 @@ internal static class TreeEmitter
             RunEmitter.Line(find, i1, "{");
             RunEmitter.Line(find, i1 + 1, "TEncoding enc = default;");
             RunEmitter.Line(find, i1 + 1, "i = enc.IndexOfCasePrefix(input, pos, p);");
+            if (AsciiFormsPrefix(p.CaseForms) < p.CaseForms.Length)
+            {
+                // Over UTF-8 the long s and the Kelvin sign take more bytes than the letters they fold to, which
+                // the needle leaves to the cursor's pass.
+                RunEmitter.Line(find, i1 + 1, "i = " + Ns + "Matcher.ExtraStartCase<TUnit, TEncoding>(p, st, input, pos, i);");
+            }
+
             RunEmitter.Line(find, i1, "}");
             sb_blank(find);
             RunEmitter.Line(find, i1, "if (i < 0 || len - i < p.Need)");

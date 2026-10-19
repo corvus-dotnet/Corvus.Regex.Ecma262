@@ -1126,13 +1126,14 @@ public static class Matcher
     }
 
     /// <summary>
-    /// The next match of an enumeration whose starts the generated code finds, for a program that tracks no group
-    /// and keeps no cursor: the state is prepared again only when something else used it since the last match
-    /// (another program, or another text), else what a match changes is reset and the runner's loop resumes.
+    /// The next match of an enumeration whose starts the generated code finds, for a program that tracks no group:
+    /// the state is prepared again only when something else used it since the last match (another program, or
+    /// another text), else what a match changes is reset and the runner's loop resumes.
     /// </summary>
     /// <typeparam name="TUnit">The unit of the text.</typeparam>
     /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
     /// <param name="st">The state.</param>
+    /// <param name="cursor">The cursor the enumeration carries (see <see cref="ScanCursor"/>).</param>
     /// <param name="scan">The search for starts as the last match left it.</param>
     /// <param name="p">The program.</param>
     /// <param name="input">The text.</param>
@@ -1141,11 +1142,17 @@ public static class Matcher
     /// <param name="from">The start of the match.</param>
     /// <param name="to">The end of the match.</param>
     /// <returns>Whether a match was found; when not, <see cref="MatchState.Stop"/> says whether a limit was reached.</returns>
-    public static bool ResumeEmitted<TUnit, TEncoding>(MatchState st, ref CandidateScan scan, Program p, ReadOnlySpan<TUnit> input, int start, TimeSpan limit, out int from, out int to)
+    public static bool ResumeEmitted<TUnit, TEncoding>(MatchState st, ref ScanCursor cursor, ref CandidateScan scan, Program p, ReadOnlySpan<TUnit> input, int start, TimeSpan limit, out int from, out int to)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
         int len = input.Length;
+        bool uses = p.UsesCursor;
+        if (uses)
+        {
+            st.LoadCursor(in cursor);
+        }
+
         if (st.PreparedFor != p || st.Width != len + 1)
         {
             Prepare(st, p, len, limit);
@@ -1162,15 +1169,20 @@ public static class Matcher
         scan.Next = Math.Max(scan.Next, start);
         from = -1;
         to = -1;
-        if (len - start < p.Need)
+        bool ok = false;
+        if (len - start >= p.Need)
         {
-            return false;
+            GeneratedRunner runner = p.Runner!;
+            ok = typeof(TUnit) == typeof(byte)
+                ? runner.Scan(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, byte>(input), ref scan, out from, out to)
+                : runner.Scan(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(input), ref scan, out from, out to);
         }
 
-        GeneratedRunner runner = p.Runner!;
-        bool ok = typeof(TUnit) == typeof(byte)
-            ? runner.Scan(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, byte>(input), ref scan, out from, out to)
-            : runner.Scan(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(input), ref scan, out from, out to);
+        if (uses)
+        {
+            st.SaveCursor(ref cursor);
+        }
+
         return ok && st.Stop == MatchStop.None;
     }
 
@@ -1816,6 +1828,46 @@ public static class Matcher
 
         return i;
     }
+
+#if NET
+    /// <summary>As <see cref="ExtraStart{TUnit, TEncoding}"/>, for the literal every match starts with in its forms: over UTF-8 the long s and the Kelvin sign take more bytes than the letters they fold to, so the needle leaves them to this pass.</summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="p">The program.</param>
+    /// <param name="st">The state.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="next">The position the search started from.</param>
+    /// <param name="i">The position the search found, or -1.</param>
+    /// <returns>The start, or -1.</returns>
+    public static int ExtraStartCase<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int next, int i)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        if (!enc.HasCaseExtras(p))
+        {
+            return i;
+        }
+
+        int len = input.Length;
+        int window = enc.CaseWindow(p);
+        int limit = i < 0 ? len : Math.Min(len, i + window);
+        int e = -1;
+        if (!ExtrasClear(st, next, limit))
+        {
+            int scanFrom = ExtrasFrom(st, next);
+            int scanTo = ExtrasTo(st, next, limit, len);
+            e = ExtrasSeen(st, next, scanTo, enc.IndexOfCaseExtra(input, scanFrom, scanTo, p), limit);
+        }
+
+        if (e >= 0 && (i < 0 || e - window < i))
+        {
+            return Math.Max(next, e - window + 1);
+        }
+
+        return i;
+    }
+#endif
 
     /// <summary>The generated code's loop over the starts of a search.</summary>
     private static bool ScanWith<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, ref CandidateScan scan, out int from, out int to)

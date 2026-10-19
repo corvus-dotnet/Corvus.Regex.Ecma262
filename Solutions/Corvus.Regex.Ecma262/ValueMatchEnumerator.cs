@@ -68,7 +68,7 @@ public ref struct ValueMatchEnumerator
         }
         else if (this.resumes && this.scan.Kind == CandidateScan.Emitted)
         {
-            if (!this.regex.TryResumeEmitted(this.state!, ref this.scan, this.input, this.next, out from, out to))
+            if (!this.regex.TryResumeEmitted(this.state!, ref this.cursor, ref this.scan, this.input, this.next, out from, out to))
             {
                 this.done = true;
                 return false;
@@ -148,7 +148,7 @@ public ref struct Utf8ValueMatchEnumerator
         }
         else if (this.resumes && this.scan.Kind == CandidateScan.Emitted)
         {
-            if (!this.regex.TryResumeEmitted(this.state!, ref this.scan, this.input, this.next, out from, out to))
+            if (!this.regex.TryResumeEmitted(this.state!, ref this.cursor, ref this.scan, this.input, this.next, out from, out to))
             {
                 this.done = true;
                 return false;
