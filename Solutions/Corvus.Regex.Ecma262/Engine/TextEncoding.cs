@@ -965,6 +965,11 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
             int i = input.Slice(from).IndexOfAny(alternation.Strings);
             return i < 0 ? -1 : from + i;
         }
+
+        if (alternation.TeddyUtf16 is not null)
+        {
+            return alternation.TeddyUtf16.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
+        }
 #endif
         return alternation.MultiUtf16.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
     }

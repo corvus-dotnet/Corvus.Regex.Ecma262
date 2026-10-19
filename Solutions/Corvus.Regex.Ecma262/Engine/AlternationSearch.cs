@@ -22,7 +22,7 @@ public sealed class AlternationSearch
     /// <summary>The cost of the multi-literal needle by its model (see <see cref="MultiNeedle{T}.Cost"/>) below which it beats the runtime's search for any of several strings over UTF-16.</summary>
     private const double NeedleOverStrings = 0.35;
 
-    private AlternationSearch(string[] literals, byte[][] utf8, int[][][]? forms, Needle<byte>[] needles8, Needle<ushort>[] needles16, int[] extras8, int[] extras16, int window8, int window16)
+    private AlternationSearch(string[] literals, byte[][] utf8, int[][][]? forms, Needle<byte>[] needles8, Needle<ushort>[] needles16, int[] extras8, int[] extras16, int[] stringsExtras16, int window8, int window16)
     {
         this.Literals = literals;
         this.LiteralsUtf8 = utf8;
@@ -32,7 +32,6 @@ public sealed class AlternationSearch
         this.MultiUtf8 = new MultiNeedle<byte>(needles8);
         this.MultiUtf16 = new MultiNeedle<ushort>(needles16);
         this.ExtrasUtf8 = extras8.Length == 0 ? null : Needles.Multi<byte>(Array.ConvertAll(extras8, Rune), true, leadOnly: true);
-        this.ExtrasUtf16 = extras16.Length == 0 ? null : Needles.Multi<ushort>(Array.ConvertAll(extras16, Rune), false, leadOnly: true);
         this.WindowUtf8 = window8;
         this.WindowUtf16 = window16;
 #if NET
@@ -49,17 +48,32 @@ public sealed class AlternationSearch
             }
         }
 
-        this.Strings = ascii && this.MultiUtf16.Cost >= NeedleOverStrings ? System.Buffers.SearchValues.Create(literals, forms is null ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) : null;
-
-        // Over UTF-8, the fingerprint search on the same terms, where every literal has two bytes for it to look at.
-        int shortest = int.MaxValue;
+        int shortest8 = int.MaxValue;
+        int shortest16 = int.MaxValue;
         foreach (Needle<byte> needle in needles8)
         {
-            shortest = Math.Min(shortest, needle.Length);
+            shortest8 = Math.Min(shortest8, needle.Length);
         }
 
-        this.TeddyUtf8 = Teddy.Supported && needles8.Length <= Teddy.MostLiterals && shortest >= 2 && this.MultiUtf8.Cost >= NeedleOverStrings ? new Teddy(needles8) : null;
+        foreach (Needle<ushort> needle in needles16)
+        {
+            shortest16 = Math.Min(shortest16, needle.Length);
+        }
+
+        // ASCII literals go to the runtime's search (exact or ignoring case as it knows it: over the low bytes of
+        // UTF-16 units the fingerprint search looks at twice the lanes, and three names under the i flag measured
+        // 0.11 ms against the runtime's 0.07); others to the fingerprint search, which has every form in its
+        // tables (five Russian names under the i flag: 0.18 ms against the needle's 0.67 and the runtime's 7.8).
+        // Over UTF-8 the fingerprint search.
+        bool fingerprints16 = Teddy<ushort>.Supported && needles16.Length <= Teddy<ushort>.MostLiterals && shortest16 >= 2 && this.MultiUtf16.Cost >= NeedleOverStrings;
+        this.Strings = ascii && this.MultiUtf16.Cost >= NeedleOverStrings ? System.Buffers.SearchValues.Create(literals, forms is null ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) : null;
+        this.TeddyUtf16 = this.Strings is null && fingerprints16 ? new Teddy<ushort>(needles16) : null;
+        this.TeddyUtf8 = Teddy<byte>.Supported && needles8.Length <= Teddy<byte>.MostLiterals && shortest8 >= 2 && this.MultiUtf8.Cost >= NeedleOverStrings ? new Teddy<byte>(needles8) : null;
+        int[] apart16 = this.Strings is not null ? stringsExtras16 : extras16;
+#else
+        int[] apart16 = extras16;
 #endif
+        this.ExtrasUtf16 = apart16.Length == 0 ? null : Needles.Multi<ushort>(Array.ConvertAll(apart16, Rune), false, leadOnly: true);
     }
 
     /// <summary>Gets the alternatives as UTF-16, each in its own form.</summary>
@@ -96,11 +110,14 @@ public sealed class AlternationSearch
     public int WindowUtf16 { get; }
 
 #if NET
-    /// <summary>Gets the runtime's search for any of the alternatives over UTF-16, exact or ignoring case as the runtime knows it, or null when the alternatives are not all ASCII.</summary>
+    /// <summary>Gets the runtime's search for any of the alternatives over UTF-16, for ASCII literals, exact or ignoring case as the runtime knows it, or null.</summary>
     public System.Buffers.SearchValues<string>? Strings { get; }
 
     /// <summary>Gets the fingerprint search for any of the alternatives over UTF-8, or null where the needle is cheaper.</summary>
-    public Teddy? TeddyUtf8 { get; }
+    public Teddy<byte>? TeddyUtf8 { get; }
+
+    /// <summary>Gets the fingerprint search for any of the alternatives over UTF-16, or null where the needle or the runtime's search is taken.</summary>
+    public Teddy<ushort>? TeddyUtf16 { get; }
 #endif
 
     /// <summary>The search for an alternation of literals matched exactly.</summary>
@@ -118,7 +135,7 @@ public sealed class AlternationSearch
             needles16[k] = Needles.Utf16(literals[k]);
         }
 
-        return new AlternationSearch(literals, utf8, null, needles8, needles16, [], [], 0, 0);
+        return new AlternationSearch(literals, utf8, null, needles8, needles16, [], [], [], 0, 0);
     }
 
     /// <summary>The search for an alternation of literals in the forms of their characters, or null when some alternative cannot be searched for by anchors.</summary>
@@ -133,6 +150,7 @@ public sealed class AlternationSearch
         Needle<ushort>[] needles16 = new Needle<ushort>[n];
         List<int> extras8 = [];
         List<int> extras16 = [];
+        List<int> stringsExtras16 = [];
         int window8 = 0;
         int window16 = 0;
         for (int k = 0; k < n; k++)
@@ -150,7 +168,8 @@ public sealed class AlternationSearch
             window16 = Math.Max(window16, w16);
 
             // The alternative in the pattern's own form, for the runtime's search ignoring case; a form the
-            // runtime's comparison does not know (the long s for s, the theta symbol for theta) is an extra.
+            // runtime's comparison does not know (the long s for s, the theta symbol for theta) is an extra of
+            // that search.
             StringBuilder sb = new();
             foreach (int[] character in forms[k])
             {
@@ -159,7 +178,7 @@ public sealed class AlternationSearch
                 {
                     if (!SameUpper(form, character[0]))
                     {
-                        extras16.Add(form);
+                        stringsExtras16.Add(form);
                     }
                 }
             }
@@ -168,7 +187,7 @@ public sealed class AlternationSearch
             utf8[k] = Encoding.UTF8.GetBytes(literals[k]);
         }
 
-        return new AlternationSearch(literals, utf8, forms, needles8, needles16, extras8.Distinct().ToArray(), extras16.Distinct().ToArray(), window8, window16);
+        return new AlternationSearch(literals, utf8, forms, needles8, needles16, extras8.Distinct().ToArray(), extras16.Distinct().ToArray(), extras16.Concat(stringsExtras16).Distinct().ToArray(), window8, window16);
     }
 
     /// <summary>Whether two characters are one to the runtime's ordinal comparison ignoring case, for characters of one UTF-16 unit.</summary>

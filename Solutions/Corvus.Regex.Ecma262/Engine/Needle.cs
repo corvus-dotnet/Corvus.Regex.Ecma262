@@ -1507,8 +1507,17 @@ public sealed class MultiNeedle<T>
             int end = last + o;
             while (at <= end)
             {
+                // Up to three values go to the span search's own overloads, whose start is cheaper than the search
+                // for a set of values; the restarts are what a common unit costs.
                 ReadOnlySpan<T> rest = input.Slice(at, end - at + 1);
-                int j = typeof(T) == typeof(byte) ? MemoryMarshal.Cast<T, byte>(rest).IndexOfAny(this.anyBytes!) : MemoryMarshal.Cast<T, char>(rest).IndexOfAny(this.anyChars!);
+                T[] v = this.values1;
+                int j = v.Length switch
+                {
+                    1 => rest.IndexOf(v[0]),
+                    2 => rest.IndexOfAny(v[0], v[1]),
+                    3 => rest.IndexOfAny(v[0], v[1], v[2]),
+                    _ => typeof(T) == typeof(byte) ? MemoryMarshal.Cast<T, byte>(rest).IndexOfAny(this.anyBytes!) : MemoryMarshal.Cast<T, char>(rest).IndexOfAny(this.anyChars!),
+                };
                 if (j < 0)
                 {
                     return -1;

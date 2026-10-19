@@ -230,12 +230,16 @@ case-insensitive alternation, where a letter's two cases are common together), t
 buckets, and for each of up to three positions two tables of sixteen entries map a byte's nibbles to the buckets
 with that byte there in any of its forms. A vector of starts is looked up by two shuffles per position, and only
 the starts whose bytes agree with a bucket at every position are compared. The positions are the rarest the
-literals share, so that beyond ASCII the bytes that tell the literals apart are looked at and not a script's lead
-bytes. Measured on the search alone, three names under the i flag went from 0.26 to 0.06 ms, seven from 0.95 to
-0.08, four over sixteen million characters from 12.2 to 1.8, and five Russian names from 1.12 to 0.14. The
-runtime's search is kept to ASCII literals: on a CJK alternation it was ninety-seven times slower than the needle.
-Below the cost of 0.35 the needle's one anchor position wins by half: two or three literals that start with
-capitals (`Sher|Hol`, `Sherlock|Street`, `Holmes|Watson`) search at 0.53 to 0.65 of the runtime's time.
+literals share, so that beyond ASCII the bytes that tell the literals apart are looked at and not a script's lead bytes; as many of the three as pay, each costing its
+shuffles at every vector against the starts it turns away. Measured on the search alone over UTF-8, three names
+under the i flag went from 0.26 to 0.06 ms, seven from 0.95 to 0.08, four over sixteen million characters from
+12.2 to 1.8, and five Russian names from 1.12 to 0.15. Over UTF-16 the same search looks at the low byte of each
+unit, so it has twice the lanes to look at: the runtime's search keeps ASCII literals there (three names under
+the i flag: 0.07 ms against 0.11), with the forms its comparison does not know (the long s, the Kelvin sign)
+looked for apart, and the fingerprints take the rest (five Russian names under the i flag: 0.18 ms against the
+needle's 0.67 and the runtime's 7.8). Below the cost of 0.35 the needle's one anchor position wins by half: two
+or three literals that start with capitals (`Sher|Hol`, `Sherlock|Street`, `Holmes|Watson`) search at 0.53 to
+0.65 of the runtime's time.
 
 **The literal every alternative holds.** A pattern that is an alternation, or starts with one, whose alternatives
 each start with a literal or hold one at a fixed or bounded distance from their start
