@@ -36,7 +36,10 @@ internal static class TreeEmitter
 
         Emitter e = new(p);
         StringBuilder code = new();
-        e.EmitBody(code, indent + 2);
+        e.EmitBody(code, indent + 2, scan: false);
+        Emitter e2 = new(p);
+        StringBuilder scanCode = new();
+        e2.EmitBody(scanCode, indent + 2, scan: true);
 
         RunEmitter.Line(sb, indent, "/// <summary>The program as structured code (see <see cref=\"global::Corvus.Ecma262.RegularExpressions.GeneratedRunner\"/>).</summary>");
         RunEmitter.Line(sb, indent, "[global::System.CodeDom.Compiler.GeneratedCode(\"Corvus.Regex.Ecma262.SourceGenerator\", \"1.0\")]");
@@ -74,6 +77,19 @@ internal static class TreeEmitter
         RunEmitter.Line(sb, indent + 2, "where TEncoding : struct, " + Ns + "ITextEncoding<TUnit>");
         RunEmitter.Line(sb, indent + 1, "{");
         sb.Append(code);
+        RunEmitter.Line(sb, indent + 1, "}");
+        sb.AppendLine();
+        RunEmitter.Line(sb, indent + 1, "/// <inheritdoc/>");
+        RunEmitter.Line(sb, indent + 1, "public override bool Scan(" + Ns + "Program p, " + Ns + "MatchState st, global::System.ReadOnlySpan<char> input, ref " + Ns + "CandidateScan scan, out int start, out int end) => Scan<char, " + Ns + "Utf16Encoding>(p, st, input, ref scan, out start, out end);");
+        sb.AppendLine();
+        RunEmitter.Line(sb, indent + 1, "/// <inheritdoc/>");
+        RunEmitter.Line(sb, indent + 1, "public override bool Scan(" + Ns + "Program p, " + Ns + "MatchState st, global::System.ReadOnlySpan<byte> input, ref " + Ns + "CandidateScan scan, out int start, out int end) => Scan<byte, " + Ns + "Utf8Encoding>(p, st, input, ref scan, out start, out end);");
+        sb.AppendLine();
+        RunEmitter.Line(sb, indent + 1, "private static bool Scan<TUnit, TEncoding>(" + Ns + "Program p, " + Ns + "MatchState st, global::System.ReadOnlySpan<TUnit> input, ref " + Ns + "CandidateScan scan, out int start, out int end)");
+        RunEmitter.Line(sb, indent + 2, "where TUnit : unmanaged, global::System.IEquatable<TUnit>");
+        RunEmitter.Line(sb, indent + 2, "where TEncoding : struct, " + Ns + "ITextEncoding<TUnit>");
+        RunEmitter.Line(sb, indent + 1, "{");
+        sb.Append(scanCode);
         RunEmitter.Line(sb, indent + 1, "}");
         RunEmitter.Line(sb, indent, "}");
         return true;
@@ -149,11 +165,16 @@ internal static class TreeEmitter
 
         public List<CharSet> Sets { get; } = [];
 
-        public void EmitBody(StringBuilder output, int baseIndent)
+        public void EmitBody(StringBuilder output, int baseIndent, bool scan)
         {
             this.code = new StringBuilder();
             this.indent = baseIndent;
             this.Line("end = -1;");
+            if (scan)
+            {
+                this.Line("start = -1;");
+            }
+
             this.Line("TEncoding enc = default;");
             this.Line("int[] caps = st.Caps;");
             this.Line("const bool units = " + (this.p.Units ? "true" : "false") + ";");
@@ -170,17 +191,36 @@ internal static class TreeEmitter
             this.Line("int j;");
             StringBuilder prologue = this.code;
             this.code = new StringBuilder();
+            if (scan)
+            {
+                // The loop over the starts the search yields: the setting up above is done once for them all.
+                this.Line("while (" + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start))");
+                this.Line("{");
+                this.indent++;
+                this.Line("pos = start;");
+            }
+
             this.Emit(this.p.Root!, Follow.Unknown);
             this.Line("st.Steps = steps;");
             this.Line("end = pos;");
             this.Line("return true;");
-            sb_label(this.code, baseIndent - 1, "Fail");
+            sb_label(this.code, this.indent - 1, "Fail");
+            if (scan)
+            {
+                this.Line("continue;");
+                this.indent--;
+                this.Line("}");
+                sb_blank(this.code);
+            }
+
             this.Line("st.Steps = steps;");
             this.Line("return false;");
             output.Append(prologue);
             output.Append(this.decls);
             output.AppendLine();
             output.Append(this.code);
+
+            static void sb_blank(StringBuilder sb) => sb.AppendLine();
 
             static void sb_label(StringBuilder sb, int indent, string label)
             {

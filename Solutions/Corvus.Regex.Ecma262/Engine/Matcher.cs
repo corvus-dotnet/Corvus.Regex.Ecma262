@@ -83,6 +83,41 @@ public struct Entry
 }
 
 /// <summary>
+/// A search for the starts to try, kept between one start and the next: the search's kind, where it looks next,
+/// and what the last start left for the next (the floor a walk-back may reach, the run a failed start may skip).
+/// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public struct CandidateScan
+{
+    /// <summary>The starts are the occurrences of one of several literals, each of which begins a match.</summary>
+    public const int Alternation = 1;
+
+    /// <summary>The starts are a fixed number of characters before the occurrences of a literal.</summary>
+    public const int Fixed = 2;
+
+    /// <summary>The starts are the units that can begin a member of the first set, up to a last position.</summary>
+    public const int First = 3;
+
+    /// <summary>The kind.</summary>
+    public int Kind;
+
+    /// <summary>Where the search looks next.</summary>
+    public int Next;
+
+    /// <summary>The position a walk-back may not pass (<see cref="Fixed"/>), or the last start (<see cref="First"/>).</summary>
+    public int Floor;
+
+    /// <summary>The last start given (<see cref="First"/>), or -1.</summary>
+    public int Last;
+
+    /// <summary>The character at the last start, and its width.</summary>
+    public int LastChar;
+
+    /// <summary>The width of the character at the last start.</summary>
+    public int LastWidth;
+}
+
+/// <summary>
 /// What an enumeration learns about its text and carries from match to match: the range known to hold no rare
 /// line terminator, and the range known to hold no form the program's search leaves out. One pass over the text
 /// then serves every match rather than each match scanning again.
@@ -1391,6 +1426,13 @@ public static class Matcher
                 if (hi == 0)
                 {
                     // Every alternative starts with its literal: the match starts at the occurrence or not at all.
+                    if (p.Runner is not null)
+                    {
+                        // The generated code loops over the occurrences itself.
+                        CandidateScan scan = new() { Kind = CandidateScan.Alternation, Next = next, Floor = pos, Last = -1 };
+                        return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
+                    }
+
                     if (len - i >= p.Need)
                     {
                         from = i;
@@ -1503,6 +1545,12 @@ public static class Matcher
             int offset = enc.RequiredOffset(p);
             int count = p.RequiredCount;
             int next = pos + (offset >= 0 ? offset : count);
+            if (p.Runner is not null)
+            {
+                CandidateScan scan = new() { Kind = CandidateScan.Fixed, Next = next, Floor = pos, Last = -1 };
+                return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
+            }
+
             while (true)
             {
                 int i = enc.IndexOfRequired(input, next, p);
@@ -1540,7 +1588,215 @@ public static class Matcher
             }
         }
 
+        if (p.Runner is not null)
+        {
+            CandidateScan scan = new() { Kind = CandidateScan.First, Next = pos, Floor = len, Last = -1 };
+            return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
+        }
+
         return ScanStarts<TUnit, TEncoding>(p, st, input, pos, len, out from, out to);
+    }
+
+    /// <summary>The generated code's loop over the starts of a search.</summary>
+    private static bool ScanWith<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, ref CandidateScan scan, out int from, out int to)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        GeneratedRunner runner = p.Runner!;
+        bool ok = typeof(TUnit) == typeof(byte)
+            ? runner.Scan(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, byte>(input), ref scan, out from, out to)
+            : runner.Scan(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(input), ref scan, out from, out to);
+        return ok && st.Stop == MatchStop.None;
+    }
+
+    /// <summary>
+    /// The next start a search yields, or none: the occurrences of one of several literals that each begin a
+    /// match; a fixed number of characters before the occurrences of a literal; or the units that can begin a
+    /// member of the first set, with the run a failed start's leading loop ate passed over.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="p">The program.</param>
+    /// <param name="st">The state.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="scan">The search.</param>
+    /// <param name="start">The start.</param>
+    /// <returns>Whether there is one.</returns>
+    public static bool NextStart<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, ref CandidateScan scan, out int start)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        int len = input.Length;
+        bool units = p.Units;
+        start = -1;
+        if (st.Stop != MatchStop.None)
+        {
+            return false;
+        }
+
+        switch (scan.Kind)
+        {
+            case CandidateScan.Alternation:
+            {
+                AlternationSearch alternation = p.RequiredAlternation!;
+                bool extras = enc.HasAlternativeExtras(alternation);
+                int window = extras ? enc.AlternativeWindow(alternation) : 0;
+                while (true)
+                {
+                    int next = scan.Next;
+                    int i = enc.IndexOfAlternation(input, next, alternation);
+                    if (extras)
+                    {
+                        int limit = i < 0 ? len : Math.Min(len, i + window);
+                        int e = -1;
+                        if (!ExtrasClear(st, next, limit))
+                        {
+                            int scanFrom = ExtrasFrom(st, next);
+                            int scanTo = ExtrasTo(st, next, limit, len);
+                            e = ExtrasSeen(st, next, scanTo, enc.IndexOfAlternativeExtra(input, scanFrom, scanTo, alternation), limit);
+                        }
+
+                        if (e >= 0 && (i < 0 || e - window < i))
+                        {
+                            i = Math.Max(next, e - window + 1);
+                        }
+                    }
+
+                    if (i < 0)
+                    {
+                        return false;
+                    }
+
+                    scan.Next = enc.NextStart(input, i);
+                    if (len - i >= p.Need)
+                    {
+                        start = i;
+                        return true;
+                    }
+                }
+            }
+
+            case CandidateScan.Fixed:
+            {
+                int offset = enc.RequiredOffset(p);
+                int count = p.RequiredCount;
+                while (true)
+                {
+                    int i = enc.IndexOfRequired(input, scan.Next, p);
+                    if (i < 0)
+                    {
+                        return false;
+                    }
+
+                    scan.Next = enc.NextStart(input, i);
+                    int at = offset >= 0 ? i - offset : enc.WalkBack(input, i, count, scan.Floor, units);
+                    if (at < 0)
+                    {
+                        continue;
+                    }
+
+                    if (len - at < p.Need)
+                    {
+                        return false;
+                    }
+
+                    scan.Floor = enc.NextStart(input, at);
+                    start = at;
+                    return true;
+                }
+            }
+
+            default:
+            {
+                CharSet? first = p.First;
+                int until = scan.Floor;
+                int pos = scan.Next;
+                if (scan.Last >= 0)
+                {
+                    // After a failed start: the run its leading loop ate is passed over, else the next character.
+                    int w = scan.LastWidth;
+                    if (p.SkipRun && p.LoopSet!.Contains(scan.LastChar))
+                    {
+                        int end = EndOfRun<TUnit, TEncoding>(p.LoopSet!, input, scan.Last + w, units);
+                        pos = end > scan.Last + w ? end : scan.Last + w;
+                    }
+                    else
+                    {
+                        pos = scan.Last + w;
+                    }
+                }
+
+                while (pos <= until)
+                {
+                    if (len - pos < p.Need)
+                    {
+                        return false;
+                    }
+
+                    if (pos == len)
+                    {
+                        if (first is null)
+                        {
+                            scan.Last = pos;
+                            scan.LastWidth = 1;
+                            scan.LastChar = -1;
+                            start = pos;
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+#if NET
+                    if (first is not null)
+                    {
+                        int i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);
+                        if (i < 0 || i > until)
+                        {
+                            return false;
+                        }
+
+                        pos = enc.AlignStart(input, i, units);
+                        if (len - pos < p.Need || pos > until)
+                        {
+                            return false;
+                        }
+
+                        if (pos == len)
+                        {
+                            return false;
+                        }
+
+                        if (p.LeadingWordBoundary && pos > 0 && enc.Unit(input, pos - 1) < 0x80 && Utf8Encoding.IsWordUnit(enc.Unit(input, pos - 1)))
+                        {
+                            pos = EndOfRun<TUnit, TEncoding>(first, input, pos, units);
+                            continue;
+                        }
+                    }
+#endif
+                    int c = enc.Unit(input, pos);
+                    int w = 1;
+                    if (c >= 0x80)
+                    {
+                        c = units ? enc.UnitAt(input, pos, out w) : enc.Decode(input, pos, out w);
+                    }
+
+                    if (first is null || first.Contains(c))
+                    {
+                        scan.Last = pos;
+                        scan.LastChar = c;
+                        scan.LastWidth = w;
+                        start = pos;
+                        return true;
+                    }
+
+                    pos += w;
+                }
+
+                return false;
+            }
+        }
     }
 
     /// <summary>Tries every start from a position to a last position, in order, with the first set's scan and the skipping of runs.</summary>

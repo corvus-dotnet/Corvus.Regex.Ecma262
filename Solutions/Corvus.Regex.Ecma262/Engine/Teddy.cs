@@ -51,12 +51,15 @@ public sealed class Teddy<T>
     private readonly Vector128<byte>[] hi;
     private readonly int minLength;
     private readonly int reach;
+    private readonly bool packed;
 
     /// <summary>Initializes a new instance of the <see cref="Teddy{T}"/> class.</summary>
     /// <param name="needles">The literals, at most <see cref="MostLiterals"/>, each at least two units long.</param>
-    public Teddy(Needle<T>[] needles)
+    /// <param name="packed">Over UTF-16, whether to narrow thirty-two units to bytes at each step (a unit beyond 255 to 255, which is then a bucket of its own) rather than look at the low byte of sixteen: for literals that are ASCII in their own form, with any forms beyond it. Needs AVX2.</param>
+    public Teddy(Needle<T>[] needles, bool packed = false)
     {
         this.needles = needles;
+        this.packed = packed && typeof(T) == typeof(ushort);
         int n = needles.Length;
         this.minLength = int.MaxValue;
         foreach (Needle<T> needle in needles)
@@ -144,7 +147,7 @@ public sealed class Teddy<T>
                     int count = needles[k].UnitsAt(this.positions[j], forms);
                     for (int f = 0; f < count; f++)
                     {
-                        int low = Unit(forms[f]) & 0xFF;
+                        int low = this.packed ? Math.Min(Unit(forms[f]), 0xFF) : Unit(forms[f]) & 0xFF;
                         loTable[low & 0xF] |= (byte)(1 << b);
                         hiTable[low >> 4] |= (byte)(1 << b);
                     }
@@ -165,6 +168,9 @@ public sealed class Teddy<T>
     /// <summary>Gets a value indicating whether the search is vectorised on this machine.</summary>
     public static bool Supported => Vector128.IsHardwareAccelerated;
 
+    /// <summary>Gets a value indicating whether the packed search over UTF-16 is available on this machine.</summary>
+    public static bool PackedSupported => Avx2.IsSupported && Vector256.IsHardwareAccelerated;
+
     private static int Unit(T u) => typeof(T) == typeof(byte) ? Unsafe.As<T, byte>(ref u) : Unsafe.As<T, ushort>(ref u);
 
     /// <summary>The earliest position at or after a position where one of the literals is, or -1.</summary>
@@ -176,6 +182,26 @@ public sealed class Teddy<T>
         int last = input.Length - this.minLength;
         if (from > last)
         {
+            return -1;
+        }
+
+        if (this.packed)
+        {
+            int at = from;
+            int found = this.ScanPacked(input, ref at);
+            if (found >= 0)
+            {
+                return found;
+            }
+
+            for (; at <= last; at++)
+            {
+                if (this.VerifyAny(input, at))
+                {
+                    return at;
+                }
+            }
+
             return -1;
         }
 
@@ -207,6 +233,71 @@ public sealed class Teddy<T>
         }
 
         return -1;
+    }
+
+    /// <summary>Over UTF-16: thirty-two units narrowed to bytes at each step, then the lookups of the byte search; a unit beyond 255 narrows to 255.</summary>
+    private int ScanPacked(ReadOnlySpan<T> input, ref int i)
+    {
+        ReadOnlySpan<ushort> units = MemoryMarshal.Cast<T, ushort>(input);
+        int lastVector = units.Length - Vector256<byte>.Count - this.reach;
+        if (i > lastVector)
+        {
+            return -1;
+        }
+
+        ref ushort s = ref MemoryMarshal.GetReference(units);
+        Vector256<byte> nibble = Vector256.Create((byte)0x0F);
+        Vector256<byte> lo0 = Vector256.Create(this.lo[0], this.lo[0]);
+        Vector256<byte> hi0 = Vector256.Create(this.hi[0], this.hi[0]);
+        Vector256<byte> lo1 = this.positions.Length > 1 ? Vector256.Create(this.lo[1], this.lo[1]) : default;
+        Vector256<byte> hi1 = this.positions.Length > 1 ? Vector256.Create(this.hi[1], this.hi[1]) : default;
+        Vector256<byte> lo2 = this.positions.Length > 2 ? Vector256.Create(this.lo[2], this.lo[2]) : default;
+        Vector256<byte> hi2 = this.positions.Length > 2 ? Vector256.Create(this.hi[2], this.hi[2]) : default;
+        int p0 = this.positions[0];
+        int p1 = this.positions.Length > 1 ? this.positions[1] : 0;
+        int p2 = this.positions.Length > 2 ? this.positions[2] : 0;
+        int count = this.positions.Length;
+        Span<byte> hits = stackalloc byte[Vector256<byte>.Count];
+        for (; i <= lastVector; i += Vector256<byte>.Count)
+        {
+            Vector256<byte> c = Narrow(ref s, i + p0);
+            Vector256<byte> r = Avx2.Shuffle(lo0, c & nibble) & Avx2.Shuffle(hi0, Vector256.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
+            if (count > 1)
+            {
+                c = Narrow(ref s, i + p1);
+                r &= Avx2.Shuffle(lo1, c & nibble) & Avx2.Shuffle(hi1, Vector256.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
+                if (count > 2)
+                {
+                    c = Narrow(ref s, i + p2);
+                    r &= Avx2.Shuffle(lo2, c & nibble) & Avx2.Shuffle(hi2, Vector256.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
+                }
+            }
+
+            if (r == Vector256<byte>.Zero)
+            {
+                continue;
+            }
+
+            r.CopyTo(hits);
+            uint lanes = (~Vector256.Equals(r, Vector256<byte>.Zero)).ExtractMostSignificantBits();
+            int found = this.Candidates(input, i, lanes, hits, 1);
+            if (found >= 0)
+            {
+                return found;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>Thirty-two UTF-16 units from a position as bytes, in order, a unit beyond 255 as 255.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<byte> Narrow(ref ushort s, int at)
+    {
+        Vector256<ushort> a = Vector256.LoadUnsafe(ref s, (nuint)at);
+        Vector256<ushort> b = Vector256.LoadUnsafe(ref s, (nuint)(at + Vector256<ushort>.Count));
+        Vector256<byte> packed = Avx2.PackUnsignedSaturate(a.AsInt16(), b.AsInt16());
+        return Avx2.Permute4x64(packed.AsInt64(), 0xD8).AsByte();
     }
 
     private int Scan256(ReadOnlySpan<T> input, ref int i)
@@ -253,7 +344,7 @@ public sealed class Teddy<T>
 
             r.CopyTo(hits);
             uint lanes = (~Vector256.Equals(r, Vector256<byte>.Zero)).ExtractMostSignificantBits() & LaneMask;
-            int found = this.Candidates(input, i, lanes, hits);
+            int found = this.Candidates(input, i, lanes, hits, Stride);
             if (found >= 0)
             {
                 return found;
@@ -307,7 +398,7 @@ public sealed class Teddy<T>
 
             r.CopyTo(hits);
             uint lanes = (~Vector128.Equals(r, Vector128<byte>.Zero)).ExtractMostSignificantBits() & LaneMask;
-            int found = this.Candidates(input, i, lanes, hits);
+            int found = this.Candidates(input, i, lanes, hits, Stride);
             if (found >= 0)
             {
                 return found;
@@ -318,14 +409,14 @@ public sealed class Teddy<T>
     }
 
     /// <summary>The earliest start among a vector's candidates at which one of the literals of a bucket its bytes agree with is, or -1.</summary>
-    private int Candidates(ReadOnlySpan<T> input, int i, uint lanes, ReadOnlySpan<byte> hits)
+    private int Candidates(ReadOnlySpan<T> input, int i, uint lanes, ReadOnlySpan<byte> hits, int stride)
     {
         int last = input.Length - this.minLength;
         while (lanes != 0)
         {
             int lane = BitOperations.TrailingZeroCount(lanes);
             lanes &= lanes - 1;
-            int start = (i + lane) / Stride;
+            int start = (i + lane) / stride;
             if (start > last)
             {
                 return -1;

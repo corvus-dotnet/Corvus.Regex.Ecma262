@@ -68,8 +68,13 @@ public sealed class AlternationSearch
         // and the runtime's 7.8), and to the needle where one position's span search is enough (five CJK names:
         // the needle's 24 us against 40 by fingerprints). Over UTF-8 the fingerprint search.
         bool fingerprints16 = Teddy<ushort>.Supported && needles16.Length <= Teddy<ushort>.MostLiterals && shortest16 >= 2 && this.MultiUtf16.Two;
-        this.Strings = ascii && this.MultiUtf16.Cost >= NeedleOverStrings ? System.Buffers.SearchValues.Create(literals, forms is null ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) : null;
-        this.TeddyUtf16 = this.Strings is null && fingerprints16 ? new Teddy<ushort>(needles16) : null;
+        // The packed fingerprint search of our own sees the forms the runtime's comparison lacks in the same
+        // pass, which pays on three or more literals in their forms (three names under the i flag: 83 us against
+        // 100 with the runtime's search and its pass for the long s); on two short literals the runtime's search
+        // is quicker by more than the pass costs.
+        bool packed16 = ascii && forms is not null && needles16.Length >= 3 && Teddy<ushort>.PackedSupported && needles16.Length <= Teddy<ushort>.MostLiterals && shortest16 >= 2 && this.MultiUtf16.Cost >= NeedleOverStrings && extras16.Length == 0;
+        this.Strings = ascii && !packed16 && this.MultiUtf16.Cost >= NeedleOverStrings ? System.Buffers.SearchValues.Create(literals, forms is null ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) : null;
+        this.TeddyUtf16 = packed16 ? new Teddy<ushort>(needles16, packed: true) : (this.Strings is null && fingerprints16 ? new Teddy<ushort>(needles16) : null);
         this.TeddyUtf8 = Teddy<byte>.Supported && needles8.Length <= Teddy<byte>.MostLiterals && shortest8 >= 2 && this.MultiUtf8.Cost >= NeedleOverStrings ? new Teddy<byte>(needles8) : null;
         int[] apart16 = this.Strings is not null ? stringsExtras16 : extras16;
 #else
