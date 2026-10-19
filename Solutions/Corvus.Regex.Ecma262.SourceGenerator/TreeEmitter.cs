@@ -1682,6 +1682,46 @@ internal static class TreeEmitter
             RunEmitter.Line(find, i1 + 1, "return false;");
             RunEmitter.Line(find, i1, "}");
             sb_blank(find);
+            if (literal.Length > 1 && p.Utf16PrefixNeedle is { SearchesOneUnit: true } needle)
+            {
+                // A unit rare enough to search for alone, as the needle does: the literal compared where it is.
+                int at = needle.Offset1;
+                int unit = needle.Value1;
+                RunEmitter.Line(find, i1, "while (true)");
+                RunEmitter.Line(find, i1, "{");
+                RunEmitter.Line(find, i1 + 1, "int i = typeof(TUnit) == typeof(char)");
+                RunEmitter.Line(find, i1 + 2, "? " + Call("IndexOf", Chars + ".Slice(pos + " + at + ")", Ch(unit)));
+                RunEmitter.Line(find, i1 + 2, ": " + Call("IndexOf", Bytes8 + ".Slice(pos + " + at + ")", "(byte)" + unit) + ";");
+                RunEmitter.Line(find, i1 + 1, "if (i < 0)");
+                RunEmitter.Line(find, i1 + 1, "{");
+                RunEmitter.Line(find, i1 + 2, "return false;");
+                RunEmitter.Line(find, i1 + 1, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i1 + 1, "pos += i;");
+                RunEmitter.Line(find, i1 + 1, "if (pos > len - " + literal.Length + ")");
+                RunEmitter.Line(find, i1 + 1, "{");
+                RunEmitter.Line(find, i1 + 2, "return false;");
+                RunEmitter.Line(find, i1 + 1, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i1 + 1, "if (!(typeof(TUnit) == typeof(char) ? " + Call("StartsWith", Chars + ".Slice(pos)", Str(literal) + ".AsSpan()") + " : " + Call("StartsWith", Bytes8 + ".Slice(pos)", "B0") + "))");
+                RunEmitter.Line(find, i1 + 1, "{");
+                RunEmitter.Line(find, i1 + 2, "pos++;");
+                RunEmitter.Line(find, i1 + 2, "continue;");
+                RunEmitter.Line(find, i1 + 1, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i1 + 1, "if (len - pos < p.Need)");
+                RunEmitter.Line(find, i1 + 1, "{");
+                RunEmitter.Line(find, i1 + 2, "return false;");
+                RunEmitter.Line(find, i1 + 1, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i1 + 1, "start = pos;");
+                RunEmitter.Line(find, i1 + 1, "scan.Next = start + 1;");
+                RunEmitter.Line(find, i1 + 1, "return true;");
+                RunEmitter.Line(find, i1, "}");
+                Tail(find, indent);
+                return;
+            }
+
             string args16 = literal.Length == 1 ? Ch(literal[0]) : Str(literal) + ".AsSpan()";
             string args8 = literal.Length == 1 ? "(byte)" + (int)literal[0] : "B0";
             string method16 = "IndexOf";

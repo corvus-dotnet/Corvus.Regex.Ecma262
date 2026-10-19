@@ -476,6 +476,9 @@ public sealed class Needle<T>
 #endif
     }
 
+    /// <summary>Gets a value indicating whether the needle searches for one value at one position (rare enough to search for alone) and compares the literal where it is found.</summary>
+    public bool SearchesOneUnit => this.mode == Mode.One;
+
     /// <summary>Gets a value indicating whether the literal is best searched for by the runtime's string search (common letters at both ends, over UTF-16).</summary>
     public bool PrefersStringSearch
     {
