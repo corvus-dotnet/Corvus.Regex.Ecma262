@@ -228,6 +228,14 @@ public interface ITextEncoding<TUnit>
     /// <returns>The position, or -1.</returns>
     int IndexOfAlternation(ReadOnlySpan<TUnit> input, int from, AlternationSearch alternation);
 
+    /// <summary>The same, with the length of the alternative found where the search knows it (the needle and the fingerprint search do; the runtime's search does not), or -1.</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="alternation">The alternation.</param>
+    /// <param name="length">The length of the alternative at the position, or -1 when unknown.</param>
+    /// <returns>The position, or -1.</returns>
+    int IndexOfAlternation(ReadOnlySpan<TUnit> input, int from, AlternationSearch alternation, out int length);
+
     /// <summary>The length in units of the first of an alternation's alternatives that is at a position, or -1.</summary>
     /// <param name="input">The text.</param>
     /// <param name="pos">The position.</param>
@@ -659,15 +667,18 @@ public readonly struct Utf8Encoding : ITextEncoding<byte>
     }
 
     /// <inheritdoc/>
-    public int IndexOfAlternation(ReadOnlySpan<byte> input, int from, AlternationSearch alternation)
+    public int IndexOfAlternation(ReadOnlySpan<byte> input, int from, AlternationSearch alternation) => this.IndexOfAlternation(input, from, alternation, out _);
+
+    /// <inheritdoc/>
+    public int IndexOfAlternation(ReadOnlySpan<byte> input, int from, AlternationSearch alternation, out int length)
     {
 #if NET
         if (alternation.TeddyUtf8 is not null)
         {
-            return alternation.TeddyUtf8.IndexOf(input, from);
+            return alternation.TeddyUtf8.IndexOf(input, from, out length);
         }
 #endif
-        return alternation.MultiUtf8.IndexOf(input, from);
+        return alternation.MultiUtf8.IndexOf(input, from, out length);
     }
 
     /// <inheritdoc/>
@@ -956,22 +967,26 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
     }
 
     /// <inheritdoc/>
-    public int IndexOfAlternation(ReadOnlySpan<char> input, int from, AlternationSearch alternation)
+    public int IndexOfAlternation(ReadOnlySpan<char> input, int from, AlternationSearch alternation) => this.IndexOfAlternation(input, from, alternation, out _);
+
+    /// <inheritdoc/>
+    public int IndexOfAlternation(ReadOnlySpan<char> input, int from, AlternationSearch alternation, out int length)
     {
 #if NET
         // The runtime's search for any of several ASCII strings (Teddy) is the fastest there is.
         if (alternation.Strings is not null)
         {
+            length = -1;
             int i = input.Slice(from).IndexOfAny(alternation.Strings);
             return i < 0 ? -1 : from + i;
         }
 
         if (alternation.TeddyUtf16 is not null)
         {
-            return alternation.TeddyUtf16.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
+            return alternation.TeddyUtf16.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from, out length);
         }
 #endif
-        return alternation.MultiUtf16.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
+        return alternation.MultiUtf16.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from, out length);
     }
 
     /// <inheritdoc/>

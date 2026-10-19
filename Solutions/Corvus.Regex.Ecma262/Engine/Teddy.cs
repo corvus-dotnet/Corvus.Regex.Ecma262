@@ -177,8 +177,16 @@ public sealed class Teddy<T>
     /// <param name="input">The text.</param>
     /// <param name="from">The position.</param>
     /// <returns>The position, or -1.</returns>
-    public int IndexOf(ReadOnlySpan<T> input, int from)
+    public int IndexOf(ReadOnlySpan<T> input, int from) => this.IndexOf(input, from, out _);
+
+    /// <summary>The earliest position at or after a position where one of the literals is, or -1, and that literal's length.</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="length">The length of the literal found (the first in the pattern's order at that position), or -1.</param>
+    /// <returns>The position, or -1.</returns>
+    public int IndexOf(ReadOnlySpan<T> input, int from, out int length)
     {
+        length = -1;
         int last = input.Length - this.minLength;
         if (from > last)
         {
@@ -188,7 +196,7 @@ public sealed class Teddy<T>
         if (this.packed)
         {
             int at = from;
-            int found = this.ScanPacked(input, ref at);
+            int found = this.ScanPacked(input, ref at, out length);
             if (found >= 0)
             {
                 return found;
@@ -196,7 +204,8 @@ public sealed class Teddy<T>
 
             for (; at <= last; at++)
             {
-                if (this.VerifyAny(input, at))
+                length = this.VerifyAny(input, at);
+                if (length >= 0)
                 {
                     return at;
                 }
@@ -209,7 +218,7 @@ public sealed class Teddy<T>
         int i = from * Stride;
         if (Avx2.IsSupported && Vector256.IsHardwareAccelerated)
         {
-            int found = this.Scan256(input, ref i);
+            int found = this.Scan256(input, ref i, out length);
             if (found >= 0)
             {
                 return found;
@@ -217,7 +226,7 @@ public sealed class Teddy<T>
         }
         else if (Vector128.IsHardwareAccelerated)
         {
-            int found = this.Scan128(input, ref i);
+            int found = this.Scan128(input, ref i, out length);
             if (found >= 0)
             {
                 return found;
@@ -226,7 +235,8 @@ public sealed class Teddy<T>
 
         for (i /= Stride; i <= last; i++)
         {
-            if (this.VerifyAny(input, i))
+            length = this.VerifyAny(input, i);
+            if (length >= 0)
             {
                 return i;
             }
@@ -236,8 +246,9 @@ public sealed class Teddy<T>
     }
 
     /// <summary>Over UTF-16: thirty-two units narrowed to bytes at each step, then the lookups of the byte search; a unit beyond 255 narrows to 255.</summary>
-    private int ScanPacked(ReadOnlySpan<T> input, ref int i)
+    private int ScanPacked(ReadOnlySpan<T> input, ref int i, out int length)
     {
+        length = -1;
         ReadOnlySpan<ushort> units = MemoryMarshal.Cast<T, ushort>(input);
         int lastVector = units.Length - Vector256<byte>.Count - this.reach;
         if (i > lastVector)
@@ -280,7 +291,7 @@ public sealed class Teddy<T>
 
             r.CopyTo(hits);
             uint lanes = (~Vector256.Equals(r, Vector256<byte>.Zero)).ExtractMostSignificantBits();
-            int found = this.Candidates(input, i, lanes, hits, 1);
+            int found = this.Candidates(input, i, lanes, hits, 1, out length);
             if (found >= 0)
             {
                 return found;
@@ -300,8 +311,9 @@ public sealed class Teddy<T>
         return Avx2.Permute4x64(packed.AsInt64(), 0xD8).AsByte();
     }
 
-    private int Scan256(ReadOnlySpan<T> input, ref int i)
+    private int Scan256(ReadOnlySpan<T> input, ref int i, out int length)
     {
+        length = -1;
         ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(input);
         int lastVector = bytes.Length - Vector256<byte>.Count - (this.reach * Stride);
         if (i > lastVector)
@@ -344,7 +356,7 @@ public sealed class Teddy<T>
 
             r.CopyTo(hits);
             uint lanes = (~Vector256.Equals(r, Vector256<byte>.Zero)).ExtractMostSignificantBits() & LaneMask;
-            int found = this.Candidates(input, i, lanes, hits, Stride);
+            int found = this.Candidates(input, i, lanes, hits, Stride, out length);
             if (found >= 0)
             {
                 return found;
@@ -354,8 +366,9 @@ public sealed class Teddy<T>
         return -1;
     }
 
-    private int Scan128(ReadOnlySpan<T> input, ref int i)
+    private int Scan128(ReadOnlySpan<T> input, ref int i, out int length)
     {
+        length = -1;
         ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(input);
         int lastVector = bytes.Length - Vector128<byte>.Count - (this.reach * Stride);
         if (i > lastVector)
@@ -398,7 +411,7 @@ public sealed class Teddy<T>
 
             r.CopyTo(hits);
             uint lanes = (~Vector128.Equals(r, Vector128<byte>.Zero)).ExtractMostSignificantBits() & LaneMask;
-            int found = this.Candidates(input, i, lanes, hits, Stride);
+            int found = this.Candidates(input, i, lanes, hits, Stride, out length);
             if (found >= 0)
             {
                 return found;
@@ -409,8 +422,9 @@ public sealed class Teddy<T>
     }
 
     /// <summary>The earliest start among a vector's candidates at which one of the literals of a bucket its bytes agree with is, or -1.</summary>
-    private int Candidates(ReadOnlySpan<T> input, int i, uint lanes, ReadOnlySpan<byte> hits, int stride)
+    private int Candidates(ReadOnlySpan<T> input, int i, uint lanes, ReadOnlySpan<byte> hits, int stride, out int length)
     {
+        length = -1;
         int last = input.Length - this.minLength;
         while (lanes != 0)
         {
@@ -432,6 +446,7 @@ public sealed class Teddy<T>
                     Needle<T> needle = this.needles[k];
                     if (input.Length - start >= needle.Length && needle.Verify(input, start))
                     {
+                        length = needle.Length;
                         return start;
                     }
                 }
@@ -441,17 +456,17 @@ public sealed class Teddy<T>
         return -1;
     }
 
-    private bool VerifyAny(ReadOnlySpan<T> input, int start)
+    private int VerifyAny(ReadOnlySpan<T> input, int start)
     {
         foreach (Needle<T> needle in this.needles)
         {
             if (input.Length - start >= needle.Length && needle.Verify(input, start))
             {
-                return true;
+                return needle.Length;
             }
         }
 
-        return false;
+        return -1;
     }
 }
 #endif

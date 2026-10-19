@@ -1508,8 +1508,16 @@ public sealed class MultiNeedle<T>
     /// <param name="input">The text.</param>
     /// <param name="from">The position.</param>
     /// <returns>The position, or -1.</returns>
-    public int IndexOf(ReadOnlySpan<T> input, int from)
+    public int IndexOf(ReadOnlySpan<T> input, int from) => this.IndexOf(input, from, out _);
+
+    /// <summary>The earliest position at or after a position where one of the literals is, or -1, and that literal's length.</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="length">The length of the literal found (the first in the pattern's order at that position), or -1.</param>
+    /// <returns>The position, or -1.</returns>
+    public int IndexOf(ReadOnlySpan<T> input, int from, out int length)
     {
+        length = -1;
         int last = input.Length - this.minLength;
         if (from > last)
         {
@@ -1520,7 +1528,7 @@ public sealed class MultiNeedle<T>
 #if NET
         if (this.pair)
         {
-            return this.ScanPair(input, from, last);
+            return this.ScanPair(input, from, last, out length);
         }
 
         if (!this.two && this.exact)
@@ -1548,7 +1556,8 @@ public sealed class MultiNeedle<T>
                 }
 
                 int start = at + j - o;
-                if (this.VerifyAny(input, start))
+                length = this.VerifyAny(input, start);
+                if (length >= 0)
                 {
                     return start;
                 }
@@ -1561,7 +1570,7 @@ public sealed class MultiNeedle<T>
 
         if (this.values1.Length <= Straight && this.values2.Length <= Straight)
         {
-            return this.ScanTwo(input, from, last);
+            return this.ScanTwo(input, from, last, out length);
         }
 
         ref T s = ref MemoryMarshal.GetReference(input);
@@ -1594,7 +1603,8 @@ public sealed class MultiNeedle<T>
                     do
                     {
                         int start = i + System.Numerics.BitOperations.TrailingZeroCount(mask);
-                        if (this.VerifyAny(input, start))
+                        length = this.VerifyAny(input, start);
+                        if (length >= 0)
                         {
                             return start;
                         }
@@ -1611,7 +1621,8 @@ public sealed class MultiNeedle<T>
 
         for (; i <= last; i++)
         {
-            if (this.VerifyAny(input, i))
+            length = this.VerifyAny(input, i);
+            if (length >= 0)
             {
                 return i;
             }
@@ -1629,8 +1640,9 @@ public sealed class MultiNeedle<T>
     /// comparisons, with the constants as its arguments (a position with fewer units repeats its first), and the
     /// full comparisons outside it at each start the units let through.
     /// </summary>
-    private int ScanTwo(ReadOnlySpan<T> input, int from, int last)
+    private int ScanTwo(ReadOnlySpan<T> input, int from, int last, out int length)
     {
+        length = -1;
         ref T s = ref MemoryMarshal.GetReference(input);
         T[] v1 = this.values1;
         T[] m1 = this.masks1;
@@ -1655,7 +1667,8 @@ public sealed class MultiNeedle<T>
                 do
                 {
                     int start = i + System.Numerics.BitOperations.TrailingZeroCount(mask);
-                    if (this.VerifyAny(input, start))
+                    length = this.VerifyAny(input, start);
+                    if (length >= 0)
                     {
                         return start;
                     }
@@ -1685,7 +1698,8 @@ public sealed class MultiNeedle<T>
                 do
                 {
                     int start = i + System.Numerics.BitOperations.TrailingZeroCount(mask);
-                    if (this.VerifyAny(input, start))
+                    length = this.VerifyAny(input, start);
+                    if (length >= 0)
                     {
                         return start;
                     }
@@ -1700,7 +1714,8 @@ public sealed class MultiNeedle<T>
 
         for (; i <= last; i++)
         {
-            if (this.VerifyAny(input, i))
+            length = this.VerifyAny(input, i);
+            if (length >= 0)
             {
                 return i;
             }
@@ -1796,8 +1811,9 @@ public sealed class MultiNeedle<T>
     }
 
     /// <summary>The scan for any of the literals' pairs of adjacent bytes (see <see cref="PairSearch"/>).</summary>
-    private int ScanPair(ReadOnlySpan<T> input, int from, int last)
+    private int ScanPair(ReadOnlySpan<T> input, int from, int last, out int length)
     {
+        length = -1;
         ref byte s = ref Unsafe.As<T, byte>(ref MemoryMarshal.GetReference(input));
         ushort[] pairs = this.pairs;
         int o = this.o1;
@@ -1816,7 +1832,8 @@ public sealed class MultiNeedle<T>
                 do
                 {
                     int start = i + System.Numerics.BitOperations.TrailingZeroCount(mask);
-                    if (this.VerifyAny(input, start))
+                    length = this.VerifyAny(input, start);
+                    if (length >= 0)
                     {
                         return start;
                     }
@@ -1843,7 +1860,8 @@ public sealed class MultiNeedle<T>
                 do
                 {
                     int start = i + System.Numerics.BitOperations.TrailingZeroCount(mask);
-                    if (this.VerifyAny(input, start))
+                    length = this.VerifyAny(input, start);
+                    if (length >= 0)
                     {
                         return start;
                     }
@@ -1858,7 +1876,8 @@ public sealed class MultiNeedle<T>
 
         for (; i <= last; i++)
         {
-            if (this.VerifyAny(input, i))
+            length = this.VerifyAny(input, i);
+            if (length >= 0)
             {
                 return i;
             }
@@ -1900,7 +1919,8 @@ public sealed class MultiNeedle<T>
         masks.Add(mask);
     }
 
-    private bool VerifyAny(ReadOnlySpan<T> input, int start)
+    /// <summary>The length of the first literal, in the pattern's order, that is at a start, or -1.</summary>
+    private int VerifyAny(ReadOnlySpan<T> input, int start)
     {
         Needle<T>[] needles = this.needles;
         if (!this.exact)
@@ -1909,11 +1929,11 @@ public sealed class MultiNeedle<T>
             {
                 if (input.Length - start >= needle.Length && needle.Verify(input, start))
                 {
-                    return true;
+                    return needle.Length;
                 }
             }
 
-            return false;
+            return -1;
         }
 
         T x1 = input[start + this.o1];
@@ -1927,12 +1947,12 @@ public sealed class MultiNeedle<T>
                 Needle<T> needle = needles[j];
                 if (input.Length - start >= needle.Length && needle.Verify(input, start))
                 {
-                    return true;
+                    return needle.Length;
                 }
             }
         }
 
-        return false;
+        return -1;
     }
 }
 

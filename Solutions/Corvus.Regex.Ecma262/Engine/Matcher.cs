@@ -718,11 +718,12 @@ public static class Matcher
                 int pos = start;
                 while (pos < len)
                 {
+                    int known = -1;
 #if NET
                     if (!sticky)
                     {
                         AlternationSearch? alternation = p.Alternation;
-                        int i = alternation is null ? enc.IndexOfAnyNeedle(input, pos, p) : enc.IndexOfAlternation(input, pos, alternation);
+                        int i = alternation is null ? enc.IndexOfAnyNeedle(input, pos, p) : enc.IndexOfAlternation(input, pos, alternation, out known);
                         if (i == -2)
                         {
                             i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);
@@ -743,6 +744,7 @@ public static class Matcher
 
                             if (e >= 0 && (i < 0 || e - window < i))
                             {
+                                known = -1;
                                 int s = Math.Max(pos, e - window + 1);
                                 while (s <= e)
                                 {
@@ -778,9 +780,15 @@ public static class Matcher
                         {
                             return false;
                         }
+
+                        if (pos != i)
+                        {
+                            known = -1;
+                        }
                     }
 #endif
-                    int end = p.Shape == SimpleShape.Sequence ? SequenceAt<TUnit, TEncoding>(p, input, pos, units) : AlternativeEnd<TUnit, TEncoding>(p, input, pos);
+                    // The search that verified the alternative says how long it is; the runtime's does not.
+                    int end = known >= 0 && p.Shape == SimpleShape.LiteralAlternation ? pos + known : p.Shape == SimpleShape.Sequence ? SequenceAt<TUnit, TEncoding>(p, input, pos, units) : AlternativeEnd<TUnit, TEncoding>(p, input, pos);
                     if (end >= 0)
                     {
                         from = pos;
@@ -1398,6 +1406,13 @@ public static class Matcher
             int window = extras ? enc.AlternativeWindow(alternation) : 0;
             int next = pos + lo;
             int tried = pos - 1;
+            if (hi == 0 && p.Runner is not null)
+            {
+                // Every alternative starts with its literal, and the generated code loops over the occurrences itself.
+                CandidateScan scan = new() { Kind = CandidateScan.Alternation, Next = next, Floor = pos, Last = -1 };
+                return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
+            }
+
             while (true)
             {
                 int i = enc.IndexOfAlternation(input, next, alternation);
@@ -1426,13 +1441,6 @@ public static class Matcher
                 if (hi == 0)
                 {
                     // Every alternative starts with its literal: the match starts at the occurrence or not at all.
-                    if (p.Runner is not null)
-                    {
-                        // The generated code loops over the occurrences itself.
-                        CandidateScan scan = new() { Kind = CandidateScan.Alternation, Next = next, Floor = pos, Last = -1 };
-                        return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
-                    }
-
                     if (len - i >= p.Need)
                     {
                         from = i;
