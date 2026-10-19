@@ -1089,22 +1089,61 @@ public static class Matcher
             // Every match is a run of the loop's set then the literal: the literal is searched for, and the run
             // before it is walked back to the earliest start. A failed start fails for every later start of the
             // same run (the loop ends at the same place), so the next literal occurrence is searched for next.
-            CharSet loopSet = p.LoopSet!;
+            CharSet[] loopSets = p.AfterLoopSets;
+            int[] loopMins = p.AfterLoopMins;
+            int least = 0;
+            foreach (int m in loopMins)
+            {
+                least += m;
+            }
+
             while (true)
             {
-                int i = enc.IndexOfAfterLoop(input, pos + p.LoopMin, p);
+                int i = enc.IndexOfAfterLoop(input, pos + least, p);
                 if (i < 0)
                 {
                     return false;
                 }
 
+                // The runs of the loops' sets before the occurrence, walked back last loop first; a loop that
+                // needs a character and finds an empty run rules this occurrence out.
                 int s = i;
-                while (s > pos && enc.Unit(input, s - 1) < 0x80 && loopSet.HasAscii(enc.Unit(input, s - 1)))
+                bool short_ = false;
+                for (int k = loopSets.Length - 1; k >= 0; k--)
                 {
-                    s--;
+                    CharSet loopSet = loopSets[k];
+                    int runEnd = s;
+                    while (s > pos)
+                    {
+                        int c = enc.Unit(input, s - 1);
+                        if (c < 0x80)
+                        {
+                            if (!loopSet.HasAscii(c))
+                            {
+                                break;
+                            }
+
+                            s--;
+                            continue;
+                        }
+
+                        int r = units ? enc.UnitBefore(input, s, out int w) : enc.DecodeBefore(input, s, out w);
+                        if (!loopSet.Contains(r) || s - w < pos)
+                        {
+                            break;
+                        }
+
+                        s -= w;
+                    }
+
+                    if (loopMins[k] == 1 && s == runEnd)
+                    {
+                        short_ = true;
+                        break;
+                    }
                 }
 
-                if (p.LoopMin == 1 && s == i)
+                if (short_)
                 {
                     pos = enc.NextStart(input, i);
                     continue;

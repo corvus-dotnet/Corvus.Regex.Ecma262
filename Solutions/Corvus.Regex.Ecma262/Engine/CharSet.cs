@@ -106,6 +106,34 @@ public sealed class CharSet
         }
     }
 
+    /// <summary>Whether two sets share a character.</summary>
+    /// <param name="other">The other set.</param>
+    /// <returns>Whether they do.</returns>
+    public bool Intersects(CharSet other)
+    {
+        int[] a = this.ranges;
+        int[] b = other.ranges;
+        int i = 0;
+        int j = 0;
+        while (i < a.Length && j < b.Length)
+        {
+            if (a[i + 1] < b[j])
+            {
+                i += 2;
+            }
+            else if (b[j + 1] < a[i])
+            {
+                j += 2;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Gets a value indicating whether the set has at most <see cref="SmallSet"/> members.</summary>
     public bool IsSmall
     {
@@ -180,6 +208,7 @@ public sealed class CharSet
     /// is read inside a four-byte character) or U+FFFD (which any byte that is not UTF-8 reads as).
     /// </summary>
     public bool ScansByTrailByte => !this.Contains(0xFFFD) && !this.IntersectsSurrogates();
+
 
     /// <summary>Gets the last UTF-8 byte of every member of a small set, for a vectorised search over UTF-8 that then decodes backwards. Only for a set that <see cref="IsSmall"/> and <see cref="ScansByTrailByte"/>.</summary>
     public SearchValues<byte> TrailBytes

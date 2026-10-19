@@ -422,9 +422,13 @@ public sealed class Program
     /// <param name="afterLoopMax">The greatest count of the leading loop, when bounded, or -1.</param>
     /// <param name="afterLoopAlternation">The alternation of literals after the leading loop, or null.</param>
     /// <param name="requiredCountMax">The greatest number of characters before the required literal when it varies, or -1.</param>
-    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, int[][] caseForms, int requiredOffsetUtf8, CharSet? loopSet, int loopMin, string afterLoop, bool skipRun, int requiredCount, int afterLoopMax = -1, AlternationSearch? afterLoopAlternation = null, int requiredCountMax = -1)
+    /// <param name="afterLoopSets">The sets of the run of loops before the literal after them, in order, or null for the one loop.</param>
+    /// <param name="afterLoopMins">The least count of each of those loops, or null.</param>
+    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, int[][] caseForms, int requiredOffsetUtf8, CharSet? loopSet, int loopMin, string afterLoop, bool skipRun, int requiredCount, int afterLoopMax = -1, AlternationSearch? afterLoopAlternation = null, int requiredCountMax = -1, CharSet[]? afterLoopSets = null, int[]? afterLoopMins = null)
     {
         this.RequiredCountMax = requiredCountMax;
+        this.AfterLoopSets = afterLoopSets ?? (loopSet is null ? [] : [loopSet]);
+        this.AfterLoopMins = afterLoopMins ?? [loopMin];
         this.AfterLoopMax = afterLoopMax;
         this.AfterLoopAlternation = afterLoopAlternation;
         this.RequiredOffsetUtf8 = requiredOffsetUtf8;
@@ -695,6 +699,12 @@ public sealed class Program
     /// <summary>Gets the greatest count of the leading loop before the literal or alternation after it, or -1 when it has none.</summary>
     public int AfterLoopMax { get; }
 
+    /// <summary>Gets the sets of the run of loops before the literal after them (see <see cref="Compiler.LiteralAfterLoop"/>), in order; empty when there is no such literal.</summary>
+    public CharSet[] AfterLoopSets { get; }
+
+    /// <summary>Gets the least count of each of the loops in <see cref="AfterLoopSets"/>.</summary>
+    public int[] AfterLoopMins { get; }
+
     /// <summary>Gets the search for any of the pair needles at once over UTF-8, or null.</summary>
     public MultiNeedle<byte>? PairMultiUtf8 { get; private set; }
 
@@ -904,6 +914,8 @@ internal sealed class Compiler
         string afterLoop = string.Empty;
         int afterLoopMax = -1;
         AlternationSearch? afterLoopAlternation = null;
+        CharSet[] afterLoopSets = [];
+        int[] afterLoopMins = [];
         bool skipRun = false;
         if (!anchored)
         {
@@ -937,7 +949,7 @@ internal sealed class Compiler
 
                 if (required.Length == 0 && caseForms.Length == 0 && referenced.Count == 0)
                 {
-                    afterLoop = LiteralAfterLoop(root, c, out loopSet, out loopMin, out afterLoopMax, out afterLoopAlternation);
+                    afterLoop = LiteralAfterLoop(root, c, out loopSet, out loopMin, out afterLoopMax, out afterLoopAlternation, out afterLoopSets, out afterLoopMins);
                 }
             }
         }
@@ -964,7 +976,7 @@ internal sealed class Compiler
             }
         }
 
-        Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, caseForms, requiredOffsetUtf8, loopSet, loopMin, afterLoop, skipRun, requiredCount, afterLoopMax, afterLoopAlternation, requiredCountMax);
+        Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, caseForms, requiredOffsetUtf8, loopSet, loopMin, afterLoop, skipRun, requiredCount, afterLoopMax, afterLoopAlternation, requiredCountMax, afterLoopSets, afterLoopMins);
         program.SetShape(LiteralAlternatives(root), CaseAlternatives(root));
         program.LeadingWordBoundary = insts.Length > 1 && insts[0].Op == Op.WordBoundary && first is not null && !first.HasNonAscii && IsWordSubset(first);
         return program;
@@ -1731,13 +1743,17 @@ internal sealed class Compiler
     /// <param name="min">The least count of the loop.</param>
     /// <param name="max">The greatest count of the loop, or -1 for none.</param>
     /// <param name="alternation">The alternation after the loop, or null.</param>
+    /// <param name="sets">The sets of the run of loops before the literal, in order, when the loops have no upper bound; otherwise empty.</param>
+    /// <param name="mins">The least count of each of those loops.</param>
     /// <returns>The literal, or empty.</returns>
-    public static string LiteralAfterLoop(EcmaRegexNode root, Compiler c, out CharSet? set, out int min, out int max, out AlternationSearch? alternation)
+    public static string LiteralAfterLoop(EcmaRegexNode root, Compiler c, out CharSet? set, out int min, out int max, out AlternationSearch? alternation, out CharSet[] sets, out int[] mins)
     {
         set = null;
         min = 0;
         max = -1;
         alternation = null;
+        sets = [];
+        mins = [];
         EcmaRegexNode n = root;
         while (n.Kind == EcmaRegexNodeKind.Group)
         {
@@ -1749,7 +1765,19 @@ internal sealed class Compiler
             return string.Empty;
         }
 
-        EcmaRegexNode loop = n.Subs[0];
+        // Zero-width assertions before the loops are left to the matcher to check.
+        int first = 0;
+        while (first < n.Subs.Length - 1 && n.Subs[first].Kind is EcmaRegexNodeKind.WordBoundary or EcmaRegexNodeKind.NotWordBoundary or EcmaRegexNodeKind.LineStart or EcmaRegexNodeKind.LineEnd)
+        {
+            first++;
+        }
+
+        if (first >= n.Subs.Length - 1)
+        {
+            return string.Empty;
+        }
+
+        EcmaRegexNode loop = n.Subs[first];
         while (loop.Kind == EcmaRegexNodeKind.Group)
         {
             loop = loop.Subs[0];
@@ -1761,6 +1789,79 @@ internal sealed class Compiler
         }
 
         bool bounded = loop.Max != EcmaRegexNode.Unbounded;
+        if (!bounded)
+        {
+            // A run of loops without upper bound over sets that share no character ([a-zA-Z]+ing, \w+\s+Holmes),
+            // then the literal: the runs before an occurrence are walked back, last loop first.
+            List<CharSet> loopSets = [];
+            List<int> loopMins = [];
+            int t = first;
+            for (; t < n.Subs.Length; t++)
+            {
+                EcmaRegexNode term = n.Subs[t];
+                while (term.Kind == EcmaRegexNodeKind.Group)
+                {
+                    term = term.Subs[0];
+                }
+
+                if (term.Kind != EcmaRegexNodeKind.Repeat || term.Lazy || term.Max != EcmaRegexNode.Unbounded || term.Min > 1)
+                {
+                    break;
+                }
+
+                EcmaRegexNode b = term.Subs[0];
+                CharSet termSet;
+                if (b.Kind == EcmaRegexNodeKind.Set && b.Set.Length > 0)
+                {
+                    termSet = c.Class(b);
+                }
+                else if (b.Kind == EcmaRegexNodeKind.Char)
+                {
+                    termSet = new CharSet([b.CodePoint, b.CodePoint]);
+                }
+                else
+                {
+                    break;
+                }
+
+                foreach (CharSet other in loopSets)
+                {
+                    if (other.Intersects(termSet))
+                    {
+                        return string.Empty;
+                    }
+                }
+
+                loopSets.Add(termSet);
+                loopMins.Add(term.Min);
+            }
+
+            if (loopSets.Count == 0 || t >= n.Subs.Length)
+            {
+                return string.Empty;
+            }
+
+            StringBuilder literal = new();
+            for (int j = t; j < n.Subs.Length && n.Subs[j].Kind == EcmaRegexNodeKind.Char && IsLiteralRune(n.Subs[j].CodePoint); j++)
+            {
+                AppendRune(literal, n.Subs[j].CodePoint);
+            }
+
+            if (literal.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            // The loops may take the literal's own characters ([a-zA-Z]+ing): the first occurrence of the literal
+            // still lies in the first run of the sets that holds one, whose start is the leftmost start, from
+            // which the loops give back to the literal.
+            set = loopSets[0];
+            min = loopMins[0];
+            sets = [.. loopSets];
+            mins = [.. loopMins];
+            return literal.ToString();
+        }
+
         if (bounded ? loop.Max > 64 || loop.Max < loop.Min : loop.Min > 1)
         {
             return string.Empty;
@@ -1789,7 +1890,7 @@ internal sealed class Compiler
         if (bounded)
         {
             // What follows: a literal, or an alternation of literals (exact, or in their forms).
-            EcmaRegexNode next = n.Subs[1];
+            EcmaRegexNode next = n.Subs[first + 1];
             while (next.Kind == EcmaRegexNodeKind.Group)
             {
                 next = next.Subs[0];
@@ -1812,7 +1913,7 @@ internal sealed class Compiler
         }
 
         StringBuilder sb = new();
-        for (int j = 1; j < n.Subs.Length && n.Subs[j].Kind == EcmaRegexNodeKind.Char && IsLiteralRune(n.Subs[j].CodePoint); j++)
+        for (int j = first + 1; j < n.Subs.Length && n.Subs[j].Kind == EcmaRegexNodeKind.Char && IsLiteralRune(n.Subs[j].CodePoint); j++)
         {
             AppendRune(sb, n.Subs[j].CodePoint);
         }
@@ -1821,10 +1922,6 @@ internal sealed class Compiler
         {
             return string.Empty;
         }
-
-        // The loop may take the literal's own characters ([a-zA-Z]+ing): the first occurrence of the literal
-        // still lies in the first run of the set that holds one, and that run's start is the leftmost start, from
-        // which the loop gives back to the literal.
 
         set = loopSet;
         min = loop.Min;
