@@ -991,11 +991,33 @@ internal static class TreeEmitter
                 this.Line("    c = enc.Unit(input, at);");
                 this.Line("    if (" + more + ")");
                 this.Line("    {");
-                this.Line(set is not null
+                string vector = set is not null
                     ? (set.IsLineRest
-                        ? "        at = " + Ns + "Matcher.EndOfLine<TUnit, TEncoding>(st, input, at);"
-                        : "        at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(" + this.SetName(set) + ", input, at, units);")
-                    : "        at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(" + body.CodePoint + ", input, at);");
+                        ? "at = " + Ns + "Matcher.EndOfLine<TUnit, TEncoding>(st, input, at);"
+                        : "at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(" + this.SetName(set) + ", input, at, units);")
+                    : "at = " + Ns + "Matcher.EndOfRun<TUnit, TEncoding>(" + body.CodePoint + ", input, at);";
+                if (set is null || (!set.HasNonAscii && !set.IsLineRest))
+                {
+                    // Most runs are a word long: the next units are walked in code, and the vector search is
+                    // called only for a run that goes on past them (as the runtime does for a bounded run).
+                    string member = set is not null ? "(c = enc.Unit(input, at)) < 0x80 && " + RunEmitter.AsciiTest(set, "c") : "enc.Unit(input, at) == " + body.CodePoint;
+                    this.Line("        at++;");
+                    this.Line("        j = len - at < 8 ? len : at + 8;");
+                    this.Line("        while (at < j && " + member + ")");
+                    this.Line("        {");
+                    this.Line("            at++;");
+                    this.Line("        }");
+                    sb_blank(this.code);
+                    this.Line("        if (at == j)");
+                    this.Line("        {");
+                    this.Line("            " + vector);
+                    this.Line("        }");
+                }
+                else
+                {
+                    this.Line("        " + vector);
+                }
+
                 this.Line("    }");
                 this.Line("}");
                 sb_blank(this.code);
@@ -1092,7 +1114,31 @@ internal static class TreeEmitter
             this.Line("    goto " + outer + ";");
             this.Line("}");
             sb_blank(this.code);
-            if (filter)
+            int followOne = -1;
+            if (filter && follow.Set!.Count == 1)
+            {
+                for (int ch = 0; ch < 128; ch++)
+                {
+                    if (follow.Set.HasAscii(ch))
+                    {
+                        followOne = ch;
+                    }
+                }
+            }
+
+            if (followOne >= 0)
+            {
+                // What follows can go on only from one ASCII character: the last one in the run is found by the
+                // span search at any length (a failed candidate for an email address gives back a whole word).
+                this.Line("j = typeof(TUnit) == typeof(char) ? global::System.MemoryExtensions.LastIndexOf(global::System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(input).Slice(" + floor + ", pos - " + floor + "), '\\u" + followOne.ToString("X4", CultureInfo.InvariantCulture) + "') : global::System.MemoryExtensions.LastIndexOf(global::System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, byte>(input).Slice(" + floor + ", pos - " + floor + "), (byte)" + followOne + ");");
+                this.Line("if (j < 0)");
+                this.Line("{");
+                this.Line("    goto " + outer + ";");
+                this.Line("}");
+                sb_blank(this.code);
+                this.Line("pos = " + floor + " + j;");
+            }
+            else if (filter)
             {
                 // What follows can go on only from a member of a set of ASCII characters: the last such position
                 // in the run is found by vector when the run is long enough to pay for it.
@@ -1293,6 +1339,7 @@ internal static class TreeEmitter
     {
         public static bool TryEmit(Program p, StringBuilder find, StringBuilder statics, int indent)
         {
+
             if (p.Anchored || p.Root is null)
             {
                 return false;
@@ -1317,7 +1364,7 @@ internal static class TreeEmitter
                 return true;
             }
 
-            if ((p.Shape == SimpleShape.CaseLiteral || p.Shape == SimpleShape.None) && p.CaseNeedleUtf16 is not null && p.CaseForms.Length >= 2 && p.CaseForms.All(f => f[0] < 0x80))
+            if ((p.Shape == SimpleShape.CaseLiteral || p.Shape == SimpleShape.Sequence || p.Shape == SimpleShape.None) && p.CaseNeedleUtf16 is not null && p.CaseForms.Length >= 2 && p.CaseForms.All(f => f.All(x => x < 0x80)))
             {
                 EmitCaseLiteral(p, find, statics, indent);
                 return true;
@@ -1687,7 +1734,7 @@ internal static class TreeEmitter
             Tail(find, indent);
         }
 
-        /// <summary>The literal every match starts with in its forms: the runtime's search ignoring case, held in a static field, with the forms it does not know found by the cursor's pass.</summary>
+        /// <summary>The literal every match starts with in its forms, all ASCII (the u flag's long s and Kelvin sign are one unit over UTF-16, which the runtime's needle carries as rows and the search ignoring case does not know): the runtime's search ignoring case, held in a static field.</summary>
         private static void EmitCaseLiteral(Program p, StringBuilder find, StringBuilder statics, int indent)
         {
             string literal = new(p.CaseForms.Select(f => (char)f[0]).ToArray());
