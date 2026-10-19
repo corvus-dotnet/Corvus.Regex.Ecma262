@@ -659,7 +659,16 @@ public readonly struct Utf8Encoding : ITextEncoding<byte>
     }
 
     /// <inheritdoc/>
-    public int IndexOfAlternation(ReadOnlySpan<byte> input, int from, AlternationSearch alternation) => alternation.MultiUtf8.IndexOf(input, from);
+    public int IndexOfAlternation(ReadOnlySpan<byte> input, int from, AlternationSearch alternation)
+    {
+#if NET
+        if (alternation.TeddyUtf8 is not null)
+        {
+            return alternation.TeddyUtf8.IndexOf(input, from);
+        }
+#endif
+        return alternation.MultiUtf8.IndexOf(input, from);
+    }
 
     /// <inheritdoc/>
     public int AlternativeAt(ReadOnlySpan<byte> input, int pos, AlternationSearch alternation, bool units)

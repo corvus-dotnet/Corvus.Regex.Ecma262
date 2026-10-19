@@ -50,6 +50,15 @@ public sealed class AlternationSearch
         }
 
         this.Strings = ascii && this.MultiUtf16.Cost >= NeedleOverStrings ? System.Buffers.SearchValues.Create(literals, forms is null ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) : null;
+
+        // Over UTF-8, the fingerprint search on the same terms, where every literal has two bytes for it to look at.
+        int shortest = int.MaxValue;
+        foreach (Needle<byte> needle in needles8)
+        {
+            shortest = Math.Min(shortest, needle.Length);
+        }
+
+        this.TeddyUtf8 = Teddy.Supported && needles8.Length <= Teddy.MostLiterals && shortest >= 2 && this.MultiUtf8.Cost >= NeedleOverStrings ? new Teddy(needles8) : null;
 #endif
     }
 
@@ -89,6 +98,9 @@ public sealed class AlternationSearch
 #if NET
     /// <summary>Gets the runtime's search for any of the alternatives over UTF-16, exact or ignoring case as the runtime knows it, or null when the alternatives are not all ASCII.</summary>
     public System.Buffers.SearchValues<string>? Strings { get; }
+
+    /// <summary>Gets the fingerprint search for any of the alternatives over UTF-8, or null where the needle is cheaper.</summary>
+    public Teddy? TeddyUtf8 { get; }
 #endif
 
     /// <summary>The search for an alternation of literals matched exactly.</summary>
