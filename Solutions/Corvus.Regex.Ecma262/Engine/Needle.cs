@@ -29,7 +29,8 @@ namespace Corvus.Ecma262.RegularExpressions;
 public sealed class Needle<T>
     where T : unmanaged, IEquatable<T>
 {
-    private const int MaxRows = 4;
+    /// <summary>The most forms a character has.</summary>
+    public const int MaxRows = 4;
 
     private readonly T[][] rows;
     private readonly int[] starts;
@@ -343,6 +344,38 @@ public sealed class Needle<T>
     /// <param name="offset">The position.</param>
     /// <returns>The unit.</returns>
     public T UnitAt(int offset) => this.rows[0][offset];
+
+    /// <summary>The distinct units a position allows, over the literal's forms.</summary>
+    /// <param name="offset">The position.</param>
+    /// <param name="values">Receives the units; at least <see cref="MaxRows"/> long.</param>
+    /// <returns>How many.</returns>
+    public int UnitsAt(int offset, Span<T> values)
+    {
+        int count = 0;
+        foreach (T[] row in this.rows)
+        {
+            T v = row[offset];
+            bool seen = false;
+            for (int k = 0; k < count; k++)
+            {
+                seen |= values[k].Equals(v);
+            }
+
+            if (!seen)
+            {
+                values[count++] = v;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>Whether two units differ only in bits the first lacks (a letter's cases), so that a unit with those bits set equals the second exactly when it is one of them.</summary>
+    /// <param name="a">One unit.</param>
+    /// <param name="b">The other.</param>
+    /// <param name="mask">The bits.</param>
+    /// <returns>Whether they do.</returns>
+    public static bool TryMask(T a, T b, out T mask) => Mask(a, b, b, out mask);
 
     /// <summary>The first occurrence of the literal at or after a position, or -1.</summary>
     /// <param name="input">The text.</param>
@@ -1244,13 +1277,14 @@ internal static class PairSearch
 #endif
 
 /// <summary>
-/// Several literals to search for at once, each matched exactly. One position (or two) that every literal has is
-/// chosen, and the units of the text there are compared with each distinct unit the literals have there over a
-/// vector of starts, as the span search for any of several values does; the earliest start where the units
-/// agree is compared against each literal. The positions are those that make the work least by a cost model:
-/// the comparisons at every vector, against the full comparisons at the starts the units let through. For an
-/// alternation of literals, the pairs of first characters of a sequence, and the forms a case-insensitive search
-/// leaves out.
+/// Several literals to search for at once, each matched exactly or in its forms. One position (or two) that every
+/// literal has is chosen, and the units of the text there are compared with each distinct unit the literals
+/// allow there over a vector of starts, as the span search for any of several values does; a letter's two cases
+/// are one comparison of the unit with their differing bit set. The earliest start where the units agree is
+/// compared against each literal. The positions are those that make the work least by a cost model: the
+/// comparisons at every vector, against the full comparisons at the starts the units let through. For an
+/// alternation of literals, the pairs of first characters of a sequence, and the forms a case-insensitive
+/// search leaves out.
 /// </summary>
 /// <typeparam name="T">The unit: byte for UTF-8, ushort for UTF-16.</typeparam>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
@@ -1261,10 +1295,13 @@ public sealed class MultiNeedle<T>
     private const double StartCost = 30;
 
     private readonly Needle<T>[] needles;
+    private readonly bool exact;
     private readonly T[] a1;
     private readonly T[] a2;
-    private readonly T[] distinct1;
-    private readonly T[] distinct2;
+    private readonly T[] values1;
+    private readonly T[] masks1;
+    private readonly T[] values2;
+    private readonly T[] masks2;
     private readonly int o1;
     private readonly int o2;
     private readonly bool two;
@@ -1272,45 +1309,55 @@ public sealed class MultiNeedle<T>
 #if NET
     private readonly bool pair;
     private readonly ushort[] pairs = [];
-    private readonly Vector256<T>[] v1;
-    private readonly Vector256<T>[] v2;
-    private readonly Vector128<T>[] w1;
-    private readonly Vector128<T>[] w2;
     private readonly SearchValues<byte>? anyBytes;
     private readonly SearchValues<char>? anyChars;
 #endif
 
     /// <summary>Initializes a new instance of the <see cref="MultiNeedle{T}"/> class.</summary>
-    /// <param name="needles">The literals, each matched exactly.</param>
+    /// <param name="needles">The literals.</param>
     /// <param name="leadOnly">Whether to search by the first position alone whatever the cost model says: for the forms a case-insensitive search leaves out (the long s, the Kelvin sign), whose lead bytes are rare in any text the pattern's own script is written in, where the table of shares cannot know that.</param>
     public MultiNeedle(Needle<T>[] needles, bool leadOnly = false)
     {
         this.needles = needles;
         int k = needles.Length;
+        this.exact = true;
         this.minLength = int.MaxValue;
         foreach (Needle<T> needle in needles)
         {
             this.minLength = Math.Min(this.minLength, needle.Length);
+            this.exact &= needle.Exact;
         }
 
-        // At each position every literal has: the distinct units there and their share of text together.
+        // At each position every literal has: the distinct units there (a letter's cases as one unit with their
+        // differing bit, and the bit) and their share of text together.
         int positions = this.minLength;
-        T[][] distinct = new T[positions][];
+        T[][] values = new T[positions][];
+        T[][] masks = new T[positions][];
         double[] share = new double[positions];
+        Span<T> forms = stackalloc T[Needle<T>.MaxRows];
         for (int d = 0; d < positions; d++)
         {
-            List<T> values = [];
+            List<T> vs = [];
+            List<T> ms = [];
             foreach (Needle<T> needle in needles)
             {
-                T v = needle.UnitAt(d);
-                if (!values.Contains(v))
+                int count = needle.UnitsAt(d, forms);
+                if (count == 2 && Needle<T>.TryMask(forms[0], forms[1], out T mask))
                 {
-                    values.Add(v);
-                    share[d] += (255 - UnitRarity.Of(v)) / 1000.0;
+                    Add(vs, ms, Or(forms[0], mask), mask);
+                    share[d] += (255 - UnitRarity.Of(forms[0]) + 255 - UnitRarity.Of(forms[1])) / 1000.0;
+                    continue;
+                }
+
+                for (int f = 0; f < count; f++)
+                {
+                    Add(vs, ms, forms[f], default);
+                    share[d] += (255 - UnitRarity.Of(forms[f])) / 1000.0;
                 }
             }
 
-            distinct[d] = [.. values];
+            values[d] = [.. vs];
+            masks[d] = [.. ms];
         }
 
         // The cheapest choice: one position (a load and a comparison per distinct unit, less one for the first),
@@ -1325,7 +1372,7 @@ public sealed class MultiNeedle<T>
             }
         }
 
-        double cost = ((2.0 * distinct[best1].Length) / units) + (share[best1] * StartCost);
+        double cost = ((2.0 * values[best1].Length) / units) + (share[best1] * StartCost);
         int bestA = best1;
         int bestB = -1;
         if (leadOnly)
@@ -1338,7 +1385,7 @@ public sealed class MultiNeedle<T>
         {
             for (int e = d + 1; e < positions; e++)
             {
-                double c = ((3.0 + (2.0 * distinct[d].Length) + (2.0 * distinct[e].Length)) / units) + (share[d] * share[e] * StartCost);
+                double c = ((3.0 + (2.0 * values[d].Length) + (2.0 * values[e].Length)) / units) + (share[d] * share[e] * StartCost);
                 if (c < cost)
                 {
                     cost = c;
@@ -1348,37 +1395,37 @@ public sealed class MultiNeedle<T>
             }
         }
 
+#if NET
         // Over UTF-8, two adjacent positions can be compared as one sixteen-bit value, which admits only the
         // literals' own pairs of bytes rather than every pairing of a unit of one position with a unit of the
-        // other: the starts let through fall by the number of literals.
-#if NET
-        if (typeof(T) == typeof(byte))
+        // other: the starts let through fall by the number of literals. For literals matched exactly.
+        if (typeof(T) == typeof(byte) && this.exact)
         {
             for (int d = 0; d + 1 < positions; d++)
             {
-                List<ushort> values = [];
+                List<ushort> pairValues = [];
                 foreach (Needle<T> needle in needles)
                 {
                     ushort v = (ushort)(Unit(needle.UnitAt(d)) | (Unit(needle.UnitAt(d + 1)) << 8));
-                    if (!values.Contains(v))
+                    if (!pairValues.Contains(v))
                     {
-                        values.Add(v);
+                        pairValues.Add(v);
                     }
                 }
 
-                if (values.Count > PairSearch.Most)
+                if (pairValues.Count > PairSearch.Most)
                 {
                     continue;
                 }
 
-                double c = ((4.0 + (4.0 * values.Count)) / units) + (share[d] * share[d + 1] / values.Count * StartCost);
+                double c = ((4.0 + (4.0 * pairValues.Count)) / units) + (share[d] * share[d + 1] / pairValues.Count * StartCost);
                 if (c < cost)
                 {
                     cost = c;
                     bestA = d;
                     bestB = d + 1;
                     this.pair = true;
-                    this.pairs = [.. values];
+                    this.pairs = [.. pairValues];
                 }
             }
         }
@@ -1387,8 +1434,10 @@ public sealed class MultiNeedle<T>
         this.o1 = bestA;
         this.o2 = bestB < 0 ? bestA : bestB;
         this.two = bestB >= 0;
-        this.distinct1 = distinct[this.o1];
-        this.distinct2 = distinct[this.o2];
+        this.values1 = values[this.o1];
+        this.masks1 = masks[this.o1];
+        this.values2 = values[this.o2];
+        this.masks2 = masks[this.o2];
         this.a1 = new T[k];
         this.a2 = new T[k];
         for (int i = 0; i < k; i++)
@@ -1398,20 +1447,16 @@ public sealed class MultiNeedle<T>
         }
 
 #if NET
-        this.v1 = Array.ConvertAll(this.distinct1, Vector256.Create);
-        this.v2 = Array.ConvertAll(this.distinct2, Vector256.Create);
-        this.w1 = Array.ConvertAll(this.distinct1, Vector128.Create);
-        this.w2 = Array.ConvertAll(this.distinct2, Vector128.Create);
-        if (!this.two)
+        if (!this.two && this.exact)
         {
-            // One position: the span search for any of several values is the best there is.
+            // One position, exact: the span search for any of several values is the best there is.
             if (typeof(T) == typeof(byte))
             {
-                this.anyBytes = SearchValues.Create(MemoryMarshal.Cast<T, byte>(this.distinct1));
+                this.anyBytes = SearchValues.Create(MemoryMarshal.Cast<T, byte>(this.values1));
             }
             else
             {
-                this.anyChars = SearchValues.Create(MemoryMarshal.Cast<T, char>(this.distinct1));
+                this.anyChars = SearchValues.Create(MemoryMarshal.Cast<T, char>(this.values1));
             }
         }
 #endif
@@ -1436,7 +1481,7 @@ public sealed class MultiNeedle<T>
             return this.ScanPair(input, from, last);
         }
 
-        if (!this.two)
+        if (!this.two && this.exact)
         {
             // The units at the position, searched for by the span search; each hit is a start to compare at.
             int o = this.o1;
@@ -1463,34 +1508,32 @@ public sealed class MultiNeedle<T>
             return -1;
         }
 
-        ref T s = ref MemoryMarshal.GetReference(input);
-        int o1 = this.o1;
-        int o2 = this.o2;
-        if (this.distinct1.Length <= Straight && this.distinct2.Length <= Straight)
+        if (this.values1.Length <= Straight && this.values2.Length <= Straight)
         {
             return this.ScanTwo(input, from, last);
         }
 
+        ref T s = ref MemoryMarshal.GetReference(input);
+        int o1 = this.o1;
+        int o2 = this.o2;
         if (Vector256.IsHardwareAccelerated)
         {
             int lastVector = last - Vector256<T>.Count + 1;
-            Vector256<T>[] v1 = this.v1;
-            Vector256<T>[] v2 = this.v2;
             while (i <= lastVector)
             {
                 ref T cur = ref Unsafe.Add(ref s, i);
                 Vector256<T> x1 = Vector256.LoadUnsafe(ref cur, (nuint)o1);
-                Vector256<T> any = Vector256.Equals(x1, v1[0]);
-                for (int j = 1; j < v1.Length; j++)
+                Vector256<T> any = Vector256<T>.Zero;
+                for (int j = 0; j < this.values1.Length; j++)
                 {
-                    any |= Vector256.Equals(x1, v1[j]);
+                    any |= Vector256.Equals(x1 | Vector256.Create(this.masks1[j]), Vector256.Create(this.values1[j]));
                 }
 
                 Vector256<T> x2 = Vector256.LoadUnsafe(ref cur, (nuint)o2);
-                Vector256<T> second = Vector256.Equals(x2, v2[0]);
-                for (int j = 1; j < v2.Length; j++)
+                Vector256<T> second = Vector256<T>.Zero;
+                for (int j = 0; j < this.values2.Length; j++)
                 {
-                    second |= Vector256.Equals(x2, v2[j]);
+                    second |= Vector256.Equals(x2 | Vector256.Create(this.masks2[j]), Vector256.Create(this.values2[j]));
                 }
 
                 any &= second;
@@ -1511,49 +1554,6 @@ public sealed class MultiNeedle<T>
                 }
 
                 i += Vector256<T>.Count;
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            int lastVector = last - Vector128<T>.Count + 1;
-            Vector128<T>[] w1 = this.w1;
-            Vector128<T>[] w2 = this.w2;
-            while (i <= lastVector)
-            {
-                ref T cur = ref Unsafe.Add(ref s, i);
-                Vector128<T> x1 = Vector128.LoadUnsafe(ref cur, (nuint)o1);
-                Vector128<T> any = Vector128.Equals(x1, w1[0]);
-                for (int j = 1; j < w1.Length; j++)
-                {
-                    any |= Vector128.Equals(x1, w1[j]);
-                }
-
-                Vector128<T> x2 = Vector128.LoadUnsafe(ref cur, (nuint)o2);
-                Vector128<T> second = Vector128.Equals(x2, w2[0]);
-                for (int j = 1; j < w2.Length; j++)
-                {
-                    second |= Vector128.Equals(x2, w2[j]);
-                }
-
-                any &= second;
-                if (any != Vector128<T>.Zero)
-                {
-                    uint mask = any.ExtractMostSignificantBits();
-                    do
-                    {
-                        int start = i + System.Numerics.BitOperations.TrailingZeroCount(mask);
-                        if (this.VerifyAny(input, start))
-                        {
-                            return start;
-                        }
-
-                        mask &= mask - 1;
-                    }
-                    while (mask != 0);
-                }
-
-                i += Vector128<T>.Count;
             }
         }
 #endif
@@ -1581,15 +1581,21 @@ public sealed class MultiNeedle<T>
     private int ScanTwo(ReadOnlySpan<T> input, int from, int last)
     {
         ref T s = ref MemoryMarshal.GetReference(input);
-        T[] d1 = this.distinct1;
-        T[] d2 = this.distinct2;
+        T[] v1 = this.values1;
+        T[] m1 = this.masks1;
+        T[] v2 = this.values2;
+        T[] m2 = this.masks2;
+        bool masked = !this.exact;
         int i = from;
         if (Vector256.IsHardwareAccelerated)
         {
             int lastVector = last - Vector256<T>.Count + 1;
             while (i <= lastVector)
             {
-                i = FindAny256(ref s, i, lastVector, this.o1, this.o2, Vector256.Create(d1[0]), Vector256.Create(At(d1, 1)), Vector256.Create(At(d1, 2)), Vector256.Create(At(d1, 3)), Vector256.Create(At(d1, 4)), Vector256.Create(At(d1, 5)), Vector256.Create(d2[0]), Vector256.Create(At(d2, 1)), Vector256.Create(At(d2, 2)), Vector256.Create(At(d2, 3)), Vector256.Create(At(d2, 4)), Vector256.Create(At(d2, 5)), out uint mask);
+                uint mask;
+                i = masked
+                    ? FindAnyMasked256(ref s, i, lastVector, this.o1, this.o2, Vector256.Create(v1[0]), Vector256.Create(At(v1, 1)), Vector256.Create(At(v1, 2)), Vector256.Create(At(v1, 3)), Vector256.Create(At(v1, 4)), Vector256.Create(At(v1, 5)), Vector256.Create(m1[0]), Vector256.Create(At(m1, 1)), Vector256.Create(At(m1, 2)), Vector256.Create(At(m1, 3)), Vector256.Create(At(m1, 4)), Vector256.Create(At(m1, 5)), Vector256.Create(v2[0]), Vector256.Create(At(v2, 1)), Vector256.Create(At(v2, 2)), Vector256.Create(At(v2, 3)), Vector256.Create(At(v2, 4)), Vector256.Create(At(v2, 5)), Vector256.Create(m2[0]), Vector256.Create(At(m2, 1)), Vector256.Create(At(m2, 2)), Vector256.Create(At(m2, 3)), Vector256.Create(At(m2, 4)), Vector256.Create(At(m2, 5)), out mask)
+                    : FindAny256(ref s, i, lastVector, this.o1, this.o2, Vector256.Create(v1[0]), Vector256.Create(At(v1, 1)), Vector256.Create(At(v1, 2)), Vector256.Create(At(v1, 3)), Vector256.Create(At(v1, 4)), Vector256.Create(At(v1, 5)), Vector256.Create(v2[0]), Vector256.Create(At(v2, 1)), Vector256.Create(At(v2, 2)), Vector256.Create(At(v2, 3)), Vector256.Create(At(v2, 4)), Vector256.Create(At(v2, 5)), out mask);
                 if (mask == 0)
                 {
                     break;
@@ -1616,7 +1622,10 @@ public sealed class MultiNeedle<T>
             int lastVector = last - Vector128<T>.Count + 1;
             while (i <= lastVector)
             {
-                i = FindAny128(ref s, i, lastVector, this.o1, this.o2, Vector128.Create(d1[0]), Vector128.Create(At(d1, 1)), Vector128.Create(At(d1, 2)), Vector128.Create(At(d1, 3)), Vector128.Create(At(d1, 4)), Vector128.Create(At(d1, 5)), Vector128.Create(d2[0]), Vector128.Create(At(d2, 1)), Vector128.Create(At(d2, 2)), Vector128.Create(At(d2, 3)), Vector128.Create(At(d2, 4)), Vector128.Create(At(d2, 5)), out uint mask);
+                uint mask;
+                i = masked
+                    ? FindAnyMasked128(ref s, i, lastVector, this.o1, this.o2, Vector128.Create(v1[0]), Vector128.Create(At(v1, 1)), Vector128.Create(At(v1, 2)), Vector128.Create(At(v1, 3)), Vector128.Create(At(v1, 4)), Vector128.Create(At(v1, 5)), Vector128.Create(m1[0]), Vector128.Create(At(m1, 1)), Vector128.Create(At(m1, 2)), Vector128.Create(At(m1, 3)), Vector128.Create(At(m1, 4)), Vector128.Create(At(m1, 5)), Vector128.Create(v2[0]), Vector128.Create(At(v2, 1)), Vector128.Create(At(v2, 2)), Vector128.Create(At(v2, 3)), Vector128.Create(At(v2, 4)), Vector128.Create(At(v2, 5)), Vector128.Create(m2[0]), Vector128.Create(At(m2, 1)), Vector128.Create(At(m2, 2)), Vector128.Create(At(m2, 3)), Vector128.Create(At(m2, 4)), Vector128.Create(At(m2, 5)), out mask)
+                    : FindAny128(ref s, i, lastVector, this.o1, this.o2, Vector128.Create(v1[0]), Vector128.Create(At(v1, 1)), Vector128.Create(At(v1, 2)), Vector128.Create(At(v1, 3)), Vector128.Create(At(v1, 4)), Vector128.Create(At(v1, 5)), Vector128.Create(v2[0]), Vector128.Create(At(v2, 1)), Vector128.Create(At(v2, 2)), Vector128.Create(At(v2, 3)), Vector128.Create(At(v2, 4)), Vector128.Create(At(v2, 5)), out mask);
                 if (mask == 0)
                 {
                     break;
@@ -1692,9 +1701,49 @@ public sealed class MultiNeedle<T>
         mask = 0;
         return i;
     }
-#endif
 
-#if NET
+    private static int FindAnyMasked256(ref T s, int i, int lastVector, int o1, int o2, Vector256<T> p0, Vector256<T> p1, Vector256<T> p2, Vector256<T> p3, Vector256<T> p4, Vector256<T> p5, Vector256<T> mp0, Vector256<T> mp1, Vector256<T> mp2, Vector256<T> mp3, Vector256<T> mp4, Vector256<T> mp5, Vector256<T> q0, Vector256<T> q1, Vector256<T> q2, Vector256<T> q3, Vector256<T> q4, Vector256<T> q5, Vector256<T> mq0, Vector256<T> mq1, Vector256<T> mq2, Vector256<T> mq3, Vector256<T> mq4, Vector256<T> mq5, out uint mask)
+    {
+        while (i <= lastVector)
+        {
+            ref T cur = ref Unsafe.Add(ref s, i);
+            Vector256<T> x1 = Vector256.LoadUnsafe(ref cur, (nuint)o1);
+            Vector256<T> x2 = Vector256.LoadUnsafe(ref cur, (nuint)o2);
+            Vector256<T> eq = (Vector256.Equals(x1 | mp0, p0) | Vector256.Equals(x1 | mp1, p1) | Vector256.Equals(x1 | mp2, p2) | Vector256.Equals(x1 | mp3, p3) | Vector256.Equals(x1 | mp4, p4) | Vector256.Equals(x1 | mp5, p5)) & (Vector256.Equals(x2 | mq0, q0) | Vector256.Equals(x2 | mq1, q1) | Vector256.Equals(x2 | mq2, q2) | Vector256.Equals(x2 | mq3, q3) | Vector256.Equals(x2 | mq4, q4) | Vector256.Equals(x2 | mq5, q5));
+            if (eq != Vector256<T>.Zero)
+            {
+                mask = eq.ExtractMostSignificantBits();
+                return i;
+            }
+
+            i += Vector256<T>.Count;
+        }
+
+        mask = 0;
+        return i;
+    }
+
+    private static int FindAnyMasked128(ref T s, int i, int lastVector, int o1, int o2, Vector128<T> p0, Vector128<T> p1, Vector128<T> p2, Vector128<T> p3, Vector128<T> p4, Vector128<T> p5, Vector128<T> mp0, Vector128<T> mp1, Vector128<T> mp2, Vector128<T> mp3, Vector128<T> mp4, Vector128<T> mp5, Vector128<T> q0, Vector128<T> q1, Vector128<T> q2, Vector128<T> q3, Vector128<T> q4, Vector128<T> q5, Vector128<T> mq0, Vector128<T> mq1, Vector128<T> mq2, Vector128<T> mq3, Vector128<T> mq4, Vector128<T> mq5, out uint mask)
+    {
+        while (i <= lastVector)
+        {
+            ref T cur = ref Unsafe.Add(ref s, i);
+            Vector128<T> x1 = Vector128.LoadUnsafe(ref cur, (nuint)o1);
+            Vector128<T> x2 = Vector128.LoadUnsafe(ref cur, (nuint)o2);
+            Vector128<T> eq = (Vector128.Equals(x1 | mp0, p0) | Vector128.Equals(x1 | mp1, p1) | Vector128.Equals(x1 | mp2, p2) | Vector128.Equals(x1 | mp3, p3) | Vector128.Equals(x1 | mp4, p4) | Vector128.Equals(x1 | mp5, p5)) & (Vector128.Equals(x2 | mq0, q0) | Vector128.Equals(x2 | mq1, q1) | Vector128.Equals(x2 | mq2, q2) | Vector128.Equals(x2 | mq3, q3) | Vector128.Equals(x2 | mq4, q4) | Vector128.Equals(x2 | mq5, q5));
+            if (eq != Vector128<T>.Zero)
+            {
+                mask = eq.ExtractMostSignificantBits();
+                return i;
+            }
+
+            i += Vector128<T>.Count;
+        }
+
+        mask = 0;
+        return i;
+    }
+
     /// <summary>The scan for any of the literals' pairs of adjacent bytes (see <see cref="PairSearch"/>).</summary>
     private int ScanPair(ReadOnlySpan<T> input, int from, int last)
     {
@@ -1773,11 +1822,51 @@ public sealed class MultiNeedle<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int Unit(T u) => typeof(T) == typeof(byte) ? Unsafe.As<T, byte>(ref u) : Unsafe.As<T, ushort>(ref u);
 
+    private static T Or(T u, T mask)
+    {
+        int v = Unit(u) | Unit(mask);
+        if (typeof(T) == typeof(byte))
+        {
+            byte b = (byte)v;
+            return Unsafe.As<byte, T>(ref b);
+        }
+
+        ushort c = (ushort)v;
+        return Unsafe.As<ushort, T>(ref c);
+    }
+
+    private static void Add(List<T> values, List<T> masks, T value, T mask)
+    {
+        for (int k = 0; k < values.Count; k++)
+        {
+            if (values[k].Equals(value) && masks[k].Equals(mask))
+            {
+                return;
+            }
+        }
+
+        values.Add(value);
+        masks.Add(mask);
+    }
+
     private bool VerifyAny(ReadOnlySpan<T> input, int start)
     {
+        Needle<T>[] needles = this.needles;
+        if (!this.exact)
+        {
+            foreach (Needle<T> needle in needles)
+            {
+                if (input.Length - start >= needle.Length && needle.Verify(input, start))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         T x1 = input[start + this.o1];
         T x2 = input[start + this.o2];
-        Needle<T>[] needles = this.needles;
         T[] a1 = this.a1;
         T[] a2 = this.a2;
         for (int j = 0; j < needles.Length; j++)

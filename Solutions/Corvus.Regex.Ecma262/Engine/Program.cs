@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -585,7 +586,8 @@ public sealed class Program
 
     /// <summary>Decides <see cref="Shape"/> from the instructions.</summary>
     /// <param name="alternatives">The literals of an alternation that is the whole pattern, or empty.</param>
-    internal void SetShape(string[] alternatives)
+    /// <param name="caseAlternatives">The alternatives of an alternation that is the whole pattern as the forms of their characters (see <see cref="Compiler.CaseAlternatives"/>), or empty.</param>
+    internal void SetShape(string[] alternatives, int[][][] caseAlternatives)
     {
         Inst[] insts = this.Insts;
         if (this.Groups != 0 || this.Anchored || insts.Length < 2 || insts[insts.Length - 1].Op != Op.Match)
@@ -629,6 +631,76 @@ public sealed class Program
 
             this.AlternativeMultiUtf8 = new MultiNeedle<byte>(this.AlternativeNeedles);
             this.AlternativeMultiUtf16 = new MultiNeedle<ushort>(this.AlternativeNeedlesUtf16);
+#if NET
+            // Over UTF-16 the runtime's search for any of several strings (Teddy) is the fastest there is.
+            this.AlternativeStrings = System.Buffers.SearchValues.Create(alternatives, StringComparison.Ordinal);
+#endif
+            return;
+        }
+
+        if (caseAlternatives.Length >= 2 && this.First is not null)
+        {
+            // An alternation of literals in their forms (under the i flag): each alternative a needle over its
+            // forms, searched for together; the forms a search leaves out (the long s, the Kelvin sign, over
+            // UTF-8) are looked for apart, as for one literal.
+            int n = caseAlternatives.Length;
+            Needle<byte>[] needles8 = new Needle<byte>[n];
+            Needle<ushort>[] needles16 = new Needle<ushort>[n];
+            List<int> extras8 = [];
+            List<int> extras16 = [];
+            int window8 = 0;
+            int window16 = 0;
+            for (int k = 0; k < n; k++)
+            {
+                needles8[k] = Needles.Forms<byte>(caseAlternatives[k], true, out int[] e8, out int w8);
+                needles16[k] = Needles.Forms<ushort>(caseAlternatives[k], false, out int[] e16, out int w16);
+                if (!needles8[k].CanSearch || !needles16[k].CanSearch)
+                {
+                    return;
+                }
+
+                extras8.AddRange(e8);
+                extras16.AddRange(e16);
+                window8 = Math.Max(window8, w8);
+                window16 = Math.Max(window16, w16);
+            }
+
+            this.Shape = SimpleShape.LiteralAlternation;
+            this.AlternativeForms = caseAlternatives;
+            this.AlternativeNeedles = needles8;
+            this.AlternativeNeedlesUtf16 = needles16;
+            this.AlternativeMultiUtf8 = new MultiNeedle<byte>(needles8);
+            this.AlternativeMultiUtf16 = new MultiNeedle<ushort>(needles16);
+            this.AlternativeExtrasUtf8 = extras8.Count == 0 ? null : Needles.Multi<byte>(Array.ConvertAll(extras8.Distinct().ToArray(), Rune), true, leadOnly: true);
+            this.AlternativeWindowUtf8 = window8;
+            this.AlternativeWindowUtf16 = window16;
+#if NET
+            // Over UTF-16 the runtime's search for any of several strings ignoring case (Teddy) is the fastest
+            // there is. It knows a letter's cases by the invariant upper case; a form it does not know (the long
+            // s for s under the u flag, the theta symbol for theta) is looked for apart, as a form of another
+            // length is over UTF-8.
+            string[] own = new string[n];
+            for (int k = 0; k < n; k++)
+            {
+                StringBuilder sb = new();
+                foreach (int[] character in caseAlternatives[k])
+                {
+                    Compiler.AppendRune(sb, character[0]);
+                    foreach (int form in character)
+                    {
+                        if (!SameUpper(form, character[0]))
+                        {
+                            extras16.Add(form);
+                        }
+                    }
+                }
+
+                own[k] = sb.ToString();
+            }
+
+            this.AlternativeStrings = System.Buffers.SearchValues.Create(own, StringComparison.OrdinalIgnoreCase);
+#endif
+            this.AlternativeExtrasUtf16 = extras16.Count == 0 ? null : Needles.Multi<ushort>(Array.ConvertAll(extras16.Distinct().ToArray(), Rune), false, leadOnly: true);
             return;
         }
 
@@ -688,6 +760,26 @@ public sealed class Program
 
     /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program as UTF-16 searches.</summary>
     public Needle<ushort>[] AlternativeNeedlesUtf16 { get; private set; } = [];
+
+    /// <summary>Gets the alternatives as the forms of their characters, when the alternation is of literals under the i flag, or null (see <see cref="Compiler.CaseAlternatives"/>).</summary>
+    public int[][][]? AlternativeForms { get; private set; }
+
+#if NET
+    /// <summary>Gets the runtime's search for any of the alternatives over UTF-16, exact or ignoring case as the runtime knows it, or null.</summary>
+    public System.Buffers.SearchValues<string>? AlternativeStrings { get; private set; }
+#endif
+
+    /// <summary>Gets the search for the forms of the alternatives' characters that the UTF-8 search leaves out, or null.</summary>
+    public MultiNeedle<byte>? AlternativeExtrasUtf8 { get; private set; }
+
+    /// <summary>Gets the search for the forms of the alternatives' characters that the UTF-16 search leaves out, or null.</summary>
+    public MultiNeedle<ushort>? AlternativeExtrasUtf16 { get; private set; }
+
+    /// <summary>Gets the most UTF-8 units an alternative can take in any of its forms.</summary>
+    public int AlternativeWindowUtf8 { get; private set; }
+
+    /// <summary>Gets the most UTF-16 units an alternative can take in any of its forms.</summary>
+    public int AlternativeWindowUtf16 { get; private set; }
 
     /// <summary>Gets the search for any of the alternatives at once over UTF-8, or null.</summary>
     public MultiNeedle<byte>? AlternativeMultiUtf8 { get; private set; }
@@ -786,6 +878,17 @@ public sealed class Program
     /// the run ends at the same place, and what follows runs from there with the same result.
     /// </summary>
     public bool SkipRun { get; }
+
+    /// <summary>Whether two characters are one to the runtime's ordinal comparison ignoring case: the same invariant upper case, for characters of one UTF-16 unit.</summary>
+    private static bool SameUpper(int a, int b)
+    {
+        if (a > 0xFFFF || b > 0xFFFF)
+        {
+            return a == b;
+        }
+
+        return char.ToUpperInvariant((char)a) == char.ToUpperInvariant((char)b) && string.Equals(((char)a).ToString(), ((char)b).ToString(), StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string Rune(int codePoint)
     {
@@ -958,7 +1061,7 @@ internal sealed class Compiler
         }
 
         Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, caseForms, requiredOffsetUtf8, loopSet, loopMin, afterLoop, skipRun, requiredCount);
-        program.SetShape(LiteralAlternatives(root));
+        program.SetShape(LiteralAlternatives(root), CaseAlternatives(root));
         program.LeadingWordBoundary = insts.Length > 1 && insts[0].Op == Op.WordBoundary && first is not null && !first.HasNonAscii && IsWordSubset(first);
         return program;
     }
@@ -1607,6 +1710,77 @@ internal sealed class Compiler
         }
 
         return literals;
+    }
+
+    /// <summary>
+    /// The alternatives of an alternation that is the whole pattern, when each is a run of characters or small
+    /// classes of single characters (a letter under the i flag is the class of its cases) and some character has
+    /// more than one form: for each alternative, for each character, its forms as code points, the pattern's own
+    /// first. Empty otherwise (an alternation of plain literals is <see cref="LiteralAlternatives"/>).
+    /// </summary>
+    /// <param name="root">The root of the tree.</param>
+    /// <returns>The forms, or empty.</returns>
+    public static int[][][] CaseAlternatives(EcmaRegexNode root)
+    {
+        EcmaRegexNode n = root;
+        while (n.Kind == EcmaRegexNodeKind.Group && n.Group == 0)
+        {
+            n = n.Subs[0];
+        }
+
+        if (n.Kind != EcmaRegexNodeKind.Alt)
+        {
+            return [];
+        }
+
+        int[][][] alternatives = new int[n.Subs.Length][][];
+        bool several = false;
+        for (int k = 0; k < n.Subs.Length; k++)
+        {
+            EcmaRegexNode alt = n.Subs[k];
+            EcmaRegexNode[] terms = alt.Kind == EcmaRegexNodeKind.Cat ? alt.Subs : [alt];
+            int[][] forms = new int[terms.Length][];
+            for (int t = 0; t < terms.Length; t++)
+            {
+                EcmaRegexNode term = terms[t];
+                if (term.Kind == EcmaRegexNodeKind.Char && !IsSurrogate(term.CodePoint))
+                {
+                    forms[t] = [term.CodePoint];
+                    continue;
+                }
+
+                if (term.Kind == EcmaRegexNodeKind.Set && term.Set.Length >= 4 && term.Set.Length <= 8)
+                {
+                    int[] members = new int[term.Set.Length / 2];
+                    for (int m = 0; m < term.Set.Length; m += 2)
+                    {
+                        if (term.Set[m] != term.Set[m + 1] || IsSurrogate(term.Set[m]))
+                        {
+                            return [];
+                        }
+
+                        members[m / 2] = term.Set[m];
+                    }
+
+                    forms[t] = members;
+                    several = true;
+                    continue;
+                }
+
+                return [];
+            }
+
+            if (forms.Length == 0)
+            {
+                return [];
+            }
+
+            alternatives[k] = forms;
+        }
+
+        return several ? alternatives : [];
+
+        static bool IsSurrogate(int c) => c >= 0xD800 && c <= 0xDFFF;
     }
 
     /// <summary>

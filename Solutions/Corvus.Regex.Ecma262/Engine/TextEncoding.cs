@@ -229,6 +229,24 @@ public interface ITextEncoding<TUnit>
     /// <returns>The length, or -1.</returns>
     int AlternativeAt(ReadOnlySpan<TUnit> input, int pos, Program program);
 
+    /// <summary>Whether the search for the alternatives leaves out any form of their characters.</summary>
+    /// <param name="program">The program.</param>
+    /// <returns>Whether it does.</returns>
+    bool HasAlternativeExtras(Program program);
+
+    /// <summary>The first position at or after a position, before a limit, where a form the alternatives' search leaves out starts, or -1.</summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="limit">The end of the range, exclusive.</param>
+    /// <param name="program">The program.</param>
+    /// <returns>The position, or -1.</returns>
+    int IndexOfAlternativeExtra(ReadOnlySpan<TUnit> input, int from, int limit, Program program);
+
+    /// <summary>The most units an alternative can take in any form.</summary>
+    /// <param name="program">The program.</param>
+    /// <returns>The most units.</returns>
+    int AlternativeWindow(Program program);
+
     /// <summary>The position a number of characters (code points, or code units when <paramref name="units"/>) before a position, or -1 when fewer lie between it and <paramref name="floor"/>.</summary>
     /// <param name="input">The text.</param>
     /// <param name="from">The position.</param>
@@ -636,6 +654,11 @@ public readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     public int AlternativeAt(ReadOnlySpan<byte> input, int pos, Program program)
     {
+        if (program.AlternativeForms is not null)
+        {
+            return Matcher.FormsAt<byte, Utf8Encoding>(program.AlternativeForms, input, pos, program.Units);
+        }
+
         ReadOnlySpan<byte> rest = input.Slice(pos);
         foreach (byte[] alternative in program.AlternativesUtf8)
         {
@@ -647,6 +670,15 @@ public readonly struct Utf8Encoding : ITextEncoding<byte>
 
         return -1;
     }
+
+    /// <inheritdoc/>
+    public bool HasAlternativeExtras(Program program) => program.AlternativeExtrasUtf8 is not null;
+
+    /// <inheritdoc/>
+    public int IndexOfAlternativeExtra(ReadOnlySpan<byte> input, int from, int limit, Program program) => program.AlternativeExtrasUtf8!.IndexOf(input.Slice(0, limit), from);
+
+    /// <inheritdoc/>
+    public int AlternativeWindow(Program program) => program.AlternativeWindowUtf8;
 
     /// <inheritdoc/>
     public int WalkBack(ReadOnlySpan<byte> input, int from, int count, int floor, bool units)
@@ -900,6 +932,14 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     public int IndexOfAnyNeedle(ReadOnlySpan<char> input, int from, Program program, bool alternatives)
     {
+#if NET
+        if (alternatives && program.AlternativeStrings is not null)
+        {
+            int i = input.Slice(from).IndexOfAny(program.AlternativeStrings);
+            return i < 0 ? -1 : from + i;
+        }
+#endif
+
         MultiNeedle<ushort>? multi = alternatives ? program.AlternativeMultiUtf16 : program.PairMultiUtf16;
         return multi is null ? -2 : multi.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
     }
@@ -907,6 +947,11 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     public int AlternativeAt(ReadOnlySpan<char> input, int pos, Program program)
     {
+        if (program.AlternativeForms is not null)
+        {
+            return Matcher.FormsAt<char, Utf16Encoding>(program.AlternativeForms, input, pos, program.Units);
+        }
+
         ReadOnlySpan<char> rest = input.Slice(pos);
         foreach (string alternative in program.Alternatives)
         {
@@ -918,6 +963,15 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
 
         return -1;
     }
+
+    /// <inheritdoc/>
+    public bool HasAlternativeExtras(Program program) => program.AlternativeExtrasUtf16 is not null;
+
+    /// <inheritdoc/>
+    public int IndexOfAlternativeExtra(ReadOnlySpan<char> input, int from, int limit, Program program) => program.AlternativeExtrasUtf16!.IndexOf(MemoryMarshal.Cast<char, ushort>(input.Slice(0, limit)), from);
+
+    /// <inheritdoc/>
+    public int AlternativeWindow(Program program) => program.AlternativeWindowUtf16;
 
     /// <inheritdoc/>
     public int WalkBack(ReadOnlySpan<char> input, int from, int count, int floor, bool units)

@@ -566,6 +566,39 @@ public static class Matcher
                         {
                             i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);
                         }
+                        else if (p.AlternativeForms is not null && enc.HasAlternativeExtras(p))
+                        {
+                            // A form the search leaves out matters where a start before the candidate could reach
+                            // it: every start from which an alternative could reach it is tried first, in order.
+                            int window = enc.AlternativeWindow(p);
+                            int limit = i < 0 ? len : Math.Min(len, i + window);
+                            int e = enc.IndexOfAlternativeExtra(input, pos, limit, p);
+                            if (e >= 0 && (i < 0 || e - window < i))
+                            {
+                                int s = Math.Max(pos, e - window + 1);
+                                while (s <= e)
+                                {
+                                    s = enc.AlignStart(input, s, units);
+                                    if (s > e)
+                                    {
+                                        break;
+                                    }
+
+                                    int ends = AlternativeEnd<TUnit, TEncoding>(p, input, s);
+                                    if (ends >= 0)
+                                    {
+                                        from = s;
+                                        to = ends;
+                                        return true;
+                                    }
+
+                                    s = NextPosition<TUnit, TEncoding>(input, s, units);
+                                }
+
+                                pos = enc.NextStart(input, e);
+                                continue;
+                            }
+                        }
 
                         if (i < 0)
                         {
@@ -707,6 +740,61 @@ public static class Matcher
         }
 
         return pos;
+    }
+
+    /// <summary>
+    /// The length in units of the first alternative that is at a position, each alternative the forms of its
+    /// characters: a character of the text is decoded and must be one of the forms, so a form of another length
+    /// (the long s for s over UTF-8) is matched here where the anchored search cannot see it.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="alternatives">The alternatives, each the forms of its characters.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="pos">The position.</param>
+    /// <param name="units">Whether the text is matched by UTF-16 code unit.</param>
+    /// <returns>The length, or -1.</returns>
+    public static int FormsAt<TUnit, TEncoding>(int[][][] alternatives, ReadOnlySpan<TUnit> input, int pos, bool units)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        int len = input.Length;
+        foreach (int[][] forms in alternatives)
+        {
+            int at = pos;
+            bool ok = true;
+            foreach (int[] character in forms)
+            {
+                if (at >= len)
+                {
+                    ok = false;
+                    break;
+                }
+
+                int c = enc.Unit(input, at);
+                int w = 1;
+                if (c >= 0x80)
+                {
+                    c = units ? enc.UnitAt(input, at, out w) : enc.Decode(input, at, out w);
+                }
+
+                if (Array.IndexOf(character, c) < 0)
+                {
+                    ok = false;
+                    break;
+                }
+
+                at += w;
+            }
+
+            if (ok)
+            {
+                return at - pos;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>The end of the match of a <see cref="SimpleShape.LiteralAlternation"/> program at a position, or -1.</summary>
