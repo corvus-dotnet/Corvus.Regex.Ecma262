@@ -1480,6 +1480,9 @@ public sealed class MultiNeedle<T>
     /// <summary>Gets the cost of the search by the model, per unit of text, in the units of a vector operation (see <see cref="StartCost"/>).</summary>
     public double Cost { get; }
 
+    /// <summary>Gets a value indicating whether the search compares two positions at every vector rather than searching one by the span search.</summary>
+    public bool Two => this.two;
+
     /// <summary>The earliest position at or after a position where one of the literals is, or -1.</summary>
     /// <param name="input">The text.</param>
     /// <param name="from">The position.</param>

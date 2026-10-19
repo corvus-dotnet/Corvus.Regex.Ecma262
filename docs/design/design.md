@@ -293,6 +293,26 @@ serialised form would have frozen it, and what it saves is one construction of a
 Trimming and AOT are safe without it, since the parser and compiler are plain code. Stage 2 is where the generated
 code earns its place.
 
+**Stage 2 as built (2026-10-19).** The generator emits each program as straight-line code: a `GeneratedRunner`
+with one generic `Run<TUnit, TEncoding>` per program (bounds and captures), a labelled block per instruction,
+`goto Fail` into the backtracking the interpreter shares (`Matcher.Backtrack`), and a jump table to resume at the
+instruction a choice was kept for; the steps that bound a match are counted only at the instructions that can
+loop. The engine's types are public and hidden from completion so the generated code can reach them, and
+`Regex(pattern, flags, timeout, bounds, captures)` takes the runners. The whole data set is run with every pattern
+as generated code (`DatasetRunner --generated`: the emitter's code compiled by Roslyn in batches of three hundred
+and loaded), 19,715,231 answers right, as the interpreter gives.
+
+What it bought was five to ten percent over the interpreter: the matcher's dispatch was never the cost. The rows
+that moved were moved by what the search learned (5.3): the literal every alternative holds, the fingerprint
+search, the bounded repeat scanned by vector, the literal after a run of loops. Against .NET's generator, on the
+industry set, the median is below 1.0 for both encodings; the rows above it are of four kinds. A search already at
+the floor (one vectorised scan, a few nanoseconds a candidate) where the gap is our re-entry per match, some
+twenty-five nanoseconds from the search to the matcher and back, which .NET folds into its scan loop
+(`Sher[a-z]+|Hol[a-z]+`, `Holmes.{0,25}Watson|Watson.{0,25}Holmes`). An alternation under the i flag, where the
+runtime's search and the pass for the forms it does not know are two scans. A long program (`mariomka`'s IP and
+URL patterns) where .NET's generated code is simply better code than ours. And the memory-bound rows over sixteen
+million characters, where both engines run the same span search.
+
 ## 6. Target frameworks
 
 `net10.0; netstandard2.0`. net8.0 leaves support in November 2026 and net9.0 left it in May 2026, so neither is a

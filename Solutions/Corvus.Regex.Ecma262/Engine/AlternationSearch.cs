@@ -62,10 +62,11 @@ public sealed class AlternationSearch
 
         // ASCII literals go to the runtime's search (exact or ignoring case as it knows it: over the low bytes of
         // UTF-16 units the fingerprint search looks at twice the lanes, and three names under the i flag measured
-        // 0.11 ms against the runtime's 0.07); others to the fingerprint search, which has every form in its
-        // tables (five Russian names under the i flag: 0.18 ms against the needle's 0.67 and the runtime's 7.8).
-        // Over UTF-8 the fingerprint search.
-        bool fingerprints16 = Teddy<ushort>.Supported && needles16.Length <= Teddy<ushort>.MostLiterals && shortest16 >= 2 && this.MultiUtf16.Cost >= NeedleOverStrings;
+        // 0.11 ms against the runtime's 0.07); others to the fingerprint search where the needle would compare
+        // two positions at every vector (five Russian names under the i flag: 0.18 ms against the needle's 0.67
+        // and the runtime's 7.8), and to the needle where one position's span search is enough (five CJK names:
+        // the needle's 24 us against 40 by fingerprints). Over UTF-8 the fingerprint search.
+        bool fingerprints16 = Teddy<ushort>.Supported && needles16.Length <= Teddy<ushort>.MostLiterals && shortest16 >= 2 && this.MultiUtf16.Two;
         this.Strings = ascii && this.MultiUtf16.Cost >= NeedleOverStrings ? System.Buffers.SearchValues.Create(literals, forms is null ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) : null;
         this.TeddyUtf16 = this.Strings is null && fingerprints16 ? new Teddy<ushort>(needles16) : null;
         this.TeddyUtf8 = Teddy<byte>.Supported && needles8.Length <= Teddy<byte>.MostLiterals && shortest8 >= 2 && this.MultiUtf8.Cost >= NeedleOverStrings ? new Teddy<byte>(needles8) : null;
