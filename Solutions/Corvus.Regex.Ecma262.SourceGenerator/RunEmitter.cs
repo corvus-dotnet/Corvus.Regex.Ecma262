@@ -824,7 +824,45 @@ internal static class RunEmitter
             return "true";
         }
 
+        // One range of ASCII, or all of ASCII but one range, is a subtraction and a compare (the caller has
+        // established that c is ASCII).
+        if (OneRange(a0, a1, out int lo, out int hi))
+        {
+            return lo == hi ? "(" + c + " == " + lo + ")" : "((uint)(" + c + " - " + lo + ") <= " + (hi - lo) + ")";
+        }
+
+        if (OneRange(~a0, ~a1, out lo, out hi))
+        {
+            return lo == hi ? "(" + c + " != " + lo + ")" : "((uint)(" + c + " - " + lo + ") > " + (hi - lo) + ")";
+        }
+
         return "(" + c + " < 64 ? ((" + Hex(a0) + " >> " + c + ") & 1) != 0 : ((" + Hex(a1) + " >> (" + c + " - 64)) & 1) != 0)";
+    }
+
+    /// <summary>Whether the set bits of a 128-bit ASCII bitmap are one contiguous range, and which.</summary>
+    private static bool OneRange(ulong a0, ulong a1, out int lo, out int hi)
+    {
+        lo = -1;
+        hi = -1;
+        for (int c = 0; c < 128; c++)
+        {
+            bool on = c < 64 ? ((a0 >> c) & 1) != 0 : ((a1 >> (c - 64)) & 1) != 0;
+            if (on)
+            {
+                if (lo < 0)
+                {
+                    lo = c;
+                }
+                else if (c != hi + 1)
+                {
+                    return false;
+                }
+
+                hi = c;
+            }
+        }
+
+        return lo >= 0;
     }
 
     private static string Hex(ulong v) => "0x" + v.ToString("X", CultureInfo.InvariantCulture) + "UL";

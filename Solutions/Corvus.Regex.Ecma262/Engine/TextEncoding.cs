@@ -977,9 +977,29 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     public int AlternativeAt(ReadOnlySpan<char> input, int pos, AlternationSearch alternation, bool units)
     {
+        if (alternation.Forms is not null && !alternation.NeedlesCompleteUtf16)
+        {
+            // A form that takes more units than the character's own (a supplementary character in a class) is
+            // not in the needle: the forms are walked.
+            return Matcher.FormsAt<char, Utf16Encoding>(alternation.Forms, input, pos, units);
+        }
+
         if (alternation.Forms is not null)
         {
-            return Matcher.FormsAt<char, Utf16Encoding>(alternation.Forms, input, pos, units);
+            // Every form of a character is one unit here, so each alternative's needle compares it whole (a
+            // letter's cases by their differing bit), in the pattern's order.
+            ReadOnlySpan<ushort> text = MemoryMarshal.Cast<char, ushort>(input);
+            Needle<ushort>[] needles = alternation.NeedlesUtf16;
+            for (int k = 0; k < needles.Length; k++)
+            {
+                Needle<ushort> needle = needles[k];
+                if (text.Length - pos >= needle.Length && needle.Verify(text, pos))
+                {
+                    return needle.Length;
+                }
+            }
+
+            return -1;
         }
 
         ReadOnlySpan<char> rest = input.Slice(pos);
@@ -1007,6 +1027,13 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
     public int WalkBack(ReadOnlySpan<char> input, int from, int count, int floor, bool units)
     {
         int at = from;
+#if NET
+        if (!units && from - count >= floor && input.Slice(from - count, count).IndexOfAnyInRange('\uD800', '\uDFFF') < 0)
+        {
+            // No surrogate among the units walked back over: every character is one unit.
+            return from - count;
+        }
+#endif
         for (int k = 0; k < count; k++)
         {
             if (at <= floor)

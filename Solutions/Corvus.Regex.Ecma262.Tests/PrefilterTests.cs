@@ -206,6 +206,9 @@ public class PrefilterTests
     [DataRow(@"Sherlock|Holmes|Watson", "iu", "mr HOLME\u017f", true, "the long s at the end of an alternative")]
     [DataRow(@"Sherlock|Holmes|Watson", "iyu", "HOLME\u017f", true, "")]
     [DataRow(@"Sherlock|Holmes|Watson", "iyu", "xHOLME\u017f", false, "")]
+    [DataRow(@"a[a\ud801\udc00]|[a\ud801\udc00]a", "u", "\ud801\udc00a", true, "a class with a supplementary character: a form of two units, which the needle cannot hold")]
+    [DataRow(@"a[a\ud801\udc00]|[a\ud801\udc00]a", "u", "a\ud801\udc00\ud83d\ude00", true, "")]
+    [DataRow(@"a[a\ud801\udc00]|[a\ud801\udc00]a", "u", "\ud801\udc28a", false, "")]
     public void TheScansAgreeWithThePlainSearchOverBothEncodings(string pattern, string flags, string text, bool expected, string why)
     {
         (Regex interpreted, Regex generated) = Engines.Both(pattern, flags);

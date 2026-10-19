@@ -24,6 +24,7 @@ public sealed class AlternationSearch
 
     private AlternationSearch(string[] literals, byte[][] utf8, int[][][]? forms, Needle<byte>[] needles8, Needle<ushort>[] needles16, int[] extras8, int[] extras16, int[] stringsExtras16, int window8, int window16)
     {
+        this.NeedlesCompleteUtf16 = extras16.Length == 0;
         this.Literals = literals;
         this.LiteralsUtf8 = utf8;
         this.Forms = forms;
@@ -91,6 +92,9 @@ public sealed class AlternationSearch
 
     /// <summary>Gets the alternatives as UTF-16 needles.</summary>
     public Needle<ushort>[] NeedlesUtf16 { get; }
+
+    /// <summary>Gets a value indicating whether the UTF-16 needles hold every form of every character (no form takes a different number of units from the character's own), so that a needle's comparison verifies an alternative whole.</summary>
+    public bool NeedlesCompleteUtf16 { get; }
 
     /// <summary>Gets the search for any of the alternatives at once over UTF-8.</summary>
     public MultiNeedle<byte> MultiUtf8 { get; }

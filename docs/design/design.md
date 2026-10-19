@@ -293,25 +293,36 @@ serialised form would have frozen it, and what it saves is one construction of a
 Trimming and AOT are safe without it, since the parser and compiler are plain code. Stage 2 is where the generated
 code earns its place.
 
-**Stage 2 as built (2026-10-19).** The generator emits each program as straight-line code: a `GeneratedRunner`
-with one generic `Run<TUnit, TEncoding>` per program (bounds and captures), a labelled block per instruction,
-`goto Fail` into the backtracking the interpreter shares (`Matcher.Backtrack`), and a jump table to resume at the
-instruction a choice was kept for; the steps that bound a match are counted only at the instructions that can
-loop. The engine's types are public and hidden from completion so the generated code can reach them, and
-`Regex(pattern, flags, timeout, bounds, captures)` takes the runners. The whole data set is run with every pattern
-as generated code (`DatasetRunner --generated`: the emitter's code compiled by Roslyn in batches of three hundred
-and loaded), 19,715,231 answers right, as the interpreter gives.
+**Stage 2 as built (2026-10-19).** The generator emits each program as structured code from its tree
+(`TreeEmitter`), in the shape .NET's own generator uses: every construct that can be retried keeps its state in
+locals and owns a label, and whatever follows it jumps to the innermost such label when it fails. An alternation
+keeps the branch it took and dispatches a retry to that branch's own backtracking; a loop over one character or
+class keeps the end and the floor of its run, takes the run whole (by vector where the class allows) and gives
+back a character at a time, or by vector to the last character from which what follows could go on, or not at
+all when what follows cannot start with a member; an optional group keeps whether it was taken; a capturing
+group keeps the slots it replaced and restores them when it is exhausted; a lookahead is a scope whose body
+jumps to the lookahead's own failure. Nothing is pushed for these. The memo marks that keep the interpreter
+linear on patterns that would otherwise be exponential are kept at the same points (the compiler records each
+construct's point, `Program.PointOf`): checked where a construct is entered or gives back, set where it is
+exhausted. A pattern with a loop over a group other than an optional one, or a lookbehind, is left to the
+instruction emitter (`RunEmitter`: a labelled block per instruction, the backtracking the interpreter shares),
+and the whole data set is run with every pattern as generated code (19,715,231 answers, 0 wrong). The test
+project builds every scan test's pattern as generated code too and asserts both engines.
 
-What it bought was five to ten percent over the interpreter: the matcher's dispatch was never the cost. The rows
-that moved were moved by what the search learned (5.3): the literal every alternative holds, the fingerprint
-search, the bounded repeat scanned by vector, the literal after a run of loops. Against .NET's generator, on the
-industry set, the median is below 1.0 for both encodings; the rows above it are of four kinds. A search already at
-the floor (one vectorised scan, a few nanoseconds a candidate) where the gap is our re-entry per match, some
-twenty-five nanoseconds from the search to the matcher and back, which .NET folds into its scan loop
-(`Sher[a-z]+|Hol[a-z]+`, `Holmes.{0,25}Watson|Watson.{0,25}Holmes`). An alternation under the i flag, where the
-runtime's search and the pass for the forms it does not know are two scans. A long program (`mariomka`'s IP and
-URL patterns) where .NET's generated code is simply better code than ours. And the memory-bound rows over sixteen
-million characters, where both engines run the same span search.
+What the structured code bought was the attempt: an IP address candidate went from 37 to 21 ns, which took that
+row from 1.55 to about 1.1 of .NET's generated code, and the rows that try the matcher at every occurrence of a
+literal moved with it. What it did not buy was the search and the re-entry around it: on the rows that remain
+above 1.0 the search is one vectorised scan at its floor and the gap is the ten to fifteen nanoseconds from the
+enumerator through the search's block to the runner and back for each match, which .NET's generated scan loop
+does not pay, plus what ECMA-262 asks for that .NET does not do: `.` excludes four characters, not one, and a
+case-insensitive search must find the long s and the Kelvin sign.
+
+**What an enumeration carries (2026-10-19).** An enumeration holds the thread's match state across its matches
+(`MatchState.Current`, `Matcher.MatchWith`) and a cursor (`ScanCursor`): the range of the text it knows to hold no
+rare line terminator, so that a run of `.` is one search for LF and CR with the U+2028 and U+2029 scan done once a
+chunk ahead (`Matcher.EndOfLine`); and the range known to hold no form the program's search leaves out, so that
+the pass for the long s and the Kelvin sign is one over the text rather than one per match. A match on its own
+starts with nothing.
 
 ## 6. Target frameworks
 

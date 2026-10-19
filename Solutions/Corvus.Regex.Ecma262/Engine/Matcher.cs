@@ -885,11 +885,30 @@ public static class Matcher
     {
         TEncoding enc = default;
         int len = input.Length;
-        foreach (int[][] forms in alternatives)
+        if (pos >= len)
         {
-            int at = pos;
+            return -1;
+        }
+
+        // The first character decides most alternatives at once.
+        int first = enc.Unit(input, pos);
+        int firstWidth = 1;
+        if (first >= 0x80)
+        {
+            first = units ? enc.UnitAt(input, pos, out firstWidth) : enc.Decode(input, pos, out firstWidth);
+        }
+
+        for (int a = 0; a < alternatives.Length; a++)
+        {
+            int[][] forms = alternatives[a];
+            if (!IsForm(forms[0], first))
+            {
+                continue;
+            }
+
+            int at = pos + firstWidth;
             bool ok = true;
-            foreach (int[] character in forms)
+            for (int k = 1; k < forms.Length; k++)
             {
                 if (at >= len)
                 {
@@ -904,7 +923,7 @@ public static class Matcher
                     c = units ? enc.UnitAt(input, at, out w) : enc.Decode(input, at, out w);
                 }
 
-                if (Array.IndexOf(character, c) < 0)
+                if (!IsForm(forms[k], c))
                 {
                     ok = false;
                     break;
@@ -920,6 +939,19 @@ public static class Matcher
         }
 
         return -1;
+
+        static bool IsForm(int[] character, int c)
+        {
+            for (int f = 0; f < character.Length; f++)
+            {
+                if (character[f] == c)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     /// <summary>The end of the match of a <see cref="SimpleShape.LiteralAlternation"/> program at a position, or -1.</summary>
