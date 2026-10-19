@@ -1433,14 +1433,32 @@ internal static class TreeEmitter
                 return;
             }
 
-            // Exact: the distinct first characters (up to three) by the span search, then up to two positions
-            // at which the alternatives have at most two distinct characters, the rarest first.
-            List<char> firsts = literals.Select(l => l[0]).Distinct().ToList();
-            List<(int Offset, char[] Values)> checks = [];
-            for (int d = 1; d < minLen; d++)
+            // Exact: the position every alternative has whose distinct characters (up to three) are rarest in
+            // text, searched for by the span search, as the needle chooses it (Tom|river: m and v, not T and the
+            // common r); then up to two other positions at which the alternatives have at most two distinct
+            // characters, the rarest first.
+            int searchAt = 0;
+            double searchShare = double.MaxValue;
+            for (int d = 0; d < minLen; d++)
             {
                 char[] values = literals.Select(l => l[d]).Distinct().ToArray();
-                if (values.Length <= 2)
+                if (values.Length <= 3)
+                {
+                    double share = values.Sum(v => 255 - UnitRarity.Of((ushort)v));
+                    if (share < searchShare)
+                    {
+                        searchShare = share;
+                        searchAt = d;
+                    }
+                }
+            }
+
+            List<char> firsts = literals.Select(l => l[searchAt]).Distinct().ToList();
+            List<(int Offset, char[] Values)> checks = [];
+            for (int d = 0; d < minLen; d++)
+            {
+                char[] values = literals.Select(l => l[d]).Distinct().ToArray();
+                if (d != searchAt && values.Length <= 2)
                 {
                     checks.Add((d, values));
                 }
@@ -1457,6 +1475,7 @@ internal static class TreeEmitter
             string method = firsts.Count == 1 ? "IndexOf" : "IndexOfAny";
             string args16 = string.Join(", ", firsts.Select(f => Ch(f)));
             string args8 = string.Join(", ", firsts.Select(f => "(byte)" + Ch(f)));
+            string from = searchAt == 0 ? "pos" : "pos + " + searchAt;
             if (firsts.Count > 3)
             {
                 string name = "F" + Math.Abs(string.Join("|", literals).GetHashCode()).ToString(CultureInfo.InvariantCulture);
@@ -1482,8 +1501,8 @@ internal static class TreeEmitter
             else
             {
                 RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
-                RunEmitter.Line(find, i2 + 1, "? " + Call(method, Chars + ".Slice(pos)", args16));
-                RunEmitter.Line(find, i2 + 1, ": " + Call(method, Bytes8 + ".Slice(pos)", args8) + ";");
+                RunEmitter.Line(find, i2 + 1, "? " + Call(method, Chars + ".Slice(" + from + ")", args16));
+                RunEmitter.Line(find, i2 + 1, ": " + Call(method, Bytes8 + ".Slice(" + from + ")", args8) + ";");
                 RunEmitter.Line(find, i2, "if (i < 0)");
                 RunEmitter.Line(find, i2, "{");
                 RunEmitter.Line(find, i2 + 1, "break;");
