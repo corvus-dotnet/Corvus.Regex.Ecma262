@@ -1417,21 +1417,11 @@ internal static class TreeEmitter
             int i1 = indent + 1;
             if (forms)
             {
-                string name = "F" + Math.Abs(string.Join("|", literals).GetHashCode()).ToString(CultureInfo.InvariantCulture);
-                RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> " + name + " = global::System.Buffers.SearchValues.Create(new string[] { " + string.Join(", ", literals.Select(Str)) + " }, global::System.StringComparison.OrdinalIgnoreCase);");
-                RunEmitter.Line(find, i1, "int i;");
-                RunEmitter.Line(find, i1, "if (typeof(TUnit) == typeof(char))");
-                RunEmitter.Line(find, i1, "{");
-                RunEmitter.Line(find, i1 + 1, "global::System.ReadOnlySpan<char> text = global::System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(input);");
-                RunEmitter.Line(find, i1 + 1, "i = pos <= len - " + minLen + " ? " + Call("IndexOfAny", "text.Slice(pos)", name) + " : -1;");
-                RunEmitter.Line(find, i1 + 1, "i = i < 0 ? -1 : pos + i;");
-                RunEmitter.Line(find, i1, "}");
-                RunEmitter.Line(find, i1, "else");
-                RunEmitter.Line(find, i1, "{");
-                RunEmitter.Line(find, i1 + 1, "TEncoding enc = default;");
-                RunEmitter.Line(find, i1 + 1, "i = enc.IndexOfAlternation(input, pos, " + field + ");");
-                RunEmitter.Line(find, i1, "}");
-                sb_blank(find);
+                // The runtime's search: it holds the search for any of several strings ignoring case where that
+                // pays and the packed fingerprint search where it does not, and its pass for the forms apart (the
+                // long s, the Kelvin sign) knows which of the two it chose.
+                RunEmitter.Line(find, i1, "TEncoding enc = default;");
+                RunEmitter.Line(find, i1, "int i = enc.IndexOfAlternation(input, pos, " + field + ");");
                 RunEmitter.Line(find, i1, "start = " + Ns + "Matcher.ExtraStart<TUnit, TEncoding>(st, input, pos, i, " + field + ");");
                 RunEmitter.Line(find, i1, "if (start < 0 || len - start < p.Need)");
                 RunEmitter.Line(find, i1, "{");
@@ -1579,7 +1569,7 @@ internal static class TreeEmitter
                     whole.Append(" || ");
                 }
 
-                whole.Append("(typeof(TUnit) == typeof(char) ? " + Call("StartsWith", Chars + ".Slice(pos)", Str(literals[k]) + ".AsSpan()") + " : " + Call("StartsWith", Bytes8 + ".Slice(pos)", "L" + k) + ")");
+                whole.Append("(typeof(TUnit) == typeof(char) ? " + Call("StartsWith", Chars + ".Slice(pos)", Call("AsSpan", Str(literals[k]), string.Empty)) + " : " + Call("StartsWith", Bytes8 + ".Slice(pos)", "L" + k) + ")");
             }
 
             RunEmitter.Line(find, i2, "if (!(" + whole + "))");
@@ -1633,7 +1623,7 @@ internal static class TreeEmitter
             RunEmitter.Line(find, i2 + 1, "return false;");
             RunEmitter.Line(find, i2, "}");
             sb_blank(find);
-            string args16 = literal.Length == 1 ? Ch(literal[0]) : Str(literal) + ".AsSpan()";
+            string args16 = literal.Length == 1 ? Ch(literal[0]) : Call("AsSpan", Str(literal), string.Empty);
             string args8 = literal.Length == 1 ? "(byte)" + (int)literal[0] : "B0";
             RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
             RunEmitter.Line(find, i2 + 1, "? " + Call("IndexOf", Chars + ".Slice(pos + offset)", args16));
@@ -1765,7 +1755,7 @@ internal static class TreeEmitter
                 RunEmitter.Line(find, i1 + 2, "return false;");
                 RunEmitter.Line(find, i1 + 1, "}");
                 sb_blank(find);
-                RunEmitter.Line(find, i1 + 1, "if (!(typeof(TUnit) == typeof(char) ? " + Call("StartsWith", Chars + ".Slice(pos)", Str(literal) + ".AsSpan()") + " : " + Call("StartsWith", Bytes8 + ".Slice(pos)", "B0") + "))");
+                RunEmitter.Line(find, i1 + 1, "if (!(typeof(TUnit) == typeof(char) ? " + Call("StartsWith", Chars + ".Slice(pos)", Call("AsSpan", Str(literal), string.Empty)) + " : " + Call("StartsWith", Bytes8 + ".Slice(pos)", "B0") + "))");
                 RunEmitter.Line(find, i1 + 1, "{");
                 RunEmitter.Line(find, i1 + 2, "pos++;");
                 RunEmitter.Line(find, i1 + 2, "continue;");
@@ -1784,7 +1774,7 @@ internal static class TreeEmitter
                 return;
             }
 
-            string args16 = literal.Length == 1 ? Ch(literal[0]) : Str(literal) + ".AsSpan()";
+            string args16 = literal.Length == 1 ? Ch(literal[0]) : Call("AsSpan", Str(literal), string.Empty);
             string args8 = literal.Length == 1 ? "(byte)" + (int)literal[0] : "B0";
             string method16 = "IndexOf";
             if (p.Utf16PrefixNeedle is { PrefersStringSearch: true })
@@ -1839,7 +1829,7 @@ internal static class TreeEmitter
             RunEmitter.Line(find, i2 + 1, "return false;");
             RunEmitter.Line(find, i2, "}");
             sb_blank(find);
-            string args16 = literal.Length == 1 ? Ch(literal[0]) : Str(literal) + ".AsSpan()";
+            string args16 = literal.Length == 1 ? Ch(literal[0]) : Call("AsSpan", Str(literal), string.Empty);
             string args8 = literal.Length == 1 ? "(byte)" + (int)literal[0] : "B0";
             RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
             RunEmitter.Line(find, i2 + 1, "? " + Call("IndexOf", Chars + ".Slice(pos + " + least + ")", args16));

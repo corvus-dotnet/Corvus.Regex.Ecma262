@@ -38,7 +38,7 @@ internal static class Engines
         string source = "#nullable enable\n#pragma warning disable CS0162, CS0164, CS0168, CS0219, CS8321, CS1522\nnamespace G\n{\n    internal static class R\n    {\n        internal static readonly global::Corvus.Ecma262.RegularExpressions.GeneratedRunner B = new Bounds();\n        internal static readonly global::Corvus.Ecma262.RegularExpressions.GeneratedRunner C = new Captures();\n" + runners + "    }\n}\n";
         CSharpCompilation compilation = CSharpCompilation.Create(
             "G" + Guid.NewGuid().ToString("N"),
-            [CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview))],
+            [CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview, preprocessorSymbols: ["NET", "NET8_0_OR_GREATER", "NET9_0_OR_GREATER", "NET10_0", "NET10_0_OR_GREATER"]))],
             References.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release, nullableContextOptions: NullableContextOptions.Enable));
         using MemoryStream ms = new();
