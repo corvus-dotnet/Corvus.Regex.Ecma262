@@ -324,6 +324,41 @@ chunk ahead (`Matcher.EndOfLine`); and the range known to hold no form the progr
 the pass for the long s and the Kelvin sign is one over the text rather than one per match. A match on its own
 starts with nothing.
 
+**The search as code (2026-10-19).** Reading .NET's generated source showed what it does that the structured
+match alone did not: it emits the search for starts as pattern-specific code over the span primitives, with the
+search object in a `static readonly` field whose exact type the JIT then knows, and it checks a match's least
+length once. The generator now does the same (`TreeEmitter.Finder`, under `NET8_0_OR_GREATER`): an exact
+alternation of ASCII literals is one `IndexOfAny` for the characters at its rarest shared position, a check or two
+of the other positions, and `StartsWith` of each literal, or the runtime's needle where no position is rare; an
+alternation in its forms is the runtime's search, which holds the string search ignoring case where no form is
+apart and the packed fingerprint search where one is, and its pass for the forms apart only under the u flag; a
+fixed literal is the needle's rarest unit then `StartsWith`, or the string search where the literal's ends are
+common letters, or the runtime's needle where neither applies; a leading literal the same; a literal in its forms
+is the string search ignoring case where every form is ASCII and the runtime's needle where one is apart (HOLME by
+the string search measured 44 us against the needle's 41, which sees the three forms of s in one pass); a run of
+ASCII sets then a literal is `IndexOf` of the literal and a walk back over the sets in code; and an ASCII first
+set is `IndexOfAny` or a range search. Inside the match, a run of one-unit terms checks the units it needs once, a
+short run of a set is walked in code before the vector search is called, and a run followed by one character
+gives back to the last such character by one `LastIndexOf`.
+
+Two faults the gates had not seen came out when the test project's and the data set runner's Roslyn
+compilations were made to define the symbols the net10.0 build has: until then every `#if NET8_0_OR_GREATER`
+block in the generated code was compiled only by the benchmark project. Both now define them, and the data set
+runs the emitted search.
+
+**The resume (2026-10-19).** The ten to fifteen nanoseconds a match paid between the enumerator and the generated
+loop were the general match entry: a prepared state, a copy of the captures, two calls more. For a program that
+tracks no group and whose generated code finds the starts, an enumeration's later matches go from the enumerator
+to the runner's loop (`Matcher.ResumeEmitted`): the state is prepared again only when something else used it since
+the last match (`MatchState.PreparedFor`, and the text's width), else what a match changes is reset; the cursor
+is loaded and saved around the call. That is 2.5 ns a match over the loop alone (`the` under the i flag: 178 us
+against .NET's 204, from 234).
+
+The benchmark runs every Corvus row under the u flag, which .NET has no mode for: classes decode surrogate pairs
+and the i flag folds s to the long s and k to the Kelvin sign, which .NET's own tables do not. Counts agree on 53
+of the 57 rows; the four apart are `$` and `.` at CRLF, where ECMA-262 counts CR as a line terminator, and `\w`,
+which .NET takes as Unicode letters and digits.
+
 ## 6. Target frameworks
 
 `net10.0; netstandard2.0`. net8.0 leaves support in November 2026 and net9.0 left it in May 2026, so neither is a
