@@ -33,6 +33,7 @@
     <Compile Include="Engine\Program.cs" />
     <Compile Include="Engine\TextEncoding.cs" />
     <Compile Include="Engine\Needle.cs" />
+    <Compile Include="Engine\AlternationSearch.cs" />
     <Compile Include="Capture.cs" />
     <Compile Include="CaptureCollection.cs" />
     <Compile Include="Group.cs" />

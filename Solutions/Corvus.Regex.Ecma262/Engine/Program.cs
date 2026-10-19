@@ -419,8 +419,14 @@ public sealed class Program
     /// <param name="afterLoop">The literal after that loop, or empty.</param>
     /// <param name="skipRun">Whether a failed start may be moved to the end of the run of the loop's set.</param>
     /// <param name="requiredCount">The number of characters before the required literal, or -1.</param>
-    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, int[][] caseForms, int requiredOffsetUtf8, CharSet? loopSet, int loopMin, string afterLoop, bool skipRun, int requiredCount)
+    /// <param name="afterLoopMax">The greatest count of the leading loop, when bounded, or -1.</param>
+    /// <param name="afterLoopAlternation">The alternation of literals after the leading loop, or null.</param>
+    /// <param name="requiredCountMax">The greatest number of characters before the required literal when it varies, or -1.</param>
+    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, int[][] caseForms, int requiredOffsetUtf8, CharSet? loopSet, int loopMin, string afterLoop, bool skipRun, int requiredCount, int afterLoopMax = -1, AlternationSearch? afterLoopAlternation = null, int requiredCountMax = -1)
     {
+        this.RequiredCountMax = requiredCountMax;
+        this.AfterLoopMax = afterLoopMax;
+        this.AfterLoopAlternation = afterLoopAlternation;
         this.RequiredOffsetUtf8 = requiredOffsetUtf8;
         this.RequiredCount = requiredCount;
         this.CaseCharacters = caseForms.Length;
@@ -578,12 +584,6 @@ public sealed class Program
     /// </summary>
     public bool LeadingWordBoundary { get; internal set; }
 
-    /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program, as UTF-16.</summary>
-    public string[] Alternatives { get; private set; } = [];
-
-    /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program, as UTF-8.</summary>
-    public byte[][] AlternativesUtf8 { get; private set; } = [];
-
     /// <summary>Decides <see cref="Shape"/> from the instructions.</summary>
     /// <param name="alternatives">The literals of an alternation that is the whole pattern, or empty.</param>
     /// <param name="caseAlternatives">The alternatives of an alternation that is the whole pattern as the forms of their characters (see <see cref="Compiler.CaseAlternatives"/>), or empty.</param>
@@ -618,89 +618,20 @@ public sealed class Program
         if (alternatives.Length >= 2 && this.First is not null)
         {
             this.Shape = SimpleShape.LiteralAlternation;
-            this.Alternatives = alternatives;
-            this.AlternativesUtf8 = new byte[alternatives.Length][];
-            this.AlternativeNeedles = new Needle<byte>[alternatives.Length];
-            this.AlternativeNeedlesUtf16 = new Needle<ushort>[alternatives.Length];
-            for (int k = 0; k < alternatives.Length; k++)
-            {
-                this.AlternativesUtf8[k] = Encoding.UTF8.GetBytes(alternatives[k]);
-                this.AlternativeNeedles[k] = new Needle<byte>(this.AlternativesUtf8[k]);
-                this.AlternativeNeedlesUtf16[k] = Needles.Utf16(alternatives[k]);
-            }
-
-            this.AlternativeMultiUtf8 = new MultiNeedle<byte>(this.AlternativeNeedles);
-            this.AlternativeMultiUtf16 = new MultiNeedle<ushort>(this.AlternativeNeedlesUtf16);
-#if NET
-            // Over UTF-16 the runtime's search for any of several strings (Teddy) is the fastest there is.
-            this.AlternativeStrings = System.Buffers.SearchValues.Create(alternatives, StringComparison.Ordinal);
-#endif
+            this.Alternation = AlternationSearch.Create(alternatives);
             return;
         }
 
         if (caseAlternatives.Length >= 2 && this.First is not null)
         {
-            // An alternation of literals in their forms (under the i flag): each alternative a needle over its
-            // forms, searched for together; the forms a search leaves out (the long s, the Kelvin sign, over
-            // UTF-8) are looked for apart, as for one literal.
-            int n = caseAlternatives.Length;
-            Needle<byte>[] needles8 = new Needle<byte>[n];
-            Needle<ushort>[] needles16 = new Needle<ushort>[n];
-            List<int> extras8 = [];
-            List<int> extras16 = [];
-            int window8 = 0;
-            int window16 = 0;
-            for (int k = 0; k < n; k++)
+            // An alternation of literals in their forms (under the i flag).
+            AlternationSearch? search = AlternationSearch.CreateForms(caseAlternatives);
+            if (search is not null)
             {
-                needles8[k] = Needles.Forms<byte>(caseAlternatives[k], true, out int[] e8, out int w8);
-                needles16[k] = Needles.Forms<ushort>(caseAlternatives[k], false, out int[] e16, out int w16);
-                if (!needles8[k].CanSearch || !needles16[k].CanSearch)
-                {
-                    return;
-                }
-
-                extras8.AddRange(e8);
-                extras16.AddRange(e16);
-                window8 = Math.Max(window8, w8);
-                window16 = Math.Max(window16, w16);
+                this.Shape = SimpleShape.LiteralAlternation;
+                this.Alternation = search;
             }
 
-            this.Shape = SimpleShape.LiteralAlternation;
-            this.AlternativeForms = caseAlternatives;
-            this.AlternativeNeedles = needles8;
-            this.AlternativeNeedlesUtf16 = needles16;
-            this.AlternativeMultiUtf8 = new MultiNeedle<byte>(needles8);
-            this.AlternativeMultiUtf16 = new MultiNeedle<ushort>(needles16);
-            this.AlternativeExtrasUtf8 = extras8.Count == 0 ? null : Needles.Multi<byte>(Array.ConvertAll(extras8.Distinct().ToArray(), Rune), true, leadOnly: true);
-            this.AlternativeWindowUtf8 = window8;
-            this.AlternativeWindowUtf16 = window16;
-#if NET
-            // Over UTF-16 the runtime's search for any of several strings ignoring case (Teddy) is the fastest
-            // there is. It knows a letter's cases by the invariant upper case; a form it does not know (the long
-            // s for s under the u flag, the theta symbol for theta) is looked for apart, as a form of another
-            // length is over UTF-8.
-            string[] own = new string[n];
-            for (int k = 0; k < n; k++)
-            {
-                StringBuilder sb = new();
-                foreach (int[] character in caseAlternatives[k])
-                {
-                    Compiler.AppendRune(sb, character[0]);
-                    foreach (int form in character)
-                    {
-                        if (!SameUpper(form, character[0]))
-                        {
-                            extras16.Add(form);
-                        }
-                    }
-                }
-
-                own[k] = sb.ToString();
-            }
-
-            this.AlternativeStrings = System.Buffers.SearchValues.Create(own, StringComparison.OrdinalIgnoreCase);
-#endif
-            this.AlternativeExtrasUtf16 = extras16.Count == 0 ? null : Needles.Multi<ushort>(Array.ConvertAll(extras16.Distinct().ToArray(), Rune), false, leadOnly: true);
             return;
         }
 
@@ -755,37 +686,14 @@ public sealed class Program
     /// <summary>Gets <see cref="PairNeedles"/> as UTF-16 searches.</summary>
     public Needle<ushort>[] PairNeedlesUtf16 { get; private set; } = [];
 
-    /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program as UTF-8 searches.</summary>
-    public Needle<byte>[] AlternativeNeedles { get; private set; } = [];
+    /// <summary>Gets the search for the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program, or null.</summary>
+    public AlternationSearch? Alternation { get; private set; }
 
-    /// <summary>Gets the alternatives of a <see cref="SimpleShape.LiteralAlternation"/> program as UTF-16 searches.</summary>
-    public Needle<ushort>[] AlternativeNeedlesUtf16 { get; private set; } = [];
+    /// <summary>Gets the search for the alternation of literals that follows the leading loop (see <see cref="Compiler.LiteralAfterLoop"/>), or null.</summary>
+    public AlternationSearch? AfterLoopAlternation { get; }
 
-    /// <summary>Gets the alternatives as the forms of their characters, when the alternation is of literals under the i flag, or null (see <see cref="Compiler.CaseAlternatives"/>).</summary>
-    public int[][][]? AlternativeForms { get; private set; }
-
-#if NET
-    /// <summary>Gets the runtime's search for any of the alternatives over UTF-16, exact or ignoring case as the runtime knows it, or null.</summary>
-    public System.Buffers.SearchValues<string>? AlternativeStrings { get; private set; }
-#endif
-
-    /// <summary>Gets the search for the forms of the alternatives' characters that the UTF-8 search leaves out, or null.</summary>
-    public MultiNeedle<byte>? AlternativeExtrasUtf8 { get; private set; }
-
-    /// <summary>Gets the search for the forms of the alternatives' characters that the UTF-16 search leaves out, or null.</summary>
-    public MultiNeedle<ushort>? AlternativeExtrasUtf16 { get; private set; }
-
-    /// <summary>Gets the most UTF-8 units an alternative can take in any of its forms.</summary>
-    public int AlternativeWindowUtf8 { get; private set; }
-
-    /// <summary>Gets the most UTF-16 units an alternative can take in any of its forms.</summary>
-    public int AlternativeWindowUtf16 { get; private set; }
-
-    /// <summary>Gets the search for any of the alternatives at once over UTF-8, or null.</summary>
-    public MultiNeedle<byte>? AlternativeMultiUtf8 { get; private set; }
-
-    /// <summary>Gets the search for any of the alternatives at once over UTF-16, or null.</summary>
-    public MultiNeedle<ushort>? AlternativeMultiUtf16 { get; private set; }
+    /// <summary>Gets the greatest count of the leading loop before the literal or alternation after it, or -1 when it has none.</summary>
+    public int AfterLoopMax { get; }
 
     /// <summary>Gets the search for any of the pair needles at once over UTF-8, or null.</summary>
     public MultiNeedle<byte>? PairMultiUtf8 { get; private set; }
@@ -859,6 +767,9 @@ public sealed class Program
     /// <summary>Gets the number of characters (code points, or code units without the u flag) before the required literal, or -1 when there is none. Where the encoding has no fixed offset, the start is that many characters before the literal.</summary>
     public int RequiredCount { get; }
 
+    /// <summary>Gets the greatest number of characters before the required literal when it varies (<see cref="RequiredCount"/> is then the least), or -1 when it is fixed.</summary>
+    public int RequiredCountMax { get; }
+
     /// <summary>Gets the set of the single-character loop every match starts with (see <see cref="Compiler.LiteralAfterLoop"/> and <see cref="SkipRun"/>), or null.</summary>
     public CharSet? LoopSet { get; }
 
@@ -878,17 +789,6 @@ public sealed class Program
     /// the run ends at the same place, and what follows runs from there with the same result.
     /// </summary>
     public bool SkipRun { get; }
-
-    /// <summary>Whether two characters are one to the runtime's ordinal comparison ignoring case: the same invariant upper case, for characters of one UTF-16 unit.</summary>
-    private static bool SameUpper(int a, int b)
-    {
-        if (a > 0xFFFF || b > 0xFFFF)
-        {
-            return a == b;
-        }
-
-        return char.ToUpperInvariant((char)a) == char.ToUpperInvariant((char)b) && string.Equals(((char)a).ToString(), ((char)b).ToString(), StringComparison.OrdinalIgnoreCase);
-    }
 
     private static string Rune(int codePoint)
     {
@@ -997,10 +897,13 @@ internal sealed class Compiler
         int requiredOffset = -1;
         int requiredOffsetUtf8 = -1;
         int requiredCount = -1;
+        int requiredCountMax = -1;
         int[][] caseForms = [];
         CharSet? loopSet = null;
         int loopMin = 0;
         string afterLoop = string.Empty;
+        int afterLoopMax = -1;
+        AlternationSearch? afterLoopAlternation = null;
         bool skipRun = false;
         if (!anchored)
         {
@@ -1016,7 +919,7 @@ internal sealed class Compiler
                     first = new CharSet(EcmaRegexUnicode.SetOf([.. pairs], pairs.Count));
                 }
 
-                required = RequiredLiteral(root, unicode, out requiredOffset, out requiredOffsetUtf8, out requiredCount);
+                required = RequiredLiteral(root, unicode, out requiredOffset, out requiredOffsetUtf8, out requiredCount, out requiredCountMax);
                 if (required.Length == 1 && first is not null && first.Count <= 8)
                 {
                     // One common character is a poorer guide than a small first set.
@@ -1024,6 +927,7 @@ internal sealed class Compiler
                     requiredOffset = -1;
                     requiredOffsetUtf8 = -1;
                     requiredCount = -1;
+                    requiredCountMax = -1;
                 }
 
                 if (required.Length == 0)
@@ -1033,12 +937,12 @@ internal sealed class Compiler
 
                 if (required.Length == 0 && caseForms.Length == 0 && referenced.Count == 0)
                 {
-                    afterLoop = LiteralAfterLoop(root, c, out loopSet, out loopMin);
+                    afterLoop = LiteralAfterLoop(root, c, out loopSet, out loopMin, out afterLoopMax, out afterLoopAlternation);
                 }
             }
         }
 
-        if (referenced.Count == 0 && afterLoop.Length == 0)
+        if (referenced.Count == 0 && afterLoop.Length == 0 && afterLoopAlternation is null)
         {
             // A leading single-character loop (after the entry of a group): a failed start may skip its run.
             // Whether what follows the loop succeeds depends only on the position (no backreference reads a group),
@@ -1060,7 +964,7 @@ internal sealed class Compiler
             }
         }
 
-        Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, caseForms, requiredOffsetUtf8, loopSet, loopMin, afterLoop, skipRun, requiredCount);
+        Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, caseForms, requiredOffsetUtf8, loopSet, loopMin, afterLoop, skipRun, requiredCount, afterLoopMax, afterLoopAlternation, requiredCountMax);
         program.SetShape(LiteralAlternatives(root), CaseAlternatives(root));
         program.LeadingWordBoundary = insts.Length > 1 && insts[0].Op == Op.WordBoundary && first is not null && !first.HasNonAscii && IsWordSubset(first);
         return program;
@@ -1576,13 +1480,15 @@ internal sealed class Compiler
     /// <param name="unicode">Whether the pattern is matched by code point.</param>
     /// <param name="offset">The distance over UTF-16, or -1.</param>
     /// <param name="offsetUtf8">The distance over UTF-8, or -1 when a term before the literal is not ASCII.</param>
-    /// <param name="count">The number of characters before the literal, or -1.</param>
+    /// <param name="count">The number of characters before the literal (the least, when it varies), or -1.</param>
+    /// <param name="countMax">The greatest number of characters before the literal when it varies (a bounded repetition of one character among the terms before it), or -1 when it is fixed.</param>
     /// <returns>The literal, or empty.</returns>
-    public static string RequiredLiteral(EcmaRegexNode root, bool unicode, out int offset, out int offsetUtf8, out int count)
+    public static string RequiredLiteral(EcmaRegexNode root, bool unicode, out int offset, out int offsetUtf8, out int count, out int countMax)
     {
         offset = -1;
         offsetUtf8 = -1;
         count = -1;
+        countMax = -1;
         EcmaRegexNode n = root;
         while (n.Kind == EcmaRegexNodeKind.Group)
         {
@@ -1595,12 +1501,13 @@ internal sealed class Compiler
             string shared = string.Empty;
             foreach (EcmaRegexNode alternative in n.Subs)
             {
-                string literal = RequiredLiteral(alternative, unicode, out int o, out int o8, out int c);
-                if (literal.Length == 0 || (shared.Length != 0 && (literal != shared || o != offset || o8 != offsetUtf8 || c != count)))
+                string literal = RequiredLiteral(alternative, unicode, out int o, out int o8, out int c, out int cm);
+                if (literal.Length == 0 || (shared.Length != 0 && (literal != shared || o != offset || o8 != offsetUtf8 || c != count || cm != countMax)))
                 {
                     offset = -1;
                     offsetUtf8 = -1;
                     count = -1;
+                    countMax = -1;
                     return string.Empty;
                 }
 
@@ -1608,6 +1515,7 @@ internal sealed class Compiler
                 offset = o;
                 offsetUtf8 = o8;
                 count = c;
+                countMax = cm;
             }
 
             return shared;
@@ -1619,6 +1527,7 @@ internal sealed class Compiler
         }
 
         int distance = 0;
+        int spread = 0;
         bool ascii = true;
         bool fixedUnits = true;
         for (int k = 0; k < n.Subs.Length; k++)
@@ -1636,13 +1545,30 @@ internal sealed class Compiler
 
                 // One character is enough when something comes before it: the search for it is vectorised, and the
                 // start it allows is tried once. At the very start one character would be a prefix.
-                if (j - k >= 2 || distance > 0)
+                if (j - k >= 2 || distance > 0 || spread > 0)
                 {
                     count = distance;
+                    if (spread > 0)
+                    {
+                        // The distance varies: each occurrence allows the starts that many characters before it,
+                        // which the search tries in order.
+                        countMax = distance + spread;
+                        return sb.ToString();
+                    }
+
                     offset = fixedUnits ? distance : -1;
                     offsetUtf8 = ascii ? distance : -1;
                     return sb.ToString();
                 }
+            }
+
+            if (term.Kind == EcmaRegexNodeKind.Repeat && term.Min != term.Max && term.Max != EcmaRegexNode.Unbounded && !term.Lazy
+                && term.Max - term.Min + spread <= 64 && FixedCharacterCount(term.Subs[0], unicode, out _, out _) == 1)
+            {
+                // A bounded repetition of one character: so many to so many characters before the literal.
+                distance += term.Min;
+                spread += term.Max - term.Min;
+                continue;
             }
 
             int width = FixedCharacterCount(term, unicode, out bool termAscii, out bool termFixedUnits);
@@ -1670,11 +1596,14 @@ internal sealed class Compiler
             n = n.Subs[0];
         }
 
-        if (n.Kind != EcmaRegexNodeKind.Alt)
-        {
-            return [];
-        }
+        return n.Kind == EcmaRegexNodeKind.Alt ? LiteralAlternativesOf(n) : [];
+    }
 
+    /// <summary>The literals of an alternation node (each alternative a run of literal characters), or empty.</summary>
+    /// <param name="n">The alternation.</param>
+    /// <returns>The literals.</returns>
+    public static string[] LiteralAlternativesOf(EcmaRegexNode n)
+    {
         string[] literals = new string[n.Subs.Length];
         for (int k = 0; k < n.Subs.Length; k++)
         {
@@ -1728,11 +1657,14 @@ internal sealed class Compiler
             n = n.Subs[0];
         }
 
-        if (n.Kind != EcmaRegexNodeKind.Alt)
-        {
-            return [];
-        }
+        return n.Kind == EcmaRegexNodeKind.Alt ? CaseAlternativesOf(n) : [];
+    }
 
+    /// <summary>The alternatives of an alternation node as the forms of their characters (see <see cref="CaseAlternatives"/>), or empty.</summary>
+    /// <param name="n">The alternation.</param>
+    /// <returns>The forms, or empty.</returns>
+    public static int[][][] CaseAlternativesOf(EcmaRegexNode n)
+    {
         int[][][] alternatives = new int[n.Subs.Length][][];
         bool several = false;
         for (int k = 0; k < n.Subs.Length; k++)
@@ -1784,20 +1716,28 @@ internal sealed class Compiler
     }
 
     /// <summary>
-    /// The literal that follows a single-character loop every match starts with, when the pattern starts with such
-    /// a loop (greedy, no upper bound, a least count of 0 or 1) over an ASCII set and a literal comes next: the
-    /// search then looks for the literal and walks back over the run of the set to the start it allows (as .NET's
-    /// literal-after-loop search does). Only for a pattern with no backreference.
+    /// The literal (or, as <paramref name="alternation"/>, the alternation of literals) that follows a
+    /// single-character loop every match starts with, when the pattern starts with such a loop (greedy, over an
+    /// ASCII set) and a literal or an alternation of literals comes next. For a loop with no upper bound and a
+    /// least count of 0 or 1, the search looks for the literal and walks back over the run of the set to the
+    /// start it allows (as .NET's literal-after-loop search does); for a loop with an upper bound of 64 or less,
+    /// each occurrence of the literal or of an alternative allows the starts from which the loop could reach it,
+    /// which are tried in order (<c>.{0,2}(Tom|Sawyer|Huckleberry|Finn)</c>). Only for a pattern with no
+    /// backreference.
     /// </summary>
     /// <param name="root">The root of the tree.</param>
     /// <param name="c">The compiler, for the sets.</param>
     /// <param name="set">The set of the loop, or null.</param>
     /// <param name="min">The least count of the loop.</param>
+    /// <param name="max">The greatest count of the loop, or -1 for none.</param>
+    /// <param name="alternation">The alternation after the loop, or null.</param>
     /// <returns>The literal, or empty.</returns>
-    public static string LiteralAfterLoop(EcmaRegexNode root, Compiler c, out CharSet? set, out int min)
+    public static string LiteralAfterLoop(EcmaRegexNode root, Compiler c, out CharSet? set, out int min, out int max, out AlternationSearch? alternation)
     {
         set = null;
         min = 0;
+        max = -1;
+        alternation = null;
         EcmaRegexNode n = root;
         while (n.Kind == EcmaRegexNodeKind.Group)
         {
@@ -1815,7 +1755,13 @@ internal sealed class Compiler
             loop = loop.Subs[0];
         }
 
-        if (loop.Kind != EcmaRegexNodeKind.Repeat || loop.Lazy || loop.Max != EcmaRegexNode.Unbounded || loop.Min > 1)
+        if (loop.Kind != EcmaRegexNodeKind.Repeat || loop.Lazy)
+        {
+            return string.Empty;
+        }
+
+        bool bounded = loop.Max != EcmaRegexNode.Unbounded;
+        if (bounded ? loop.Max > 64 || loop.Max < loop.Min : loop.Min > 1)
         {
             return string.Empty;
         }
@@ -1830,9 +1776,39 @@ internal sealed class Compiler
         {
             loopSet = new CharSet([body.CodePoint, body.CodePoint]);
         }
+        else if (bounded && body.Kind == EcmaRegexNodeKind.Set && body.Set.Length > 0)
+        {
+            // A bounded loop over a set beyond ASCII (the dot): the starts are tried, not walked back over.
+            loopSet = c.Class(body);
+        }
         else
         {
             return string.Empty;
+        }
+
+        if (bounded)
+        {
+            // What follows: a literal, or an alternation of literals (exact, or in their forms).
+            EcmaRegexNode next = n.Subs[1];
+            while (next.Kind == EcmaRegexNodeKind.Group)
+            {
+                next = next.Subs[0];
+            }
+
+            if (next.Kind == EcmaRegexNodeKind.Alt)
+            {
+                string[] literals = LiteralAlternativesOf(next);
+                alternation = literals.Length >= 2 ? AlternationSearch.Create(literals) : (CaseAlternativesOf(next) is { Length: >= 2 } forms ? AlternationSearch.CreateForms(forms) : null);
+                if (alternation is null)
+                {
+                    return string.Empty;
+                }
+
+                set = loopSet;
+                min = loop.Min;
+                max = loop.Max;
+                return string.Empty;
+            }
         }
 
         StringBuilder sb = new();
@@ -1841,15 +1817,18 @@ internal sealed class Compiler
             AppendRune(sb, n.Subs[j].CodePoint);
         }
 
-        if (sb.Length == 0 || loopSet.Contains(n.Subs[1].CodePoint))
+        if (sb.Length == 0)
         {
-            // The loop could take the literal's first character itself, so the literal's occurrence does not
-            // bound the start.
             return string.Empty;
         }
 
+        // The loop may take the literal's own characters ([a-zA-Z]+ing): the first occurrence of the literal
+        // still lies in the first run of the set that holds one, and that run's start is the leftmost start, from
+        // which the loop gives back to the literal.
+
         set = loopSet;
         min = loop.Min;
+        max = bounded ? loop.Max : -1;
         return sb.ToString();
     }
 

@@ -24,6 +24,7 @@
     <Compile Include="..\Corvus.Regex.Ecma262\Engine\CharSet.cs" Link="Shared\Engine\CharSet.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Engine\Matcher.cs" Link="Shared\Engine\Matcher.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Engine\Needle.cs" Link="Shared\Engine\Needle.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Engine\AlternationSearch.cs" Link="Shared\Engine\AlternationSearch.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Engine\Program.cs" Link="Shared\Engine\Program.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Engine\TextEncoding.cs" Link="Shared\Engine\TextEncoding.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\RegexFlags.cs" Link="Shared\RegexFlags.cs" />

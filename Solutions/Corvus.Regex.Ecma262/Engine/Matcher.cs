@@ -561,18 +561,19 @@ public static class Matcher
 #if NET
                     if (!sticky)
                     {
-                        int i = enc.IndexOfAnyNeedle(input, pos, p, p.Shape == SimpleShape.LiteralAlternation);
+                        AlternationSearch? alternation = p.Alternation;
+                        int i = alternation is null ? enc.IndexOfAnyNeedle(input, pos, p) : enc.IndexOfAlternation(input, pos, alternation);
                         if (i == -2)
                         {
                             i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);
                         }
-                        else if (p.AlternativeForms is not null && enc.HasAlternativeExtras(p))
+                        else if (alternation is not null && alternation.Forms is not null && enc.HasAlternativeExtras(alternation))
                         {
                             // A form the search leaves out matters where a start before the candidate could reach
                             // it: every start from which an alternative could reach it is tried first, in order.
-                            int window = enc.AlternativeWindow(p);
+                            int window = enc.AlternativeWindow(alternation);
                             int limit = i < 0 ? len : Math.Min(len, i + window);
-                            int e = enc.IndexOfAlternativeExtra(input, pos, limit, p);
+                            int e = enc.IndexOfAlternativeExtra(input, pos, limit, alternation);
                             if (e >= 0 && (i < 0 || e - window < i))
                             {
                                 int s = Math.Max(pos, e - window + 1);
@@ -804,7 +805,7 @@ public static class Matcher
         where TEncoding : struct, ITextEncoding<TUnit>
     {
         TEncoding enc = default;
-        int n = enc.AlternativeAt(input, pos, p);
+        int n = enc.AlternativeAt(input, pos, p.Alternation!, p.Units);
         return n < 0 ? -1 : pos + n;
     }
 
@@ -1013,6 +1014,76 @@ public static class Matcher
             }
         }
 
+        if (p.AfterLoopMax >= 0)
+        {
+            // Every match is at most AfterLoopMax (and at least LoopMin) characters of the loop's set, then the
+            // literal or one of the alternatives: each occurrence of those allows the starts the loop could reach
+            // it from, which are tried in order, the earliest occurrence's first. A form the alternatives' search
+            // leaves out is looked for apart, and the starts that could reach it come where it does.
+            AlternationSearch? alternation = p.AfterLoopAlternation;
+            int most = p.AfterLoopMax;
+            int least = p.LoopMin;
+            bool extras = alternation is not null && enc.HasAlternativeExtras(alternation);
+            int window = extras ? enc.AlternativeWindow(alternation!) : 0;
+            int next = pos + least;
+            int tried = pos - 1;
+            while (true)
+            {
+                int i = alternation is null ? enc.IndexOfAfterLoop(input, next, p) : enc.IndexOfAlternation(input, next, alternation);
+                int lo = i;
+                int hi = i;
+                if (extras)
+                {
+                    int limit = i < 0 ? len : Math.Min(len, i + window);
+                    int e = enc.IndexOfAlternativeExtra(input, next, limit, alternation!);
+                    if (e >= 0 && (i < 0 || e - window < i))
+                    {
+                        lo = Math.Max(next, e - window + 1);
+                        hi = e;
+                        i = e;
+                    }
+                }
+
+                if (i < 0)
+                {
+                    return false;
+                }
+
+                // The starts from which the loop could reach an occurrence in [lo, hi].
+                int s = Math.Max(Math.Max(pos, tried + 1), lo - most);
+                int last = hi - least;
+                while (s <= last)
+                {
+                    s = enc.AlignStart(input, s, p.Units);
+                    if (s > last)
+                    {
+                        break;
+                    }
+
+                    from = s;
+                    if (len - s < p.Need)
+                    {
+                        return false;
+                    }
+
+                    if (Run<TUnit, TEncoding>(p, st, input, s, out to))
+                    {
+                        return true;
+                    }
+
+                    if (st.Stop != MatchStop.None)
+                    {
+                        return false;
+                    }
+
+                    tried = s;
+                    s = enc.NextStart(input, s);
+                }
+
+                next = enc.NextStart(input, lo);
+            }
+        }
+
         if (p.AfterLoopUtf16.Length != 0)
         {
             // Every match is a run of the loop's set then the literal: the literal is searched for, and the run
@@ -1059,6 +1130,70 @@ public static class Matcher
             }
         }
 #endif
+        if (p.RequiredCountMax >= 0)
+        {
+            // Every match holds the literal after so many to so many characters: each occurrence allows the
+            // starts that many characters before it, found by walking back a character at a time, and tried in
+            // order from the farthest.
+            int lo = p.RequiredCount;
+            int hi = p.RequiredCountMax;
+            Span<int> backs = stackalloc int[hi + 1];
+            int next = pos + lo;
+            int tried = pos - 1;
+            while (true)
+            {
+                int i = enc.IndexOfRequired(input, next, p);
+                if (i < 0)
+                {
+                    return false;
+                }
+
+                int k = 0;
+                int at = i;
+                backs[0] = i;
+                while (k < hi)
+                {
+                    int prev = enc.WalkBack(input, at, 1, pos, units);
+                    if (prev < 0)
+                    {
+                        break;
+                    }
+
+                    at = prev;
+                    backs[++k] = at;
+                }
+
+                for (int d = k; d >= lo; d--)
+                {
+                    int s = backs[d];
+                    if (s <= tried)
+                    {
+                        continue;
+                    }
+
+                    from = s;
+                    if (len - s < p.Need)
+                    {
+                        return false;
+                    }
+
+                    if (Run<TUnit, TEncoding>(p, st, input, s, out to))
+                    {
+                        return true;
+                    }
+
+                    if (st.Stop != MatchStop.None)
+                    {
+                        return false;
+                    }
+
+                    tried = s;
+                }
+
+                next = enc.NextStart(input, i);
+            }
+        }
+
         if (p.RequiredCount >= 0)
         {
             // Every match holds the literal after a fixed number of characters, so the literal's first occurrence
