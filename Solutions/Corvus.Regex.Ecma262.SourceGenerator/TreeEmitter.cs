@@ -1707,15 +1707,70 @@ internal static class TreeEmitter
             sb_blank(find);
             string args16 = literal.Length == 1 ? Ch(literal[0]) : Call("AsSpan", Str(literal), string.Empty);
             string args8 = literal.Length == 1 ? "(byte)" + (int)literal[0] : "B0";
-            RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
-            RunEmitter.Line(find, i2 + 1, "? " + Call("IndexOf", Chars + ".Slice(pos + offset)", args16));
-            RunEmitter.Line(find, i2 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(pos + offset)", args8) + ";");
-            RunEmitter.Line(find, i2, "if (i < 0)");
-            RunEmitter.Line(find, i2, "{");
-            RunEmitter.Line(find, i2 + 1, "return false;");
-            RunEmitter.Line(find, i2, "}");
-            sb_blank(find);
-            RunEmitter.Line(find, i2, "pos += i;");
+            string method16 = "IndexOf";
+            if (literal.Length > 1 && p.RequiredUtf16Needle is { SearchesOneUnit: true } needle)
+            {
+                // A unit rare enough to search for alone, as the needle does: the literal compared where it is.
+                int rare = needle.Offset1;
+                int unit = needle.Value1;
+                RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
+                RunEmitter.Line(find, i2 + 1, "? " + Call("IndexOf", Chars + ".Slice(pos + offset + " + rare + ")", Ch(unit)));
+                RunEmitter.Line(find, i2 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(pos + offset + " + rare + ")", "(byte)" + unit) + ";");
+                RunEmitter.Line(find, i2, "if (i < 0)");
+                RunEmitter.Line(find, i2, "{");
+                RunEmitter.Line(find, i2 + 1, "return false;");
+                RunEmitter.Line(find, i2, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i2, "pos += i;");
+                RunEmitter.Line(find, i2, "if (pos + offset > len - " + literal.Length + ")");
+                RunEmitter.Line(find, i2, "{");
+                RunEmitter.Line(find, i2 + 1, "return false;");
+                RunEmitter.Line(find, i2, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i2, "if (!(typeof(TUnit) == typeof(char) ? " + Call("StartsWith", Chars + ".Slice(pos + offset)", Call("AsSpan", Str(literal), string.Empty)) + " : " + Call("StartsWith", Bytes8 + ".Slice(pos + offset)", "B0") + "))");
+                RunEmitter.Line(find, i2, "{");
+                RunEmitter.Line(find, i2 + 1, "pos++;");
+                RunEmitter.Line(find, i2 + 1, "continue;");
+                RunEmitter.Line(find, i2, "}");
+                sb_blank(find);
+            }
+            else
+            {
+                if (p.RequiredUtf16Needle is { PrefersStringSearch: true })
+                {
+                    // Common letters at both ends: the runtime's fingerprint search, held in a static field.
+                    RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> P0 = global::System.Buffers.SearchValues.Create(new string[] { " + Str(literal) + " }, global::System.StringComparison.Ordinal);");
+                    method16 = "IndexOfAny";
+                    args16 = "P0";
+                }
+
+                if (literal.Length > 1 && method16 == "IndexOf")
+                {
+                    // No unit rare enough to search for alone and no preference for the string search: the needle
+                    // compares its two rarest units at every vector (Sherlock Holmes: 25 us against the span
+                    // search's 32, whose anchors S and s let many starts through).
+                    RunEmitter.Line(find, i2, "int i = enc.IndexOfRequired(input, pos + offset, p);");
+                    RunEmitter.Line(find, i2, "if (i < 0)");
+                    RunEmitter.Line(find, i2, "{");
+                    RunEmitter.Line(find, i2 + 1, "return false;");
+                    RunEmitter.Line(find, i2, "}");
+                    sb_blank(find);
+                    RunEmitter.Line(find, i2, "pos = i - offset;");
+                }
+                else
+                {
+                    RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
+                    RunEmitter.Line(find, i2 + 1, "? " + Call(method16, Chars + ".Slice(pos + offset)", args16));
+                    RunEmitter.Line(find, i2 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(pos + offset)", args8) + ";");
+                    RunEmitter.Line(find, i2, "if (i < 0)");
+                    RunEmitter.Line(find, i2, "{");
+                    RunEmitter.Line(find, i2 + 1, "return false;");
+                    RunEmitter.Line(find, i2, "}");
+                    sb_blank(find);
+                    RunEmitter.Line(find, i2, "pos += i;");
+                }
+            }
+
             RunEmitter.Line(find, i2, "if (len - pos < p.Need)");
             RunEmitter.Line(find, i2, "{");
             RunEmitter.Line(find, i2 + 1, "return false;");

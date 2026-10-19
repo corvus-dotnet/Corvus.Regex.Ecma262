@@ -599,6 +599,33 @@ public sealed partial class Regex
         return ok;
     }
 
+    /// <summary>Gets a value indicating whether an enumeration's later matches can resume the generated code's loop directly (see <see cref="Matcher.ResumeEmitted{TUnit, TEncoding}"/>): not sticky, no group tracked, no cursor, and the generated code finding the starts.</summary>
+    internal bool ResumesEmitted => !this.Sticky && this.program.Groups == 0 && !this.program.UsesCursor && this.program.Runner is { OwnsSearch: true };
+
+    /// <summary>The next match of an enumeration in UTF-16, resuming the generated code's loop (see <see cref="ResumesEmitted"/>).</summary>
+    internal bool TryResumeEmitted(MatchState st, ref CandidateScan scan, ReadOnlySpan<char> input, int startAt, out int from, out int to)
+    {
+        bool ok = Matcher.ResumeEmitted<char, Utf16Encoding>(st, ref scan, this.program, input, startAt, this.Limit, out from, out to);
+        if (st.Stop != MatchStop.None)
+        {
+            throw this.Abandoned(st.Stop);
+        }
+
+        return ok;
+    }
+
+    /// <summary>The next match of an enumeration in UTF-8, resuming the generated code's loop (see <see cref="ResumesEmitted"/>).</summary>
+    internal bool TryResumeEmitted(MatchState st, ref CandidateScan scan, ReadOnlySpan<byte> input, int startAt, out int from, out int to)
+    {
+        bool ok = Matcher.ResumeEmitted<byte, Utf8Encoding>(st, ref scan, this.program, input, startAt, this.Limit, out from, out to);
+        if (st.Stop != MatchStop.None)
+        {
+            throw this.Abandoned(st.Stop);
+        }
+
+        return ok;
+    }
+
     /// <summary>Whether the pattern matches at or after a position in UTF-8, with a state the caller holds for a run of matches.</summary>
     internal bool TryMatchBounds(MatchState st, ref ScanCursor cursor, ReadOnlySpan<byte> input, int startAt, out int from, out int to)
     {

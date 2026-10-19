@@ -215,6 +215,9 @@ public sealed class MatchState
     /// <summary>Gets or sets the number of memo points of the program.</summary>
     public int Points { get; set; }
 
+    /// <summary>Gets or sets the program the state was last prepared for (see <see cref="Matcher.ResumeEmitted{TUnit, TEncoding}"/>).</summary>
+    public Program? PreparedFor { get; set; }
+
     /// <summary>Gets or sets a value indicating whether a match on this thread is using the state.</summary>
     public bool InUse { get; set; }
 
@@ -1115,10 +1118,60 @@ public static class Matcher
         st.Checks = 0;
         st.Width = length + 1;
         st.Points = p.Points.Length;
+        st.PreparedFor = p;
         if (!st.MemoOff && MatchState.MemoFromTheStart)
         {
             st.Remember();
         }
+    }
+
+    /// <summary>
+    /// The next match of an enumeration whose starts the generated code finds, for a program that tracks no group
+    /// and keeps no cursor: the state is prepared again only when something else used it since the last match
+    /// (another program, or another text), else what a match changes is reset and the runner's loop resumes.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="st">The state.</param>
+    /// <param name="scan">The search for starts as the last match left it.</param>
+    /// <param name="p">The program.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="start">The position to match at or after.</param>
+    /// <param name="limit">The time limit.</param>
+    /// <param name="from">The start of the match.</param>
+    /// <param name="to">The end of the match.</param>
+    /// <returns>Whether a match was found; when not, <see cref="MatchState.Stop"/> says whether a limit was reached.</returns>
+    public static bool ResumeEmitted<TUnit, TEncoding>(MatchState st, ref CandidateScan scan, Program p, ReadOnlySpan<TUnit> input, int start, TimeSpan limit, out int from, out int to)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        int len = input.Length;
+        if (st.PreparedFor != p || st.Width != len + 1)
+        {
+            Prepare(st, p, len, limit);
+        }
+        else
+        {
+            st.Steps = CheckEvery;
+            st.Stop = MatchStop.None;
+            st.Deadline = 0;
+            st.Checks = 0;
+            st.MemoOn = false;
+        }
+
+        scan.Next = Math.Max(scan.Next, start);
+        from = -1;
+        to = -1;
+        if (len - start < p.Need)
+        {
+            return false;
+        }
+
+        GeneratedRunner runner = p.Runner!;
+        bool ok = typeof(TUnit) == typeof(byte)
+            ? runner.Scan(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, byte>(input), ref scan, out from, out to)
+            : runner.Scan(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(input), ref scan, out from, out to);
+        return ok && st.Stop == MatchStop.None;
     }
 
     private static bool Search<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int start, bool sticky, ref CandidateScan scan, out int from, out int to)
