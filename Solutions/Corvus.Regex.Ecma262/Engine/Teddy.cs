@@ -31,6 +31,16 @@ public sealed class Teddy
     private const int Buckets = 8;
     private const int MostPositions = 3;
 
+    /// <summary>The cost of a position, per byte of text, in the units of a vector operation: two shuffles, a shift and two ands over thirty-two bytes.</summary>
+    private const double PositionCost = 6.0 / 32;
+
+    /// <summary>
+    /// The cost of a start the fingerprints let through, in the same units: the lanes, the buckets and the literals
+    /// compared, measured at about five nanoseconds against five thousandths per byte and position (seven names
+    /// searched by one position took twice the time of three; five Russian names by two, two and a half times).
+    /// </summary>
+    private const double StartCost = 200;
+
     private readonly Needle<byte>[] needles;
     private readonly int[][] buckets;
     private readonly int[] positions;
@@ -78,7 +88,23 @@ public sealed class Teddy
         }
 
         Array.Sort(order, (a, b) => share[a] != share[b] ? share[a].CompareTo(share[b]) : a.CompareTo(b));
-        this.positions = order.AsSpan(0, Math.Min(MostPositions, order.Length)).ToArray();
+
+        // As many of them as pay: each costs its shuffles at every vector, and saves the starts it turns away.
+        int take = 1;
+        double best = double.MaxValue;
+        double through = 1;
+        for (int k = 1; k <= Math.Min(MostPositions, order.Length); k++)
+        {
+            through *= share[order[k - 1]];
+            double c = (k * PositionCost) + (through * StartCost);
+            if (c < best)
+            {
+                best = c;
+                take = k;
+            }
+        }
+
+        this.positions = order.AsSpan(0, take).ToArray();
         Array.Sort(this.positions);
         this.reach = this.positions[this.positions.Length - 1];
 

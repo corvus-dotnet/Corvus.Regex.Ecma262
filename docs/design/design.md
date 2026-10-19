@@ -224,6 +224,26 @@ up to six distinct units at each, and over UTF-8 two adjacent positions are comp
 which admits only the literals' own pairs of bytes rather than every pairing of a unit of one position with a unit
 of the other.
 
+**Fingerprints** (`Teddy`, over UTF-8; `SearchValues<string>` over UTF-16, which is the runtime's Teddy). Where no
+position is rare enough for the needle (the cost model puts it at 0.35 or more: three or more literals, or any
+case-insensitive alternation, where a letter's two cases are common together), the literals go into up to eight
+buckets, and for each of up to three positions two tables of sixteen entries map a byte's nibbles to the buckets
+with that byte there in any of its forms. A vector of starts is looked up by two shuffles per position, and only
+the starts whose bytes agree with a bucket at every position are compared. The positions are the rarest the
+literals share, so that beyond ASCII the bytes that tell the literals apart are looked at and not a script's lead
+bytes. Measured on the search alone, three names under the i flag went from 0.26 to 0.06 ms, seven from 0.95 to
+0.08, four over sixteen million characters from 12.2 to 1.8, and five Russian names from 1.12 to 0.14. The
+runtime's search is kept to ASCII literals: on a CJK alternation it was ninety-seven times slower than the needle.
+Below the cost of 0.35 the needle's one anchor position wins by half: two or three literals that start with
+capitals (`Sher|Hol`, `Sherlock|Street`, `Holmes|Watson`) search at 0.53 to 0.65 of the runtime's time.
+
+**The literal every alternative holds.** A pattern that is an alternation, or starts with one, whose alternatives
+each start with a literal or hold one at a fixed or bounded distance from their start
+(`([A-Za-z]awyer|[A-Za-z]inn)\s`, `Tom.{10,25}river|river.{10,25}Tom`, `Sher[a-z]+|Hol[a-z]+`, with or without
+the i flag) is searched for by all those literals at once; each occurrence opens the window of starts from which
+some alternative could reach it, tried in order and never twice, and where every alternative starts with its
+literal the matcher runs at the occurrence alone. These rows had been the matcher's: tried at every letter.
+
 **What this cannot do.** A CJK literal over UTF-8 in a text that fits the cache runs at about 1.2 to 1.5 times
 .NET over UTF-16: every character is three bytes and no byte of it is rare, where UTF-16 has one rare unit per
 character for the span search to find alone. Over a text larger than the cache the smaller encoding wins back.

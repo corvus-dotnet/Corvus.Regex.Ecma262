@@ -1433,8 +1433,22 @@ public sealed class MultiNeedle<T>
 
         this.Cost = cost;
         this.o1 = bestA;
-        this.o2 = bestB < 0 ? bestA : bestB;
         this.two = bestB >= 0;
+        if (bestB < 0)
+        {
+            // One position searched: the next rarest is checked at each start before the full comparison, which
+            // turns away most of the starts a common first unit lets through (the H of Holmes before every He).
+            bestB = bestA;
+            for (int d = 0; d < positions; d++)
+            {
+                if (d != bestA && (bestB == bestA || share[d] < share[bestB]))
+                {
+                    bestB = d;
+                }
+            }
+        }
+
+        this.o2 = bestB;
         this.values1 = values[this.o1];
         this.masks1 = masks[this.o1];
         this.values2 = values[this.o2];
