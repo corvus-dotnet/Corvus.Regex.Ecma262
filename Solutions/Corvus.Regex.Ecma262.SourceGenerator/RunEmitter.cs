@@ -529,6 +529,17 @@ internal static class RunEmitter
         }
         else if (set is not null)
         {
+            if (max >= 8)
+            {
+                Line(sb, indent + 1, "at = " + Ns + "Matcher.AsciiRun<TUnit, TEncoding>(insts[" + k + "].Set!, input, at, " + max + ", units);");
+                Line(sb, indent + 1, "n = at - pos;");
+                Line(sb, indent + 1, "if (n >= " + min + ")");
+                Line(sb, indent + 1, "{");
+                Line(sb, indent + 2, "floor = pos + " + min + ";");
+                Line(sb, indent + 1, "}");
+                sb.AppendLine();
+            }
+
             Line(sb, indent + 1, "while (n != " + max + " && at < len)");
             Line(sb, indent + 1, "{");
             Line(sb, indent + 2, "c = enc.Unit(input, at);");

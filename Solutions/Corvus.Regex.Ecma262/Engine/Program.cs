@@ -424,8 +424,14 @@ public sealed class Program
     /// <param name="requiredCountMax">The greatest number of characters before the required literal when it varies, or -1.</param>
     /// <param name="afterLoopSets">The sets of the run of loops before the literal after them, in order, or null for the one loop.</param>
     /// <param name="afterLoopMins">The least count of each of those loops, or null.</param>
-    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, int[][] caseForms, int requiredOffsetUtf8, CharSet? loopSet, int loopMin, string afterLoop, bool skipRun, int requiredCount, int afterLoopMax = -1, AlternationSearch? afterLoopAlternation = null, int requiredCountMax = -1, CharSet[]? afterLoopSets = null, int[]? afterLoopMins = null)
+    /// <param name="requiredAlternation">The literals every match holds one of, one per alternative, or null.</param>
+    /// <param name="requiredAlternationLo">The least number of characters before any of those literals.</param>
+    /// <param name="requiredAlternationHi">The greatest number of characters before any of those literals.</param>
+    public Program(Inst[] insts, int groups, int loops, bool units, bool anchored, string prefix, int need, MemoPoint[] points, Quick[] quick, CharSet? first, byte[][] utf8Literals, string[] utf16Literals, string required, int requiredOffset, int[][] caseForms, int requiredOffsetUtf8, CharSet? loopSet, int loopMin, string afterLoop, bool skipRun, int requiredCount, int afterLoopMax = -1, AlternationSearch? afterLoopAlternation = null, int requiredCountMax = -1, CharSet[]? afterLoopSets = null, int[]? afterLoopMins = null, AlternationSearch? requiredAlternation = null, int requiredAlternationLo = 0, int requiredAlternationHi = 0)
     {
+        this.RequiredAlternation = requiredAlternation;
+        this.RequiredAlternationLo = requiredAlternationLo;
+        this.RequiredAlternationHi = requiredAlternationHi;
         this.RequiredCountMax = requiredCountMax;
         this.AfterLoopSets = afterLoopSets ?? (loopSet is null ? [] : [loopSet]);
         this.AfterLoopMins = afterLoopMins ?? [loopMin];
@@ -780,6 +786,15 @@ public sealed class Program
     /// <summary>Gets the greatest number of characters before the required literal when it varies (<see cref="RequiredCount"/> is then the least), or -1 when it is fixed.</summary>
     public int RequiredCountMax { get; }
 
+    /// <summary>Gets the search for the literals every match holds one of, one per alternative of a leading alternation, or null (see <see cref="Compiler.RequiredAlternation"/>).</summary>
+    public AlternationSearch? RequiredAlternation { get; }
+
+    /// <summary>Gets the least number of characters before any of those literals.</summary>
+    public int RequiredAlternationLo { get; }
+
+    /// <summary>Gets the greatest number of characters before any of those literals.</summary>
+    public int RequiredAlternationHi { get; }
+
     /// <summary>Gets the set of the single-character loop every match starts with (see <see cref="Compiler.LiteralAfterLoop"/> and <see cref="SkipRun"/>), or null.</summary>
     public CharSet? LoopSet { get; }
 
@@ -916,6 +931,9 @@ internal sealed class Compiler
         AlternationSearch? afterLoopAlternation = null;
         CharSet[] afterLoopSets = [];
         int[] afterLoopMins = [];
+        AlternationSearch? requiredAlternation = null;
+        int requiredAlternationLo = 0;
+        int requiredAlternationHi = 0;
         bool skipRun = false;
         if (!anchored)
         {
@@ -951,6 +969,11 @@ internal sealed class Compiler
                 {
                     afterLoop = LiteralAfterLoop(root, c, out loopSet, out loopMin, out afterLoopMax, out afterLoopAlternation, out afterLoopSets, out afterLoopMins);
                 }
+
+                if (required.Length == 0 && caseForms.Length == 0 && afterLoop.Length == 0 && afterLoopAlternation is null && LiteralAlternatives(root).Length == 0 && CaseAlternatives(root).Length == 0)
+                {
+                    requiredAlternation = RequiredAlternation(root, unicode, out requiredAlternationLo, out requiredAlternationHi);
+                }
             }
         }
 
@@ -976,7 +999,7 @@ internal sealed class Compiler
             }
         }
 
-        Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, caseForms, requiredOffsetUtf8, loopSet, loopMin, afterLoop, skipRun, requiredCount, afterLoopMax, afterLoopAlternation, requiredCountMax, afterLoopSets, afterLoopMins);
+        Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, caseForms, requiredOffsetUtf8, loopSet, loopMin, afterLoop, skipRun, requiredCount, afterLoopMax, afterLoopAlternation, requiredCountMax, afterLoopSets, afterLoopMins, requiredAlternation, requiredAlternationLo, requiredAlternationHi);
         program.SetShape(LiteralAlternatives(root), CaseAlternatives(root));
         program.LeadingWordBoundary = insts.Length > 1 && insts[0].Op == Op.WordBoundary && first is not null && !first.HasNonAscii && IsWordSubset(first);
         return program;
@@ -1651,6 +1674,121 @@ internal sealed class Compiler
         }
 
         return literals;
+    }
+
+    /// <summary>
+    /// The literals every match holds one of, when the pattern is an alternation (or starts with one in a group)
+    /// each of whose alternatives starts with a literal, in its forms under the i flag, or holds one at a fixed or
+    /// bounded distance from its start (<c>([A-Za-z]awyer|[A-Za-z]inn)\s</c>, <c>Tom.{10,25}river|river.{10,25}Tom</c>).
+    /// The search then looks for any of the literals, and tries the starts from which an alternative could reach
+    /// an occurrence. Null when some alternative has no such literal.
+    /// </summary>
+    /// <param name="root">The root of the tree.</param>
+    /// <param name="unicode">Whether the pattern is matched by code point.</param>
+    /// <param name="lo">The least number of characters before any of the literals.</param>
+    /// <param name="hi">The greatest number of characters before any of the literals.</param>
+    /// <returns>The search, or null.</returns>
+    public static AlternationSearch? RequiredAlternation(EcmaRegexNode root, bool unicode, out int lo, out int hi)
+    {
+        lo = 0;
+        hi = 0;
+        EcmaRegexNode n = root;
+        while (n.Kind == EcmaRegexNodeKind.Group)
+        {
+            n = n.Subs[0];
+        }
+
+        if (n.Kind == EcmaRegexNodeKind.Cat && n.Subs.Length >= 2)
+        {
+            n = n.Subs[0];
+            while (n.Kind == EcmaRegexNodeKind.Group)
+            {
+                n = n.Subs[0];
+            }
+        }
+
+        if (n.Kind != EcmaRegexNodeKind.Alt || n.Subs.Length > 16)
+        {
+            return null;
+        }
+
+        int[][][] forms = new int[n.Subs.Length][][];
+        lo = int.MaxValue;
+        hi = 0;
+        for (int k = 0; k < n.Subs.Length; k++)
+        {
+            EcmaRegexNode alt = n.Subs[k];
+            EcmaRegexNode[] terms = alt.Kind == EcmaRegexNodeKind.Cat ? alt.Subs : [alt];
+
+            // The literal the alternative starts with, in its forms.
+            List<int[]> leading = [];
+            foreach (EcmaRegexNode term in terms)
+            {
+                if (term.Kind == EcmaRegexNodeKind.Char && !IsSurrogate(term.CodePoint) && IsLiteralRune(term.CodePoint))
+                {
+                    leading.Add([term.CodePoint]);
+                    continue;
+                }
+
+                if (term.Kind == EcmaRegexNodeKind.Set && term.Set.Length >= 4 && term.Set.Length <= 8)
+                {
+                    int[] members = new int[term.Set.Length / 2];
+                    bool single = true;
+                    for (int m = 0; m < term.Set.Length; m += 2)
+                    {
+                        single &= term.Set[m] == term.Set[m + 1] && !IsSurrogate(term.Set[m]);
+                        members[m / 2] = term.Set[m];
+                    }
+
+                    if (!single)
+                    {
+                        break;
+                    }
+
+                    leading.Add(members);
+                    continue;
+                }
+
+                break;
+            }
+
+            if (leading.Count > 0)
+            {
+                forms[k] = [.. leading];
+                lo = Math.Min(lo, 0);
+                continue;
+            }
+
+            // Otherwise a literal at a fixed or bounded distance from the alternative's start.
+            string literal = RequiredLiteral(alt, unicode, out _, out _, out int count, out int countMax);
+            if (literal.Length == 0 || count < 0)
+            {
+                return null;
+            }
+
+            int[][] exact = new int[literal.Length][];
+            int at = 0;
+            int j = 0;
+            while (at < literal.Length)
+            {
+                int cp = char.IsSurrogatePair(literal, at) ? char.ConvertToUtf32(literal, at) : literal[at];
+                exact[j++] = [cp];
+                at += cp > 0xFFFF ? 2 : 1;
+            }
+
+            forms[k] = exact.AsSpan(0, j).ToArray();
+            lo = Math.Min(lo, count);
+            hi = Math.Max(hi, countMax >= 0 ? countMax : count);
+        }
+
+        if (hi > 64)
+        {
+            return null;
+        }
+
+        return AlternationSearch.CreateForms(forms);
+
+        static bool IsSurrogate(int c) => c >= 0xD800 && c <= 0xDFFF;
     }
 
     /// <summary>

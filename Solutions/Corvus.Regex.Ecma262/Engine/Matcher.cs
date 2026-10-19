@@ -842,18 +842,25 @@ public static class Matcher
             st.Tmp = new int[p.Groups];
         }
 
-        for (int k = 0; k < 2 * p.Groups; k++)
+        if (p.Groups != 0)
         {
-            st.Caps[k] = MatchState.None;
+            for (int k = 0; k < 2 * p.Groups; k++)
+            {
+                st.Caps[k] = MatchState.None;
+            }
+
+            Array.Clear(st.Tmp, 0, p.Groups);
         }
 
-        Array.Clear(st.Tmp, 0, p.Groups);
-        if (st.Counts.Length < 2 * p.Loops)
+        if (p.Loops != 0)
         {
-            st.Counts = new int[2 * p.Loops];
-        }
+            if (st.Counts.Length < 2 * p.Loops)
+            {
+                st.Counts = new int[2 * p.Loops];
+            }
 
-        Array.Clear(st.Counts, 0, 2 * p.Loops);
+            Array.Clear(st.Counts, 0, 2 * p.Loops);
+        }
         st.Timed = limit > TimeSpan.Zero;
         st.LimitTicks = st.Timed ? (long)(limit.Ticks * (Stopwatch.Frequency / (double)TimeSpan.TicksPerSecond)) : 0;
         st.Deadline = 0;
@@ -1169,6 +1176,79 @@ public static class Matcher
             }
         }
 #endif
+        if (p.RequiredAlternation is not null)
+        {
+            // Every match holds one of the literals, so many to so many characters after its start: each
+            // occurrence of one allows the starts that could reach it, which the scan below tries in order within
+            // that window alone. The window is in units, taking the most units a character can be.
+            AlternationSearch alternation = p.RequiredAlternation;
+            int perCharacter = typeof(TUnit) == typeof(byte) ? 4 : 2;
+            int lo = p.RequiredAlternationLo;
+            int hi = p.RequiredAlternationHi * perCharacter;
+            bool extras = enc.HasAlternativeExtras(alternation);
+            int window = extras ? enc.AlternativeWindow(alternation) : 0;
+            int next = pos + lo;
+            int tried = pos - 1;
+            while (true)
+            {
+                int i = enc.IndexOfAlternation(input, next, alternation);
+                if (extras)
+                {
+                    int limit = i < 0 ? len : Math.Min(len, i + window);
+                    int e = enc.IndexOfAlternativeExtra(input, next, limit, alternation);
+                    if (e >= 0 && (i < 0 || e - window < i))
+                    {
+                        i = Math.Max(next, e - window + 1);
+                    }
+                }
+
+                if (i < 0)
+                {
+                    return false;
+                }
+
+                if (hi == 0)
+                {
+                    // Every alternative starts with its literal: the match starts at the occurrence or not at all.
+                    if (len - i >= p.Need)
+                    {
+                        from = i;
+                        if (Run<TUnit, TEncoding>(p, st, input, i, out to))
+                        {
+                            return true;
+                        }
+
+                        if (st.Stop != MatchStop.None)
+                        {
+                            return false;
+                        }
+                    }
+
+                    next = enc.NextStart(input, i);
+                    continue;
+                }
+
+                int wStart = Math.Max(Math.Max(pos, tried + 1), i - hi);
+                int wEnd = i - lo;
+                if (wStart <= wEnd)
+                {
+                    if (ScanStarts<TUnit, TEncoding>(p, st, input, wStart, wEnd, out from, out to))
+                    {
+                        return true;
+                    }
+
+                    if (st.Stop != MatchStop.None)
+                    {
+                        return false;
+                    }
+
+                    tried = wEnd;
+                }
+
+                next = enc.NextStart(input, i);
+            }
+        }
+
         if (p.RequiredCountMax >= 0)
         {
             // Every match holds the literal after so many to so many characters: each occurrence allows the
@@ -1279,7 +1359,21 @@ public static class Matcher
             }
         }
 
-        while (true)
+        return ScanStarts<TUnit, TEncoding>(p, st, input, pos, len, out from, out to);
+    }
+
+    /// <summary>Tries every start from a position to a last position, in order, with the first set's scan and the skipping of runs.</summary>
+    private static bool ScanStarts<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int pos, int until, out int from, out int to)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        int len = input.Length;
+        CharSet? first = p.First;
+        bool units = p.Units;
+        from = -1;
+        to = -1;
+        while (pos <= until)
         {
             if (len - pos < p.Need)
             {
@@ -1298,14 +1392,14 @@ public static class Matcher
                 // A start is a unit that can begin a member of the first set (looked at below). The scan for one
                 // is vectorised.
                 int i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);
-                if (i < 0)
+                if (i < 0 || i > until)
                 {
                     return false;
                 }
 
                 pos = enc.AlignStart(input, i, units);
                 from = pos;
-                if (len - pos < p.Need)
+                if (len - pos < p.Need || pos > until)
                 {
                     return false;
                 }
@@ -1351,6 +1445,8 @@ public static class Matcher
 
             pos += w;
         }
+
+        return false;
     }
 
     /// <summary>
@@ -1417,6 +1513,49 @@ public static class Matcher
             }
         }
 
+        return at;
+#endif
+    }
+
+    /// <summary>
+    /// The end of the run of ASCII members of a set that starts at a position and takes at most so many units: the
+    /// first position within the bound at which the unit is not an ASCII member of the set, or the bound. On .NET
+    /// the scan is vectorised; otherwise it is left to the caller, which goes on from the position itself.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="set">The set.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="at">The position.</param>
+    /// <param name="max">The most units.</param>
+    /// <param name="units">Whether the text is matched by UTF-16 code unit.</param>
+    /// <returns>The end of the run.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int AsciiRun<TUnit, TEncoding>(CharSet set, ReadOnlySpan<TUnit> input, int at, int max, bool units)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+#if NET
+        TEncoding enc = default;
+        int len = input.Length;
+        if (at >= len)
+        {
+            return at;
+        }
+
+        ReadOnlySpan<TUnit> window = input.Slice(at, Math.Min(max, len - at));
+        int i = set.HoldsAllNonAscii(units) ? window.IndexOfAny(enc.NonMembers(set)) : window.IndexOfAnyExcept(enc.Members(set));
+        if (i < 0)
+        {
+            i = window.Length;
+        }
+
+        // A unit beyond ASCII in the run is a character the caller decodes and counts.
+        int beyond = typeof(TUnit) == typeof(byte)
+            ? System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, byte>(window.Slice(0, i)).IndexOfAnyInRange((byte)0x80, (byte)0xFF)
+            : System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(window.Slice(0, i)).IndexOfAnyInRange((char)0x80, '\uFFFF');
+        return at + (beyond < 0 ? i : beyond);
+#else
         return at;
 #endif
     }
@@ -2118,6 +2257,18 @@ public static class Matcher
                     }
                     else if (set is not null)
                     {
+                        if (max >= 8)
+                        {
+                            // The ASCII part of the run, within the bound, is found by vector; the loop goes on
+                            // from where that stops.
+                            at = AsciiRun<TUnit, TEncoding>(set, input, at, max, units);
+                            n = at - pos;
+                            if (n >= min)
+                            {
+                                floor = pos + min;
+                            }
+                        }
+
                         while (n != max && at < len)
                         {
                             int c = enc.Unit(input, at);

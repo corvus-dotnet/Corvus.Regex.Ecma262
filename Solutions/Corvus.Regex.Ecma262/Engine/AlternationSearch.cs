@@ -19,6 +19,9 @@ namespace Corvus.Ecma262.RegularExpressions;
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class AlternationSearch
 {
+    /// <summary>The cost of the multi-literal needle by its model (see <see cref="MultiNeedle{T}.Cost"/>) below which it beats the runtime's search for any of several strings over UTF-16.</summary>
+    private const double NeedleOverStrings = 0.35;
+
     private AlternationSearch(string[] literals, byte[][] utf8, int[][][]? forms, Needle<byte>[] needles8, Needle<ushort>[] needles16, int[] extras8, int[] extras16, int window8, int window16)
     {
         this.Literals = literals;
@@ -33,7 +36,20 @@ public sealed class AlternationSearch
         this.WindowUtf8 = window8;
         this.WindowUtf16 = window16;
 #if NET
-        this.Strings = System.Buffers.SearchValues.Create(literals, forms is null ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+        // The runtime's search for any of several strings is vectorised (Teddy) for ASCII literals and far slower
+        // than the needle for others, so it is kept for ASCII; and the needle beats it where the needle's anchors
+        // are rare enough (two or three literals starting with capitals: Sher|Hol, Sherlock|Street, Holmes|Watson
+        // measured at 0.53 to 0.65 of it; Sherlock|Holmes|Watson at 1.23, any case-insensitive search at 4 or more).
+        bool ascii = true;
+        foreach (string literal in literals)
+        {
+            foreach (char c in literal)
+            {
+                ascii &= c < 0x80;
+            }
+        }
+
+        this.Strings = ascii && this.MultiUtf16.Cost >= NeedleOverStrings ? System.Buffers.SearchValues.Create(literals, forms is null ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) : null;
 #endif
     }
 
@@ -71,8 +87,8 @@ public sealed class AlternationSearch
     public int WindowUtf16 { get; }
 
 #if NET
-    /// <summary>Gets the runtime's search for any of the alternatives over UTF-16, exact or ignoring case as the runtime knows it.</summary>
-    public System.Buffers.SearchValues<string> Strings { get; }
+    /// <summary>Gets the runtime's search for any of the alternatives over UTF-16, exact or ignoring case as the runtime knows it, or null when the alternatives are not all ASCII.</summary>
+    public System.Buffers.SearchValues<string>? Strings { get; }
 #endif
 
     /// <summary>The search for an alternation of literals matched exactly.</summary>

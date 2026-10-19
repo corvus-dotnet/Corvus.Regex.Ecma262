@@ -1431,6 +1431,7 @@ public sealed class MultiNeedle<T>
         }
 #endif
 
+        this.Cost = cost;
         this.o1 = bestA;
         this.o2 = bestB < 0 ? bestA : bestB;
         this.two = bestB >= 0;
@@ -1461,6 +1462,9 @@ public sealed class MultiNeedle<T>
         }
 #endif
     }
+
+    /// <summary>Gets the cost of the search by the model, per unit of text, in the units of a vector operation (see <see cref="StartCost"/>).</summary>
+    public double Cost { get; }
 
     /// <summary>The earliest position at or after a position where one of the literals is, or -1.</summary>
     /// <param name="input">The text.</param>

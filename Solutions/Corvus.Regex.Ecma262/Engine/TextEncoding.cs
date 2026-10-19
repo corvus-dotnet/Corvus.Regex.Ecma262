@@ -950,12 +950,14 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
     public int IndexOfAlternation(ReadOnlySpan<char> input, int from, AlternationSearch alternation)
     {
 #if NET
-        // The runtime's search for any of several strings (Teddy) is the fastest there is.
-        int i = input.Slice(from).IndexOfAny(alternation.Strings);
-        return i < 0 ? -1 : from + i;
-#else
-        return alternation.MultiUtf16.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
+        // The runtime's search for any of several ASCII strings (Teddy) is the fastest there is.
+        if (alternation.Strings is not null)
+        {
+            int i = input.Slice(from).IndexOfAny(alternation.Strings);
+            return i < 0 ? -1 : from + i;
+        }
 #endif
+        return alternation.MultiUtf16.IndexOf(MemoryMarshal.Cast<char, ushort>(input), from);
     }
 
     /// <inheritdoc/>
