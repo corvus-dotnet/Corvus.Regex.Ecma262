@@ -43,8 +43,8 @@ in its section 10.
   run .NET's span search, and the two CJK searches over UTF-8, where three bytes a character with no rare byte
   cannot be found as fast as one UTF-16 unit.
 - Phase 4 (the source generator's structured code and emitted search, in progress): generated code against
-  .NET's generated code on the same workloads, median 0.90 over UTF-16 (at or below 1.0 on 46 of 55) and 0.57
-  over UTF-8 (48 of 55); see [docs/benchmarks/2026-10-19.md](docs/benchmarks/2026-10-19.md) for the rows above
+  .NET's generated code on the same workloads, median 0.86 over UTF-16 (at or below 1.0 on 46 of 57) and 0.58
+  over UTF-8 (51 of 57); see [docs/benchmarks/2026-10-20.md](docs/benchmarks/2026-10-20.md) for the rows above
   1.0 and why.
 
 ## Repository structure

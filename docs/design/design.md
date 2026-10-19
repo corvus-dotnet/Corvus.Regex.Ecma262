@@ -359,6 +359,26 @@ and the i flag folds s to the long s and k to the Kelvin sign, which .NET's own 
 of the 57 rows; the four apart are `$` and `.` at CRLF, where ECMA-262 counts CR as a line terminator, and `\w`,
 which .NET takes as Unicode letters and digits.
 
+**The fingerprint search's loop (2026-10-20).** With the two `/i` alternations still at 1.33 and 1.61, a copy of
+the packed fingerprint search in the probe measured its loop against .NET's with no start in the text: level (47
+us against 45 for three positions over Sherlock), both bound by the shuffle port at twelve shuffles a vector. The
+difference was in the vectors with a start: the loop that also handled them reloaded the six tables from the stack
+at every vector, because a call (the verification) was live across it. The loop over the vectors with no start is
+now its own method for each number of positions, with no call in it, and the starts are handled outside it; a start
+is compared against a literal's forms by one vector compare per form where every character is one unit in every
+form (three names under iu: 85 us to 61, below .NET's string search at 70). The search that verified the
+alternative gives its length, and for a pattern that is the alternation (or one literal) the generated loop
+returns the match without running its body. The packed search is taken for two literals too where a form is
+apart, since the runtime's string search then needs its pass for the long s (Sher|Hol under iu: 70 us against 65
+and 14).
+
+**The needle's third anchor (2026-10-20).** .NET's single-string search compares its third character only where
+the first two agree somewhere in the vector; ours compared all three at every vector, and took a third only where
+the first two were common letters. The third is now lazy in every three-anchor finder and taken wherever there
+is one a mask joins (Holmes under iu: 44 us to 36); a literal whose rarest third position has a form no mask joins
+(the s of sherlock, with the long s) takes the rarest position a mask does join instead of keeping two anchors
+(sherlock under iu: 36 us to 27, against .NET's 32).
+
 ## 6. Target frameworks
 
 `net10.0; netstandard2.0`. net8.0 leaves support in November 2026 and net9.0 left it in May 2026, so neither is a

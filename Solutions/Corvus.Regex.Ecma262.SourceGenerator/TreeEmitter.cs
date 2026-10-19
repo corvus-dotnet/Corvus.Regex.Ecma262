@@ -232,9 +232,10 @@ internal static class TreeEmitter
 
                 this.Line("{");
                 this.indent++;
-                if (ownsSearch && this.p.Shape == SimpleShape.LiteralAlternation)
+                if (ownsSearch && (this.p.Shape == SimpleShape.LiteralAlternation || this.p.Shape == SimpleShape.Literal))
                 {
-                    // The search verified the alternative and gave its length: the match is known.
+                    // The search verified the alternative (or found the literal that is the whole pattern) and
+                    // gave its length: the match is known.
                     RunEmitter.Line(this.code, 0, "#if NET8_0_OR_GREATER");
                     this.Line("if (end >= 0)");
                     this.Line("{");
@@ -1404,7 +1405,7 @@ internal static class TreeEmitter
                 return true;
             }
 
-            if (p.Shape == SimpleShape.None && p.Utf16Prefix.Length > 0 && IsAscii(p.Utf16Prefix) && p.CaseNeedleUtf16 is null)
+            if ((p.Shape == SimpleShape.None || p.Shape == SimpleShape.Literal) && p.Utf16Prefix.Length > 0 && IsAscii(p.Utf16Prefix) && p.CaseNeedleUtf16 is null)
             {
                 EmitPrefix(p, find, statics, indent);
                 return true;
@@ -1997,6 +1998,11 @@ internal static class TreeEmitter
                 sb_blank(find);
                 RunEmitter.Line(find, i1 + 1, "start = pos;");
                 RunEmitter.Line(find, i1 + 1, "scan.Next = start + 1;");
+                if (p.Shape == SimpleShape.Literal)
+                {
+                    RunEmitter.Line(find, i1 + 1, "end = start + (typeof(TUnit) == typeof(char) ? " + literal.Length + " : " + Encoding.UTF8.GetByteCount(literal) + ");");
+                }
+
                 RunEmitter.Line(find, i1 + 1, "return true;");
                 RunEmitter.Line(find, i1, "}");
                 Tail(find, indent);
@@ -2024,6 +2030,12 @@ internal static class TreeEmitter
             sb_blank(find);
             RunEmitter.Line(find, i1, "start = pos + i;");
             RunEmitter.Line(find, i1, "scan.Next = start + 1;");
+            if (p.Shape == SimpleShape.Literal)
+            {
+                // The literal is the whole pattern: the match is known.
+                RunEmitter.Line(find, i1, "end = start + (typeof(TUnit) == typeof(char) ? " + literal.Length + " : " + Encoding.UTF8.GetByteCount(literal) + ");");
+            }
+
             RunEmitter.Line(find, i1, "return true;");
             Tail(find, indent);
         }
