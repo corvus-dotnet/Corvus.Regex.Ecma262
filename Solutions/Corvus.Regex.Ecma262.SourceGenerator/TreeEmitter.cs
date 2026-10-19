@@ -1511,6 +1511,31 @@ internal static class TreeEmitter
             RunEmitter.Line(find, i2 + 1, "break;");
             RunEmitter.Line(find, i2, "}");
             sb_blank(find);
+
+            // A start is one at which some alternative is whole: a start the checks let through that none is at
+            // ("She" for Sher) costs a comparison here, not an attempt.
+            for (int k = 0; k < literals.Length; k++)
+            {
+                RunEmitter.Line(statics, indent, "private static readonly byte[] L" + k + " = " + Bytes(literals[k]) + ";");
+            }
+
+            StringBuilder whole = new();
+            for (int k = 0; k < literals.Length; k++)
+            {
+                if (k > 0)
+                {
+                    whole.Append(" || ");
+                }
+
+                whole.Append("(typeof(TUnit) == typeof(char) ? " + Call("StartsWith", Chars + ".Slice(pos)", Str(literals[k]) + ".AsSpan()") + " : " + Call("StartsWith", Bytes8 + ".Slice(pos)", "L" + k) + ")");
+            }
+
+            RunEmitter.Line(find, i2, "if (!(" + whole + "))");
+            RunEmitter.Line(find, i2, "{");
+            RunEmitter.Line(find, i2 + 1, "pos++;");
+            RunEmitter.Line(find, i2 + 1, "continue;");
+            RunEmitter.Line(find, i2, "}");
+            sb_blank(find);
             RunEmitter.Line(find, i2, "scan.Next = pos + 1;");
             RunEmitter.Line(find, i2, "start = pos;");
             RunEmitter.Line(find, i2, "return true;");
@@ -1638,8 +1663,17 @@ internal static class TreeEmitter
             sb_blank(find);
             string args16 = literal.Length == 1 ? Ch(literal[0]) : Str(literal) + ".AsSpan()";
             string args8 = literal.Length == 1 ? "(byte)" + (int)literal[0] : "B0";
+            string method16 = "IndexOf";
+            if (p.Utf16PrefixNeedle is { PrefersStringSearch: true })
+            {
+                // Common letters at both ends: the runtime's fingerprint search, held in a static field.
+                RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> P0 = global::System.Buffers.SearchValues.Create(new string[] { " + Str(literal) + " }, global::System.StringComparison.Ordinal);");
+                method16 = "IndexOfAny";
+                args16 = "P0";
+            }
+
             RunEmitter.Line(find, i1, "int i = typeof(TUnit) == typeof(char)");
-            RunEmitter.Line(find, i1 + 1, "? " + Call("IndexOf", Chars + ".Slice(pos)", args16));
+            RunEmitter.Line(find, i1 + 1, "? " + Call(method16, Chars + ".Slice(pos)", args16));
             RunEmitter.Line(find, i1 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(pos)", args8) + ";");
             RunEmitter.Line(find, i1, "if (i < 0 || len - (pos + i) < p.Need)");
             RunEmitter.Line(find, i1, "{");

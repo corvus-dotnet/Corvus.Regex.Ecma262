@@ -476,6 +476,19 @@ public sealed class Needle<T>
 #endif
     }
 
+    /// <summary>Gets a value indicating whether the literal is best searched for by the runtime's string search (common letters at both ends, over UTF-16).</summary>
+    public bool PrefersStringSearch
+    {
+        get
+        {
+#if NET
+            return this.spanString is not null;
+#else
+            return false;
+#endif
+        }
+    }
+
     /// <summary>Whether the literal is at a position (in one of its forms).</summary>
     /// <param name="input">The text.</param>
     /// <param name="pos">The position, with at least the literal's length after it.</param>
