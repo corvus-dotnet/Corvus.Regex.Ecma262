@@ -464,7 +464,8 @@ public static class Matcher
         try
         {
             Prepare(st, p, input.Length, limit);
-            bool ok = Search<TUnit, TEncoding>(p, st, input, start, sticky, out _, out _);
+            CandidateScan scan = default;
+            bool ok = Search<TUnit, TEncoding>(p, st, input, start, sticky, ref scan, out _, out _);
             stop = st.Stop;
             return ok && stop == MatchStop.None;
         }
@@ -536,6 +537,34 @@ public static class Matcher
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
+        CandidateScan scan = default;
+        return MatchWith<TUnit, TEncoding>(st, ref cursor, ref scan, p, input, start, sticky, limit, captures, out stop);
+    }
+
+    /// <summary>
+    /// As <see cref="MatchWith{TUnit, TEncoding}(MatchState, ref ScanCursor, Program, ReadOnlySpan{TUnit}, int, bool, TimeSpan, Span{int}, out MatchStop)"/>,
+    /// with the search for starts kept for the caller: when the generated code's loop found the match, the next
+    /// match of an enumeration resumes that loop (<see cref="ResumeWith{TUnit, TEncoding}"/>) rather than coming
+    /// back in through the search.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="st">The state.</param>
+    /// <param name="cursor">What the run of matches has learned about the text.</param>
+    /// <param name="scan">The search for starts, set when the generated code's loop found the match.</param>
+    /// <param name="p">The program.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="start">The position.</param>
+    /// <param name="sticky">Whether the match must start at the position.</param>
+    /// <param name="limit">The limit of time, or zero for none.</param>
+    /// <param name="captures">Receives the bounds of the match and of each group.</param>
+    /// <param name="stop">The reason the match was abandoned, or <see cref="MatchStop.None"/>.</param>
+    /// <returns>Whether the program matched.</returns>
+    public static bool MatchWith<TUnit, TEncoding>(MatchState st, ref ScanCursor cursor, ref CandidateScan scan, Program p, ReadOnlySpan<TUnit> input, int start, bool sticky, TimeSpan limit, Span<int> captures, out MatchStop stop)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        scan.Kind = 0;
         bool uses = p.UsesCursor;
         if (uses)
         {
@@ -555,7 +584,7 @@ public static class Matcher
         }
 
         Prepare(st, p, input.Length, limit);
-        bool ok = Search<TUnit, TEncoding>(p, st, input, start, sticky, out int from, out int to);
+        bool ok = Search<TUnit, TEncoding>(p, st, input, start, sticky, ref scan, out int from, out int to);
         if (uses)
         {
             st.SaveCursor(ref cursor);
@@ -1089,7 +1118,7 @@ public static class Matcher
         }
     }
 
-    private static bool Search<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int start, bool sticky, out int from, out int to)
+    private static bool Search<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int start, bool sticky, ref CandidateScan scan, out int from, out int to)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
@@ -1409,7 +1438,7 @@ public static class Matcher
             if (hi == 0 && p.Runner is not null)
             {
                 // Every alternative starts with its literal, and the generated code loops over the occurrences itself.
-                CandidateScan scan = new() { Kind = CandidateScan.Alternation, Next = next, Floor = pos, Last = -1 };
+                scan = new() { Kind = CandidateScan.Alternation, Next = next, Floor = pos, Last = -1 };
                 return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
             }
 
@@ -1555,7 +1584,7 @@ public static class Matcher
             int next = pos + (offset >= 0 ? offset : count);
             if (p.Runner is not null)
             {
-                CandidateScan scan = new() { Kind = CandidateScan.Fixed, Next = next, Floor = pos, Last = -1 };
+                scan = new() { Kind = CandidateScan.Fixed, Next = next, Floor = pos, Last = -1 };
                 return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
             }
 
@@ -1598,11 +1627,86 @@ public static class Matcher
 
         if (p.Runner is not null)
         {
-            CandidateScan scan = new() { Kind = CandidateScan.First, Next = pos, Floor = len, Last = -1 };
+            scan = new() { Kind = CandidateScan.First, Next = pos, Floor = len, Last = -1 };
             return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
         }
 
         return ScanStarts<TUnit, TEncoding>(p, st, input, pos, len, out from, out to);
+    }
+
+    /// <summary>
+    /// The next match of an enumeration, resuming the generated code's loop over the starts of a search where the
+    /// last match left it (its state being what a new search from the match's end would set up), so that a match
+    /// is not entered through the search again.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="st">The state.</param>
+    /// <param name="cursor">What the run of matches has learned about the text.</param>
+    /// <param name="scan">The search for starts the last match left.</param>
+    /// <param name="p">The program.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="start">The position the next match may start at.</param>
+    /// <param name="limit">The limit of time, or zero for none.</param>
+    /// <param name="captures">Receives the bounds of the match and of each group.</param>
+    /// <param name="stop">The reason the match was abandoned, or <see cref="MatchStop.None"/>.</param>
+    /// <returns>Whether the program matched.</returns>
+    public static bool ResumeWith<TUnit, TEncoding>(MatchState st, ref ScanCursor cursor, ref CandidateScan scan, Program p, ReadOnlySpan<TUnit> input, int start, TimeSpan limit, Span<int> captures, out MatchStop stop)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        int len = input.Length;
+        bool uses = p.UsesCursor;
+        if (uses)
+        {
+            st.LoadCursor(in cursor);
+        }
+
+        Prepare(st, p, len, limit);
+        switch (scan.Kind)
+        {
+            case CandidateScan.Alternation:
+                scan.Next = Math.Max(scan.Next, start + p.RequiredAlternationLo);
+                break;
+            case CandidateScan.Fixed:
+            {
+                int offset = enc.RequiredOffset(p);
+                scan.Next = Math.Max(scan.Next, start + (offset >= 0 ? offset : p.RequiredCount));
+                scan.Floor = Math.Max(scan.Floor, start);
+                break;
+            }
+
+            default:
+                scan.Next = Math.Max(scan.Next, start);
+                scan.Floor = len;
+                scan.Last = -1;
+                break;
+        }
+
+        int from = -1;
+        int to = -1;
+        bool ok = len - start >= p.Need && ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
+        if (uses)
+        {
+            st.SaveCursor(ref cursor);
+        }
+
+        stop = st.Stop;
+        if (!ok || stop != MatchStop.None)
+        {
+            return false;
+        }
+
+        captures[0] = from;
+        captures[1] = to;
+        int[] caps = st.Caps;
+        for (int k = 0; k < 2 * p.Groups; k++)
+        {
+            captures[2 + k] = caps[k];
+        }
+
+        return true;
     }
 
     /// <summary>The generated code's loop over the starts of a search.</summary>

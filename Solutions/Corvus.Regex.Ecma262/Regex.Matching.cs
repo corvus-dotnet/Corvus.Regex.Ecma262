@@ -553,6 +553,27 @@ public sealed partial class Regex
     /// <summary>Whether the pattern matches at or after a position, with a state the caller holds for a run of matches (see <see cref="MatchState.Current"/>).</summary>
     internal bool TryMatchBounds(MatchState st, ref ScanCursor cursor, ReadOnlySpan<char> input, int startAt, out int from, out int to)
     {
+        CandidateScan scan = default;
+        return this.TryMatchBounds(st, ref cursor, ref scan, input, startAt, out from, out to);
+    }
+
+    /// <summary>The same, with the generated code's search for starts kept between the matches of an enumeration: a match after one that search found resumes it.</summary>
+    internal bool TryMatchBounds(MatchState st, ref ScanCursor cursor, ref CandidateScan scan, ReadOnlySpan<char> input, int startAt, out int from, out int to)
+    {
+        if (scan.Kind != 0 && !this.Sticky)
+        {
+            Span<int> resumed = stackalloc int[2 * (this.program.Groups + 1)];
+            bool again = Matcher.ResumeWith<char, Utf16Encoding>(st, ref cursor, ref scan, this.program, input, startAt, this.Limit, resumed, out MatchStop why);
+            if (why != MatchStop.None)
+            {
+                throw this.Abandoned(why);
+            }
+
+            from = resumed[0];
+            to = resumed[1];
+            return again;
+        }
+
         if (this.program.Shape != SimpleShape.None)
         {
             if (!this.program.UsesCursor)
@@ -567,7 +588,7 @@ public sealed partial class Regex
         }
 
         Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
-        bool ok = Matcher.MatchWith<char, Utf16Encoding>(st, ref cursor, this.program, input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
+        bool ok = Matcher.MatchWith<char, Utf16Encoding>(st, ref cursor, ref scan, this.program, input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
             throw this.Abandoned(stop);
@@ -581,6 +602,27 @@ public sealed partial class Regex
     /// <summary>Whether the pattern matches at or after a position in UTF-8, with a state the caller holds for a run of matches.</summary>
     internal bool TryMatchBounds(MatchState st, ref ScanCursor cursor, ReadOnlySpan<byte> input, int startAt, out int from, out int to)
     {
+        CandidateScan scan = default;
+        return this.TryMatchBounds(st, ref cursor, ref scan, input, startAt, out from, out to);
+    }
+
+    /// <summary>The same, with the generated code's search for starts kept between the matches of an enumeration: a match after one that search found resumes it.</summary>
+    internal bool TryMatchBounds(MatchState st, ref ScanCursor cursor, ref CandidateScan scan, ReadOnlySpan<byte> input, int startAt, out int from, out int to)
+    {
+        if (scan.Kind != 0 && !this.Sticky)
+        {
+            Span<int> resumed = stackalloc int[2 * (this.program.Groups + 1)];
+            bool again = Matcher.ResumeWith<byte, Utf8Encoding>(st, ref cursor, ref scan, this.program, input, startAt, this.Limit, resumed, out MatchStop why);
+            if (why != MatchStop.None)
+            {
+                throw this.Abandoned(why);
+            }
+
+            from = resumed[0];
+            to = resumed[1];
+            return again;
+        }
+
         if (this.program.Shape != SimpleShape.None)
         {
             if (!this.program.UsesCursor)
@@ -595,7 +637,7 @@ public sealed partial class Regex
         }
 
         Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
-        bool ok = Matcher.MatchWith<byte, Utf8Encoding>(st, ref cursor, this.program, input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
+        bool ok = Matcher.MatchWith<byte, Utf8Encoding>(st, ref cursor, ref scan, this.program, input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
             throw this.Abandoned(stop);
