@@ -1764,6 +1764,46 @@ public static class Matcher
         return i;
     }
 
+#if NET
+    /// <summary>As <see cref="ExtraStart{TUnit, TEncoding}"/>, for the literal every match starts with in its forms.</summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="p">The program.</param>
+    /// <param name="st">The state.</param>
+    /// <param name="input">The text.</param>
+    /// <param name="next">The position the search started from.</param>
+    /// <param name="i">The position the search found, or -1.</param>
+    /// <returns>The start, or -1.</returns>
+    public static int ExtraStartCase<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int next, int i)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        if (!enc.HasCaseExtras(p))
+        {
+            return i;
+        }
+
+        int len = input.Length;
+        int window = enc.CaseWindow(p);
+        int limit = i < 0 ? len : Math.Min(len, i + window);
+        int e = -1;
+        if (!ExtrasClear(st, next, limit))
+        {
+            int scanFrom = ExtrasFrom(st, next);
+            int scanTo = ExtrasTo(st, next, limit, len);
+            e = ExtrasSeen(st, next, scanTo, enc.IndexOfCaseExtra(input, scanFrom, scanTo, p), limit);
+        }
+
+        if (e >= 0 && (i < 0 || e - window < i))
+        {
+            return Math.Max(next, e - window + 1);
+        }
+
+        return i;
+    }
+#endif
+
     /// <summary>The generated code's loop over the starts of a search.</summary>
     private static bool ScanWith<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, ref CandidateScan scan, out int from, out int to)
         where TUnit : unmanaged, IEquatable<TUnit>

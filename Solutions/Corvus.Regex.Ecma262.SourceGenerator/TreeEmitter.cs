@@ -1317,6 +1317,12 @@ internal static class TreeEmitter
                 return true;
             }
 
+            if ((p.Shape == SimpleShape.CaseLiteral || p.Shape == SimpleShape.None) && p.CaseNeedleUtf16 is not null && p.CaseForms.Length >= 2 && p.CaseForms.All(f => f[0] < 0x80))
+            {
+                EmitCaseLiteral(p, find, statics, indent);
+                return true;
+            }
+
             if (p.Shape == SimpleShape.None && p.First is not null && !p.First.HasNonAscii && !p.First.IsEmpty && !p.SkipRun && !p.LeadingWordBoundary && p.Utf16Prefix.Length == 0 && p.RequiredCount < 0 && p.RequiredCountMax < 0 && p.AfterLoopUtf16.Length == 0 && p.AfterLoopAlternation is null && p.AfterLoopMax < 0 && p.CaseNeedleUtf16 is null && p.RequiredAlternation is null)
             {
                 EmitFirst(p, find, statics, indent);
@@ -1682,6 +1688,37 @@ internal static class TreeEmitter
             RunEmitter.Line(find, i2, "start = pos;");
             RunEmitter.Line(find, i2, "return true;");
             RunEmitter.Line(find, i1, "}");
+            Tail(find, indent);
+        }
+
+        /// <summary>The literal every match starts with in its forms: the runtime's search ignoring case, held in a static field, with the forms it does not know found by the cursor's pass.</summary>
+        private static void EmitCaseLiteral(Program p, StringBuilder find, StringBuilder statics, int indent)
+        {
+            string literal = new(p.CaseForms.Select(f => (char)f[0]).ToArray());
+            RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> C0 = global::System.Buffers.SearchValues.Create(new string[] { " + Str(literal) + " }, global::System.StringComparison.OrdinalIgnoreCase);");
+            Head(find, indent);
+            int i1 = indent + 1;
+            RunEmitter.Line(find, i1, "int i;");
+            RunEmitter.Line(find, i1, "if (typeof(TUnit) == typeof(char))");
+            RunEmitter.Line(find, i1, "{");
+            RunEmitter.Line(find, i1 + 1, "i = pos <= len - " + literal.Length + " ? " + Call("IndexOfAny", Chars + ".Slice(pos)", "C0") + " : -1;");
+            RunEmitter.Line(find, i1 + 1, "i = i < 0 ? -1 : pos + i;");
+            RunEmitter.Line(find, i1, "}");
+            RunEmitter.Line(find, i1, "else");
+            RunEmitter.Line(find, i1, "{");
+            RunEmitter.Line(find, i1 + 1, "TEncoding enc = default;");
+            RunEmitter.Line(find, i1 + 1, "i = enc.IndexOfCasePrefix(input, pos, p);");
+            RunEmitter.Line(find, i1, "}");
+            sb_blank(find);
+            RunEmitter.Line(find, i1, "start = " + Ns + "Matcher.ExtraStartCase<TUnit, TEncoding>(p, st, input, pos, i);");
+            RunEmitter.Line(find, i1, "if (start < 0 || len - start < p.Need)");
+            RunEmitter.Line(find, i1, "{");
+            RunEmitter.Line(find, i1 + 1, "start = -1;");
+            RunEmitter.Line(find, i1 + 1, "return false;");
+            RunEmitter.Line(find, i1, "}");
+            sb_blank(find);
+            RunEmitter.Line(find, i1, "scan.Next = start + 1;");
+            RunEmitter.Line(find, i1, "return true;");
             Tail(find, indent);
         }
 

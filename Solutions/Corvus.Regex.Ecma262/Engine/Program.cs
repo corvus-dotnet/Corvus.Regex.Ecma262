@@ -440,6 +440,7 @@ public sealed class Program
         this.RequiredOffsetUtf8 = requiredOffsetUtf8;
         this.RequiredCount = requiredCount;
         this.CaseCharacters = caseForms.Length;
+        this.CaseForms = caseForms;
         if (caseForms.Length != 0)
         {
             Needle<ushort> needle16 = Needles.Forms<ushort>(caseForms, false, out int[] extras16, out int window16);
@@ -800,6 +801,9 @@ public sealed class Program
 
     /// <summary>Gets a value indicating whether the pattern has the u flag.</summary>
     internal bool Unicode { get; set; }
+
+    /// <summary>Gets, for each character of the literal every match starts with under the i flag, its forms, the pattern's own first; empty when there is none.</summary>
+    internal int[][] CaseForms { get; }
 
     /// <summary>Gets a value indicating whether a match reads the cursor an enumeration carries: a run of <c>.</c>, or a form the search leaves out.</summary>
     public bool UsesCursor { get; internal set; }
