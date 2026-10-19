@@ -220,7 +220,7 @@ internal static class TreeEmitter
                 if (ownsSearch)
                 {
                     RunEmitter.Line(this.code, 0, "#if NET8_0_OR_GREATER");
-                    this.Line("while (scan.Kind == " + Ns + "CandidateScan.Emitted ? Find<TUnit, TEncoding>(p, st, input, ref scan, out start) : " + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start))");
+                    this.Line("while (scan.Kind == " + Ns + "CandidateScan.Emitted ? Find<TUnit, TEncoding>(p, st, input, ref scan, out start, out end) : " + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start))");
                     RunEmitter.Line(this.code, 0, "#else");
                     this.Line("while (" + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start))");
                     RunEmitter.Line(this.code, 0, "#endif");
@@ -232,6 +232,19 @@ internal static class TreeEmitter
 
                 this.Line("{");
                 this.indent++;
+                if (ownsSearch && this.p.Shape == SimpleShape.LiteralAlternation)
+                {
+                    // The search verified the alternative and gave its length: the match is known.
+                    RunEmitter.Line(this.code, 0, "#if NET8_0_OR_GREATER");
+                    this.Line("if (end >= 0)");
+                    this.Line("{");
+                    this.Line("    st.Steps = steps;");
+                    this.Line("    return true;");
+                    this.Line("}");
+                    sb_blank(this.code);
+                    RunEmitter.Line(this.code, 0, "#endif");
+                }
+
                 this.Line("pos = start;");
             }
 
@@ -1482,11 +1495,13 @@ internal static class TreeEmitter
         {
             RunEmitter.Line(find, 0, "#if NET8_0_OR_GREATER");
             RunEmitter.Line(find, indent, "/// <summary>The search for starts, as code.</summary>");
-            RunEmitter.Line(find, indent, "private static bool Find<TUnit, TEncoding>(" + Ns + "Program p, " + Ns + "MatchState st, global::System.ReadOnlySpan<TUnit> input, ref " + Ns + "CandidateScan scan, out int start)");
+            RunEmitter.Line(find, indent, "/// <remarks>The end is the match's where the search verified an alternative of a literal alternation, else -1.</remarks>");
+            RunEmitter.Line(find, indent, "private static bool Find<TUnit, TEncoding>(" + Ns + "Program p, " + Ns + "MatchState st, global::System.ReadOnlySpan<TUnit> input, ref " + Ns + "CandidateScan scan, out int start, out int end)");
             RunEmitter.Line(find, indent + 1, "where TUnit : unmanaged, global::System.IEquatable<TUnit>");
             RunEmitter.Line(find, indent + 1, "where TEncoding : struct, " + Ns + "ITextEncoding<TUnit>");
             RunEmitter.Line(find, indent, "{");
             RunEmitter.Line(find, indent + 1, "start = -1;");
+            RunEmitter.Line(find, indent + 1, "end = -1;");
             RunEmitter.Line(find, indent + 1, "int len = input.Length;");
             RunEmitter.Line(find, indent + 1, "int pos = scan.Next;");
         }
@@ -1545,10 +1560,26 @@ internal static class TreeEmitter
                     // that pays and the packed fingerprint search where it does not, and its pass for the forms
                     // apart (the long s, the Kelvin sign) knows which of the two it chose.
                     RunEmitter.Line(find, i1, "TEncoding enc = default;");
-                    RunEmitter.Line(find, i1, "i = enc.IndexOfAlternation(input, pos, " + field + ");");
-                    RunEmitter.Line(find, i1, p.Unicode
-                        ? "start = " + Ns + "Matcher.ExtraStart<TUnit, TEncoding>(st, input, pos, i, " + field + ");"
-                        : "start = i;");
+                    if (p.Shape == SimpleShape.LiteralAlternation)
+                    {
+                        // The fingerprint search and the needle verify the alternative and give its length; the
+                        // runtime's search does not (-1). A start the pass for the forms apart moves is not it.
+                        RunEmitter.Line(find, i1, "i = enc.IndexOfAlternation(input, pos, " + field + ", out int known);");
+                        RunEmitter.Line(find, i1, p.Unicode
+                            ? "start = " + Ns + "Matcher.ExtraStart<TUnit, TEncoding>(st, input, pos, i, " + field + ");"
+                            : "start = i;");
+                        RunEmitter.Line(find, i1, "if (known >= 0 && start == i)");
+                        RunEmitter.Line(find, i1, "{");
+                        RunEmitter.Line(find, i1 + 1, "end = i + known;");
+                        RunEmitter.Line(find, i1, "}");
+                    }
+                    else
+                    {
+                        RunEmitter.Line(find, i1, "i = enc.IndexOfAlternation(input, pos, " + field + ");");
+                        RunEmitter.Line(find, i1, p.Unicode
+                            ? "start = " + Ns + "Matcher.ExtraStart<TUnit, TEncoding>(st, input, pos, i, " + field + ");"
+                            : "start = i;");
+                    }
                 }
 
                 RunEmitter.Line(find, i1, "if (start < 0 || len - start < p.Need)");

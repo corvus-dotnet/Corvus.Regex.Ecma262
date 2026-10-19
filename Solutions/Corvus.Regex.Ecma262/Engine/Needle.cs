@@ -342,6 +342,12 @@ public sealed class Needle<T>
     /// <summary>Gets a value indicating whether the literal is matched exactly (every position allows one value).</summary>
     public bool Exact => this.exact;
 
+    /// <summary>Gets a value indicating whether a unit being one of the forms' units at its position is the character there being one of its forms: the literal is exact, or every character is one unit in every form.</summary>
+    internal bool Positionwise => this.exact || this.starts.Length - 1 == this.Length;
+
+    /// <summary>Gets the literal in each of its forms (see the constructor).</summary>
+    internal T[][] Rows => this.rows;
+
     /// <summary>Gets the offset of the first anchor (the rarest position), for a search for several needles at once.</summary>
     public int Offset1 => this.o1;
 

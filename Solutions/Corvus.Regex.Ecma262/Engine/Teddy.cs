@@ -23,6 +23,13 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// literals apart are the ones looked at. Over UTF-16 the byte looked at is the low byte of the unit, and only
 /// the lanes at units are starts; every form of a letter is in the tables, so nothing is searched for apart.
 /// </summary>
+/// <remarks>
+/// The loop over the vectors with no start in them is its own method for each number of positions, with no call
+/// in it: the tables then stay in registers, where a loop that also handles the starts reloads them at every
+/// vector (the three-name search measured 61 us against 75 with one loop). A start is compared against a
+/// literal's forms with one vector compare per form where the literal fits a vector and every character of it
+/// is one unit in every form.
+/// </remarks>
 /// <typeparam name="T">The unit: byte for UTF-8, ushort for UTF-16.</typeparam>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class Teddy<T>
@@ -49,9 +56,25 @@ public sealed class Teddy<T>
     private readonly int[] positions;
     private readonly Vector128<byte>[] lo;
     private readonly Vector128<byte>[] hi;
+    private readonly Vector256<byte> lo0;
+    private readonly Vector256<byte> hi0;
+    private readonly Vector256<byte> lo1;
+    private readonly Vector256<byte> hi1;
+    private readonly Vector256<byte> lo2;
+    private readonly Vector256<byte> hi2;
+    private readonly int p0;
+    private readonly int p1;
+    private readonly int p2;
+    private readonly int count;
     private readonly int minLength;
     private readonly int reach;
     private readonly bool packed;
+
+    /// <summary>For each literal, each of its forms as the bytes of a vector (the unit bytes in order, zero beyond the literal), or null where the literal is compared by its needle.</summary>
+    private readonly Vector256<byte>[]?[] forms;
+
+    /// <summary>For each literal, the bits of the bytes of a vector it covers.</summary>
+    private readonly uint[] formMask;
 
     /// <summary>Initializes a new instance of the <see cref="Teddy{T}"/> class.</summary>
     /// <param name="needles">The literals, at most <see cref="MostLiterals"/>, each at least two units long.</param>
@@ -69,19 +92,19 @@ public sealed class Teddy<T>
 
         // The share of text each position the literals share lets through, and the rarest three of them.
         double[] share = new double[this.minLength];
-        Span<T> forms = stackalloc T[Needle<T>.MaxRows];
+        Span<T> units = stackalloc T[Needle<T>.MaxRows];
         for (int d = 0; d < this.minLength; d++)
         {
             List<T> seen = [];
             foreach (Needle<T> needle in needles)
             {
-                int count = needle.UnitsAt(d, forms);
-                for (int f = 0; f < count; f++)
+                int c = needle.UnitsAt(d, units);
+                for (int f = 0; f < c; f++)
                 {
-                    if (!seen.Contains(forms[f]))
+                    if (!seen.Contains(units[f]))
                     {
-                        seen.Add(forms[f]);
-                        share[d] += (255 - UnitRarity.Of(forms[f])) / 1000.0;
+                        seen.Add(units[f]);
+                        share[d] += (255 - UnitRarity.Of(units[f])) / 1000.0;
                     }
                 }
             }
@@ -112,7 +135,11 @@ public sealed class Teddy<T>
 
         this.positions = order.AsSpan(0, take).ToArray();
         Array.Sort(this.positions);
-        this.reach = this.positions[this.positions.Length - 1];
+        this.count = this.positions.Length;
+        this.reach = this.positions[this.count - 1];
+        this.p0 = this.positions[0];
+        this.p1 = this.count > 1 ? this.positions[1] : 0;
+        this.p2 = this.count > 2 ? this.positions[2] : 0;
 
         // A literal's bucket, and the tables: the bit of the bucket at the nibbles of each of its forms' bytes.
         this.buckets = new int[Math.Min(Buckets, n)][];
@@ -132,11 +159,11 @@ public sealed class Teddy<T>
             this.buckets[b] = [.. members[b]];
         }
 
-        this.lo = new Vector128<byte>[this.positions.Length];
-        this.hi = new Vector128<byte>[this.positions.Length];
+        this.lo = new Vector128<byte>[this.count];
+        this.hi = new Vector128<byte>[this.count];
         Span<byte> loTable = stackalloc byte[16];
         Span<byte> hiTable = stackalloc byte[16];
-        for (int j = 0; j < this.positions.Length; j++)
+        for (int j = 0; j < this.count; j++)
         {
             loTable.Clear();
             hiTable.Clear();
@@ -144,10 +171,10 @@ public sealed class Teddy<T>
             {
                 foreach (int k in this.buckets[b])
                 {
-                    int count = needles[k].UnitsAt(this.positions[j], forms);
-                    for (int f = 0; f < count; f++)
+                    int c = needles[k].UnitsAt(this.positions[j], units);
+                    for (int f = 0; f < c; f++)
                     {
-                        int low = this.packed ? Math.Min(Unit(forms[f]), 0xFF) : Unit(forms[f]) & 0xFF;
+                        int low = this.packed ? Math.Min(Unit(units[f]), 0xFF) : Unit(units[f]) & 0xFF;
                         loTable[low & 0xF] |= (byte)(1 << b);
                         hiTable[low >> 4] |= (byte)(1 << b);
                     }
@@ -156,6 +183,41 @@ public sealed class Teddy<T>
 
             this.lo[j] = Vector128.Create(loTable);
             this.hi[j] = Vector128.Create(hiTable);
+        }
+
+        this.lo0 = Vector256.Create(this.lo[0], this.lo[0]);
+        this.hi0 = Vector256.Create(this.hi[0], this.hi[0]);
+        this.lo1 = this.count > 1 ? Vector256.Create(this.lo[1], this.lo[1]) : default;
+        this.hi1 = this.count > 1 ? Vector256.Create(this.hi[1], this.hi[1]) : default;
+        this.lo2 = this.count > 2 ? Vector256.Create(this.lo[2], this.lo[2]) : default;
+        this.hi2 = this.count > 2 ? Vector256.Create(this.hi[2], this.hi[2]) : default;
+
+        // Each literal's forms as vectors, where every character is one unit in every form (so that a unit
+        // being one of the forms' units at its position is the character being one of its forms) and the
+        // literal fits a vector.
+        this.forms = new Vector256<byte>[]?[n];
+        this.formMask = new uint[n];
+        Span<byte> bytes = stackalloc byte[Vector256<byte>.Count];
+        for (int k = 0; k < n; k++)
+        {
+            Needle<T> needle = needles[k];
+            int width = needle.Length * Stride;
+            if (!Vector256.IsHardwareAccelerated || !needle.Positionwise || width > Vector256<byte>.Count)
+            {
+                continue;
+            }
+
+            T[][] rows = needle.Rows;
+            Vector256<byte>[] vectors = new Vector256<byte>[rows.Length];
+            for (int f = 0; f < rows.Length; f++)
+            {
+                bytes.Clear();
+                MemoryMarshal.AsBytes(rows[f].AsSpan()).CopyTo(bytes);
+                vectors[f] = Vector256.Create(bytes);
+            }
+
+            this.forms[k] = vectors;
+            this.formMask[k] = width == Vector256<byte>.Count ? uint.MaxValue : (1u << width) - 1;
         }
     }
 
@@ -193,47 +255,33 @@ public sealed class Teddy<T>
             return -1;
         }
 
+        int i = from;
         if (this.packed)
         {
-            int at = from;
-            int found = this.ScanPacked(input, ref at, out length);
-            if (found >= 0)
+            int found = this.IndexOfPacked(input, ref i, last, out length);
+            if (found != -1)
             {
-                return found;
+                return found < 0 ? -1 : found;
             }
-
-            for (; at <= last; at++)
-            {
-                length = this.VerifyAny(input, at);
-                if (length >= 0)
-                {
-                    return at;
-                }
-            }
-
-            return -1;
         }
-
-        // The scans go by byte: a start is a lane at a unit.
-        int i = from * Stride;
-        if (Avx2.IsSupported && Vector256.IsHardwareAccelerated)
+        else if (Avx2.IsSupported && Vector256.IsHardwareAccelerated)
         {
-            int found = this.Scan256(input, ref i, out length);
-            if (found >= 0)
+            int found = this.IndexOf256(input, ref i, last, out length);
+            if (found != -1)
             {
-                return found;
+                return found < 0 ? -1 : found;
             }
         }
         else if (Vector128.IsHardwareAccelerated)
         {
-            int found = this.Scan128(input, ref i, out length);
-            if (found >= 0)
+            int found = this.IndexOf128(input, ref i, last, out length);
+            if (found != -1)
             {
-                return found;
+                return found < 0 ? -1 : found;
             }
         }
 
-        for (i /= Stride; i <= last; i++)
+        for (; i <= last; i++)
         {
             length = this.VerifyAny(input, i);
             if (length >= 0)
@@ -245,59 +293,97 @@ public sealed class Teddy<T>
         return -1;
     }
 
-    /// <summary>Over UTF-16: thirty-two units narrowed to bytes at each step, then the lookups of the byte search; a unit beyond 255 narrows to 255.</summary>
-    private int ScanPacked(ReadOnlySpan<T> input, ref int i, out int length)
+    /// <summary>Over UTF-16: thirty-two units narrowed to bytes at each step, then the lookups of the byte search; a unit beyond 255 narrows to 255. Returns the start, -1 with the position the vectors reached, or -2 past the last start.</summary>
+    private int IndexOfPacked(ReadOnlySpan<T> input, ref int i, int last, out int length)
     {
         length = -1;
         ReadOnlySpan<ushort> units = MemoryMarshal.Cast<T, ushort>(input);
         int lastVector = units.Length - Vector256<byte>.Count - this.reach;
-        if (i > lastVector)
-        {
-            return -1;
-        }
-
         ref ushort s = ref MemoryMarshal.GetReference(units);
-        Vector256<byte> nibble = Vector256.Create((byte)0x0F);
-        Vector256<byte> lo0 = Vector256.Create(this.lo[0], this.lo[0]);
-        Vector256<byte> hi0 = Vector256.Create(this.hi[0], this.hi[0]);
-        Vector256<byte> lo1 = this.positions.Length > 1 ? Vector256.Create(this.lo[1], this.lo[1]) : default;
-        Vector256<byte> hi1 = this.positions.Length > 1 ? Vector256.Create(this.hi[1], this.hi[1]) : default;
-        Vector256<byte> lo2 = this.positions.Length > 2 ? Vector256.Create(this.lo[2], this.lo[2]) : default;
-        Vector256<byte> hi2 = this.positions.Length > 2 ? Vector256.Create(this.hi[2], this.hi[2]) : default;
-        int p0 = this.positions[0];
-        int p1 = this.positions.Length > 1 ? this.positions[1] : 0;
-        int p2 = this.positions.Length > 2 ? this.positions[2] : 0;
-        int count = this.positions.Length;
-        Span<byte> hits = stackalloc byte[Vector256<byte>.Count];
-        for (; i <= lastVector; i += Vector256<byte>.Count)
+        while (i <= lastVector)
         {
-            Vector256<byte> c = Narrow(ref s, i + p0);
-            Vector256<byte> r = Avx2.Shuffle(lo0, c & nibble) & Avx2.Shuffle(hi0, Vector256.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
-            if (count > 1)
+            Vector256<byte> r = this.count == 3 ? this.Packed3(ref s, ref i, lastVector) : this.count == 2 ? this.Packed2(ref s, ref i, lastVector) : this.Packed1(ref s, ref i, lastVector);
+            if (i > lastVector)
             {
-                c = Narrow(ref s, i + p1);
-                r &= Avx2.Shuffle(lo1, c & nibble) & Avx2.Shuffle(hi1, Vector256.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
-                if (count > 2)
-                {
-                    c = Narrow(ref s, i + p2);
-                    r &= Avx2.Shuffle(lo2, c & nibble) & Avx2.Shuffle(hi2, Vector256.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
-                }
+                break;
             }
 
-            if (r == Vector256<byte>.Zero)
-            {
-                continue;
-            }
-
-            r.CopyTo(hits);
             uint lanes = (~Vector256.Equals(r, Vector256<byte>.Zero)).ExtractMostSignificantBits();
-            int found = this.Candidates(input, i, lanes, hits, 1, out length);
-            if (found >= 0)
+            int found = this.Candidates(input, i, lanes, r, 1, last, out length);
+            if (found != -1)
             {
                 return found;
             }
+
+            i += Vector256<byte>.Count;
         }
 
+        return -1;
+    }
+
+    /// <summary>The scan by bytes with vectors of thirty-two: a start is a lane at a unit. Returns the start, -1 with the position the vectors reached (in units), or -2 past the last start.</summary>
+    private int IndexOf256(ReadOnlySpan<T> input, ref int i, int last, out int length)
+    {
+        length = -1;
+        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(input);
+        int lastVector = bytes.Length - Vector256<byte>.Count - (this.reach * Stride);
+        ref byte s = ref MemoryMarshal.GetReference(bytes);
+        int at = i * Stride;
+        while (at <= lastVector)
+        {
+            Vector256<byte> r = this.count == 3 ? this.Bytes3(ref s, ref at, lastVector) : this.count == 2 ? this.Bytes2(ref s, ref at, lastVector) : this.Bytes1(ref s, ref at, lastVector);
+            if (at > lastVector)
+            {
+                break;
+            }
+
+            uint lanes = (~Vector256.Equals(r, Vector256<byte>.Zero)).ExtractMostSignificantBits() & LaneMask;
+            if (lanes != 0)
+            {
+                int found = this.Candidates(input, at, lanes, r, Stride, last, out length);
+                if (found != -1)
+                {
+                    return found;
+                }
+            }
+
+            at += Vector256<byte>.Count;
+        }
+
+        i = at / Stride;
+        return -1;
+    }
+
+    /// <summary>The scan by bytes with vectors of sixteen. Returns the start, -1 with the position the vectors reached (in units), or -2 past the last start.</summary>
+    private int IndexOf128(ReadOnlySpan<T> input, ref int i, int last, out int length)
+    {
+        length = -1;
+        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(input);
+        int lastVector = bytes.Length - Vector128<byte>.Count - (this.reach * Stride);
+        ref byte s = ref MemoryMarshal.GetReference(bytes);
+        int at = i * Stride;
+        while (at <= lastVector)
+        {
+            Vector128<byte> r = this.count == 3 ? this.Half3(ref s, ref at, lastVector) : this.count == 2 ? this.Half2(ref s, ref at, lastVector) : this.Half1(ref s, ref at, lastVector);
+            if (at > lastVector)
+            {
+                break;
+            }
+
+            uint lanes = (~Vector128.Equals(r, Vector128<byte>.Zero)).ExtractMostSignificantBits() & LaneMask;
+            if (lanes != 0)
+            {
+                int found = this.Candidates(input, at, lanes, Vector256.Create(r, Vector128<byte>.Zero), Stride, last, out length);
+                if (found != -1)
+                {
+                    return found;
+                }
+            }
+
+            at += Vector128<byte>.Count;
+        }
+
+        i = at / Stride;
         return -1;
     }
 
@@ -311,121 +397,215 @@ public sealed class Teddy<T>
         return Avx2.Permute4x64(packed.AsInt64(), 0xD8).AsByte();
     }
 
-    private int Scan256(ReadOnlySpan<T> input, ref int i, out int length)
-    {
-        length = -1;
-        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(input);
-        int lastVector = bytes.Length - Vector256<byte>.Count - (this.reach * Stride);
-        if (i > lastVector)
-        {
-            return -1;
-        }
+    /// <summary>The buckets whose literals have each byte of a vector at a position: the two nibble lookups.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<byte> Look(Vector256<byte> lo, Vector256<byte> hi, Vector256<byte> c, Vector256<byte> nibble)
+        => Avx2.Shuffle(lo, c & nibble) & Avx2.Shuffle(hi, Vector256.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
 
-        ref byte s = ref MemoryMarshal.GetReference(bytes);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> Look(Vector128<byte> lo, Vector128<byte> hi, Vector128<byte> c, Vector128<byte> nibble)
+        => Vector128.ShuffleNative(lo, c & nibble) & Vector128.ShuffleNative(hi, Vector128.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
+
+    // The loops over the vectors with no start in them: each leaves the position at the first vector with one
+    // (its lookups returned), or past the last vector.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector256<byte> Packed3(ref ushort s, ref int i, int lastVector)
+    {
         Vector256<byte> nibble = Vector256.Create((byte)0x0F);
-        Vector256<byte> lo0 = Vector256.Create(this.lo[0], this.lo[0]);
-        Vector256<byte> hi0 = Vector256.Create(this.hi[0], this.hi[0]);
-        Vector256<byte> lo1 = this.positions.Length > 1 ? Vector256.Create(this.lo[1], this.lo[1]) : default;
-        Vector256<byte> hi1 = this.positions.Length > 1 ? Vector256.Create(this.hi[1], this.hi[1]) : default;
-        Vector256<byte> lo2 = this.positions.Length > 2 ? Vector256.Create(this.lo[2], this.lo[2]) : default;
-        Vector256<byte> hi2 = this.positions.Length > 2 ? Vector256.Create(this.hi[2], this.hi[2]) : default;
-        int p0 = this.positions[0] * Stride;
-        int p1 = this.positions.Length > 1 ? this.positions[1] * Stride : 0;
-        int p2 = this.positions.Length > 2 ? this.positions[2] * Stride : 0;
-        int count = this.positions.Length;
-        Span<byte> hits = stackalloc byte[Vector256<byte>.Count];
-        for (; i <= lastVector; i += Vector256<byte>.Count)
+        Vector256<byte> lo0 = this.lo0, hi0 = this.hi0, lo1 = this.lo1, hi1 = this.hi1, lo2 = this.lo2, hi2 = this.hi2;
+        int p0 = this.p0, p1 = this.p1, p2 = this.p2;
+        int at = i;
+        Vector256<byte> r = default;
+        for (; at <= lastVector; at += Vector256<byte>.Count)
         {
-            Vector256<byte> c = Vector256.LoadUnsafe(ref s, (nuint)(i + p0));
-            Vector256<byte> r = Avx2.Shuffle(lo0, c & nibble) & Avx2.Shuffle(hi0, Vector256.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
-            if (count > 1)
+            r = Look(lo0, hi0, Narrow(ref s, at + p0), nibble) & Look(lo1, hi1, Narrow(ref s, at + p1), nibble) & Look(lo2, hi2, Narrow(ref s, at + p2), nibble);
+            if (r != Vector256<byte>.Zero)
             {
-                c = Vector256.LoadUnsafe(ref s, (nuint)(i + p1));
-                r &= Avx2.Shuffle(lo1, c & nibble) & Avx2.Shuffle(hi1, Vector256.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
-                if (count > 2)
-                {
-                    c = Vector256.LoadUnsafe(ref s, (nuint)(i + p2));
-                    r &= Avx2.Shuffle(lo2, c & nibble) & Avx2.Shuffle(hi2, Vector256.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
-                }
-            }
-
-            if (r == Vector256<byte>.Zero)
-            {
-                continue;
-            }
-
-            r.CopyTo(hits);
-            uint lanes = (~Vector256.Equals(r, Vector256<byte>.Zero)).ExtractMostSignificantBits() & LaneMask;
-            int found = this.Candidates(input, i, lanes, hits, Stride, out length);
-            if (found >= 0)
-            {
-                return found;
+                break;
             }
         }
 
-        return -1;
+        i = at;
+        return r;
     }
 
-    private int Scan128(ReadOnlySpan<T> input, ref int i, out int length)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector256<byte> Packed2(ref ushort s, ref int i, int lastVector)
     {
-        length = -1;
-        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(input);
-        int lastVector = bytes.Length - Vector128<byte>.Count - (this.reach * Stride);
-        if (i > lastVector)
+        Vector256<byte> nibble = Vector256.Create((byte)0x0F);
+        Vector256<byte> lo0 = this.lo0, hi0 = this.hi0, lo1 = this.lo1, hi1 = this.hi1;
+        int p0 = this.p0, p1 = this.p1;
+        int at = i;
+        Vector256<byte> r = default;
+        for (; at <= lastVector; at += Vector256<byte>.Count)
         {
-            return -1;
+            r = Look(lo0, hi0, Narrow(ref s, at + p0), nibble) & Look(lo1, hi1, Narrow(ref s, at + p1), nibble);
+            if (r != Vector256<byte>.Zero)
+            {
+                break;
+            }
         }
 
-        ref byte s = ref MemoryMarshal.GetReference(bytes);
+        i = at;
+        return r;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector256<byte> Packed1(ref ushort s, ref int i, int lastVector)
+    {
+        Vector256<byte> nibble = Vector256.Create((byte)0x0F);
+        Vector256<byte> lo0 = this.lo0, hi0 = this.hi0;
+        int p0 = this.p0;
+        int at = i;
+        Vector256<byte> r = default;
+        for (; at <= lastVector; at += Vector256<byte>.Count)
+        {
+            r = Look(lo0, hi0, Narrow(ref s, at + p0), nibble);
+            if (r != Vector256<byte>.Zero)
+            {
+                break;
+            }
+        }
+
+        i = at;
+        return r;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector256<byte> Bytes3(ref byte s, ref int i, int lastVector)
+    {
+        Vector256<byte> nibble = Vector256.Create((byte)0x0F);
+        Vector256<byte> lo0 = this.lo0, hi0 = this.hi0, lo1 = this.lo1, hi1 = this.hi1, lo2 = this.lo2, hi2 = this.hi2;
+        int p0 = this.p0 * Stride, p1 = this.p1 * Stride, p2 = this.p2 * Stride;
+        int at = i;
+        Vector256<byte> r = default;
+        for (; at <= lastVector; at += Vector256<byte>.Count)
+        {
+            r = Look(lo0, hi0, Vector256.LoadUnsafe(ref s, (nuint)(at + p0)), nibble) & Look(lo1, hi1, Vector256.LoadUnsafe(ref s, (nuint)(at + p1)), nibble) & Look(lo2, hi2, Vector256.LoadUnsafe(ref s, (nuint)(at + p2)), nibble);
+            if (r != Vector256<byte>.Zero)
+            {
+                break;
+            }
+        }
+
+        i = at;
+        return r;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector256<byte> Bytes2(ref byte s, ref int i, int lastVector)
+    {
+        Vector256<byte> nibble = Vector256.Create((byte)0x0F);
+        Vector256<byte> lo0 = this.lo0, hi0 = this.hi0, lo1 = this.lo1, hi1 = this.hi1;
+        int p0 = this.p0 * Stride, p1 = this.p1 * Stride;
+        int at = i;
+        Vector256<byte> r = default;
+        for (; at <= lastVector; at += Vector256<byte>.Count)
+        {
+            r = Look(lo0, hi0, Vector256.LoadUnsafe(ref s, (nuint)(at + p0)), nibble) & Look(lo1, hi1, Vector256.LoadUnsafe(ref s, (nuint)(at + p1)), nibble);
+            if (r != Vector256<byte>.Zero)
+            {
+                break;
+            }
+        }
+
+        i = at;
+        return r;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector256<byte> Bytes1(ref byte s, ref int i, int lastVector)
+    {
+        Vector256<byte> nibble = Vector256.Create((byte)0x0F);
+        Vector256<byte> lo0 = this.lo0, hi0 = this.hi0;
+        int p0 = this.p0 * Stride;
+        int at = i;
+        Vector256<byte> r = default;
+        for (; at <= lastVector; at += Vector256<byte>.Count)
+        {
+            r = Look(lo0, hi0, Vector256.LoadUnsafe(ref s, (nuint)(at + p0)), nibble);
+            if (r != Vector256<byte>.Zero)
+            {
+                break;
+            }
+        }
+
+        i = at;
+        return r;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector128<byte> Half3(ref byte s, ref int i, int lastVector)
+    {
         Vector128<byte> nibble = Vector128.Create((byte)0x0F);
-        Vector128<byte> lo0 = this.lo[0];
-        Vector128<byte> hi0 = this.hi[0];
-        Vector128<byte> lo1 = this.positions.Length > 1 ? this.lo[1] : default;
-        Vector128<byte> hi1 = this.positions.Length > 1 ? this.hi[1] : default;
-        Vector128<byte> lo2 = this.positions.Length > 2 ? this.lo[2] : default;
-        Vector128<byte> hi2 = this.positions.Length > 2 ? this.hi[2] : default;
-        int p0 = this.positions[0] * Stride;
-        int p1 = this.positions.Length > 1 ? this.positions[1] * Stride : 0;
-        int p2 = this.positions.Length > 2 ? this.positions[2] * Stride : 0;
-        int count = this.positions.Length;
-        Span<byte> hits = stackalloc byte[Vector128<byte>.Count];
-        for (; i <= lastVector; i += Vector128<byte>.Count)
+        Vector128<byte> lo0 = this.lo[0], hi0 = this.hi[0], lo1 = this.lo[1], hi1 = this.hi[1], lo2 = this.lo[2], hi2 = this.hi[2];
+        int p0 = this.p0 * Stride, p1 = this.p1 * Stride, p2 = this.p2 * Stride;
+        int at = i;
+        Vector128<byte> r = default;
+        for (; at <= lastVector; at += Vector128<byte>.Count)
         {
-            Vector128<byte> c = Vector128.LoadUnsafe(ref s, (nuint)(i + p0));
-            Vector128<byte> r = Vector128.ShuffleNative(lo0, c & nibble) & Vector128.ShuffleNative(hi0, Vector128.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
-            if (count > 1)
+            r = Look(lo0, hi0, Vector128.LoadUnsafe(ref s, (nuint)(at + p0)), nibble) & Look(lo1, hi1, Vector128.LoadUnsafe(ref s, (nuint)(at + p1)), nibble) & Look(lo2, hi2, Vector128.LoadUnsafe(ref s, (nuint)(at + p2)), nibble);
+            if (r != Vector128<byte>.Zero)
             {
-                c = Vector128.LoadUnsafe(ref s, (nuint)(i + p1));
-                r &= Vector128.ShuffleNative(lo1, c & nibble) & Vector128.ShuffleNative(hi1, Vector128.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
-                if (count > 2)
-                {
-                    c = Vector128.LoadUnsafe(ref s, (nuint)(i + p2));
-                    r &= Vector128.ShuffleNative(lo2, c & nibble) & Vector128.ShuffleNative(hi2, Vector128.ShiftRightLogical(c.AsUInt16(), 4).AsByte() & nibble);
-                }
-            }
-
-            if (r == Vector128<byte>.Zero)
-            {
-                continue;
-            }
-
-            r.CopyTo(hits);
-            uint lanes = (~Vector128.Equals(r, Vector128<byte>.Zero)).ExtractMostSignificantBits() & LaneMask;
-            int found = this.Candidates(input, i, lanes, hits, Stride, out length);
-            if (found >= 0)
-            {
-                return found;
+                break;
             }
         }
 
-        return -1;
+        i = at;
+        return r;
     }
 
-    /// <summary>The earliest start among a vector's candidates at which one of the literals of a bucket its bytes agree with is, or -1.</summary>
-    private int Candidates(ReadOnlySpan<T> input, int i, uint lanes, ReadOnlySpan<byte> hits, int stride, out int length)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector128<byte> Half2(ref byte s, ref int i, int lastVector)
+    {
+        Vector128<byte> nibble = Vector128.Create((byte)0x0F);
+        Vector128<byte> lo0 = this.lo[0], hi0 = this.hi[0], lo1 = this.lo[1], hi1 = this.hi[1];
+        int p0 = this.p0 * Stride, p1 = this.p1 * Stride;
+        int at = i;
+        Vector128<byte> r = default;
+        for (; at <= lastVector; at += Vector128<byte>.Count)
+        {
+            r = Look(lo0, hi0, Vector128.LoadUnsafe(ref s, (nuint)(at + p0)), nibble) & Look(lo1, hi1, Vector128.LoadUnsafe(ref s, (nuint)(at + p1)), nibble);
+            if (r != Vector128<byte>.Zero)
+            {
+                break;
+            }
+        }
+
+        i = at;
+        return r;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector128<byte> Half1(ref byte s, ref int i, int lastVector)
+    {
+        Vector128<byte> nibble = Vector128.Create((byte)0x0F);
+        Vector128<byte> lo0 = this.lo[0], hi0 = this.hi[0];
+        int p0 = this.p0 * Stride;
+        int at = i;
+        Vector128<byte> r = default;
+        for (; at <= lastVector; at += Vector128<byte>.Count)
+        {
+            r = Look(lo0, hi0, Vector128.LoadUnsafe(ref s, (nuint)(at + p0)), nibble);
+            if (r != Vector128<byte>.Zero)
+            {
+                break;
+            }
+        }
+
+        i = at;
+        return r;
+    }
+
+    /// <summary>The earliest start among a vector's candidates at which one of the literals of a bucket its bytes agree with is: the start, or -1, or -2 where a candidate is past the last start.</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private int Candidates(ReadOnlySpan<T> input, int i, uint lanes, Vector256<byte> r, int stride, int last, out int length)
     {
         length = -1;
-        int last = input.Length - this.minLength;
+        Span<byte> hits = stackalloc byte[Vector256<byte>.Count];
+        r.CopyTo(hits);
+        ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(input);
+        ref byte s = ref MemoryMarshal.GetReference(bytes);
         while (lanes != 0)
         {
             int lane = BitOperations.TrailingZeroCount(lanes);
@@ -433,16 +613,37 @@ public sealed class Teddy<T>
             int start = (i + lane) / stride;
             if (start > last)
             {
-                return -1;
+                return -2;
             }
 
             int bits = hits[lane];
+            bool whole = bytes.Length - (start * Stride) >= Vector256<byte>.Count;
             while (bits != 0)
             {
                 int b = BitOperations.TrailingZeroCount(bits);
                 bits &= bits - 1;
                 foreach (int k in this.buckets[b])
                 {
+                    Vector256<byte>[]? vectors = this.forms[k];
+                    if (vectors is not null && whole)
+                    {
+                        Vector256<byte> x = Vector256.LoadUnsafe(ref s, (nuint)(start * Stride));
+                        Vector256<byte> ok = Vector256.Equals(x, vectors[0]);
+                        for (int f = 1; f < vectors.Length; f++)
+                        {
+                            ok |= Vector256.Equals(x, vectors[f]);
+                        }
+
+                        uint mask = this.formMask[k];
+                        if ((ok.ExtractMostSignificantBits() & mask) == mask)
+                        {
+                            length = this.needles[k].Length;
+                            return start;
+                        }
+
+                        continue;
+                    }
+
                     Needle<T> needle = this.needles[k];
                     if (input.Length - start >= needle.Length && needle.Verify(input, start))
                     {

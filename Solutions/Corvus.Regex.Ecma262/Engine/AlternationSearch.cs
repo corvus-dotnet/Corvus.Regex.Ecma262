@@ -69,11 +69,11 @@ public sealed class AlternationSearch
         // the needle's 24 us against 40 by fingerprints). Over UTF-8 the fingerprint search.
         bool fingerprints16 = Teddy<ushort>.Supported && needles16.Length <= Teddy<ushort>.MostLiterals && shortest16 >= 2 && this.MultiUtf16.Two;
         // The packed fingerprint search of our own sees the forms the runtime's comparison lacks in the same
-        // pass, which pays on three or more literals in their forms where that comparison would need the pass
-        // for the long s and the Kelvin sign, under the u flag (three names: 83 us against 100 with the runtime's
-        // search and its pass); where no form is apart the runtime's search alone is quicker (73 us against 83),
-        // and on two short literals it is quicker by more than the pass costs.
-        bool packed16 = ascii && forms is not null && needles16.Length >= 3 && Teddy<ushort>.PackedSupported && needles16.Length <= Teddy<ushort>.MostLiterals && shortest16 >= 2 && this.MultiUtf16.Cost >= NeedleOverStrings && extras16.Length == 0 && stringsExtras16.Length != 0;
+        // pass, which pays on literals in their forms where that comparison would need the pass for the long s
+        // and the Kelvin sign, under the u flag (three names: 61 us against 70 with the runtime's search and 14
+        // for its pass; Sher|Hol: 78 against 78 and 14); where no form is apart the runtime's search alone is
+        // quicker (51 us against 57 on three exact names).
+        bool packed16 = ascii && forms is not null && Teddy<ushort>.PackedSupported && needles16.Length <= Teddy<ushort>.MostLiterals && shortest16 >= 2 && this.MultiUtf16.Cost >= NeedleOverStrings && extras16.Length == 0 && stringsExtras16.Length != 0;
         this.Strings = ascii && !packed16 && this.MultiUtf16.Cost >= NeedleOverStrings ? System.Buffers.SearchValues.Create(literals, forms is null ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) : null;
         this.TeddyUtf16 = packed16 ? new Teddy<ushort>(needles16, packed: true) : (this.Strings is null && fingerprints16 ? new Teddy<ushort>(needles16) : null);
         this.TeddyUtf8 = Teddy<byte>.Supported && needles8.Length <= Teddy<byte>.MostLiterals && shortest8 >= 2 && this.MultiUtf8.Cost >= NeedleOverStrings ? new Teddy<byte>(needles8) : null;
