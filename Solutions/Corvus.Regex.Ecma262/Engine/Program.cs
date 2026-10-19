@@ -789,6 +789,18 @@ public sealed class Program
     /// <summary>Gets the search for the literals every match holds one of, one per alternative of a leading alternation, or null (see <see cref="Compiler.RequiredAlternation"/>).</summary>
     public AlternationSearch? RequiredAlternation { get; }
 
+    /// <summary>Gets the tree the program was compiled from, after <see cref="Compiler.Simplify"/>, for the generator's structured code.</summary>
+    internal EcmaRegexNode? Root { get; set; }
+
+    /// <summary>Gets the slot of each group the program keeps, by group number.</summary>
+    internal IReadOnlyDictionary<int, int> TrackedGroups { get; set; } = new Dictionary<int, int>();
+
+    /// <summary>Gets the memo point of each node that has one (an alternation's first choice, a repeat), by node.</summary>
+    internal IReadOnlyDictionary<EcmaRegexNode, int> PointOf { get; set; } = new Dictionary<EcmaRegexNode, int>();
+
+    /// <summary>Gets a value indicating whether the pattern has the u flag.</summary>
+    internal bool Unicode { get; set; }
+
     /// <summary>Gets the least number of characters before any of those literals.</summary>
     public int RequiredAlternationLo { get; }
 
@@ -851,6 +863,7 @@ internal sealed class Compiler
 
     /// <summary>Maps a capturing group's number to its slot, for the groups some backreference names. The others are not recorded at all.</summary>
     private readonly Dictionary<int, int> tracked = [];
+    private readonly Dictionary<EcmaRegexNode, int> pointOf = [];
     private readonly List<MemoPoint> points = [];
     private readonly List<LoopContext> open = [];
     private readonly List<byte[]> utf8Literals = [];
@@ -1002,6 +1015,10 @@ internal sealed class Compiler
         Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, caseForms, requiredOffsetUtf8, loopSet, loopMin, afterLoop, skipRun, requiredCount, afterLoopMax, afterLoopAlternation, requiredCountMax, afterLoopSets, afterLoopMins, requiredAlternation, requiredAlternationLo, requiredAlternationHi);
         program.SetShape(LiteralAlternatives(root), CaseAlternatives(root));
         program.LeadingWordBoundary = insts.Length > 1 && insts[0].Op == Op.WordBoundary && first is not null && !first.HasNonAscii && IsWordSubset(first);
+        program.Root = root;
+        program.TrackedGroups = c.tracked;
+        program.PointOf = c.pointOf;
+        program.Unicode = unicode;
         return program;
     }
 
@@ -2668,6 +2685,11 @@ internal sealed class Compiler
                     }
 
                     int m = this.Point();
+                    if (k == 0)
+                    {
+                        this.pointOf[n] = m;
+                    }
+
                     int split = this.Add(new Inst(Op.Split) { M = m });
                     this.SetX(split, this.Pc());
                     this.Emit(n.Subs[k], back);
@@ -2818,6 +2840,7 @@ internal sealed class Compiler
         if (!back && (body.Kind == EcmaRegexNodeKind.Char || (body.Kind == EcmaRegexNodeKind.Set && !this.Class(body).IsEmpty)))
         {
             int m = this.Point();
+            this.pointOf[n] = m;
             this.Add(new Inst(n.Lazy ? Op.RepLazy : Op.Rep)
             {
                 R = body.CodePoint,
@@ -2859,6 +2882,7 @@ internal sealed class Compiler
             if (min == 0 && max == 1)
             {
                 int at = this.Split();
+                this.pointOf[n] = this.insts[at].M;
                 int enter = this.Pc();
                 this.EmitBody(body, back, clear, lo, hi);
                 int exit = this.Pc();

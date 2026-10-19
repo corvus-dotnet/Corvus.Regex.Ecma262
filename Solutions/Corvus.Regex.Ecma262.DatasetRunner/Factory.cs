@@ -137,6 +137,15 @@ internal static class Factory
             return;
         }
 
+        // CORVUS_REGEX_DUMP=<text>: the generated source of every batch holding a pattern with that text is saved.
+        string? dumpText = Environment.GetEnvironmentVariable("CORVUS_REGEX_DUMP");
+        if (!string.IsNullOrEmpty(dumpText) && Array.Exists(batch, b => b.Pattern.Contains(dumpText, StringComparison.Ordinal)))
+        {
+            string path = Path.Combine(Path.GetTempPath(), "corvus-regex-dump-" + Guid.NewGuid().ToString("N") + ".cs");
+            File.WriteAllText(path, sb.ToString());
+            Console.Error.WriteLine("dumped " + path);
+        }
+
         CSharpCompilation compilation = CSharpCompilation.Create(
             "G" + Guid.NewGuid().ToString("N"),
             [CSharpSyntaxTree.ParseText(sb.ToString(), new CSharpParseOptions(LanguageVersion.Preview))],

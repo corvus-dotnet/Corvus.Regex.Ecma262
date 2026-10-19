@@ -1560,6 +1560,101 @@ public static class Matcher
 #endif
     }
 
+    /// <summary>
+    /// The last position in a range at which the unit is an ASCII member of a set, or -1: where a loop gives back
+    /// to, when what follows it can go on only from a member (vectorised on .NET).
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The start of the range.</param>
+    /// <param name="to">The end of the range.</param>
+    /// <param name="set">The set, with no member beyond ASCII.</param>
+    /// <returns>The position, or -1.</returns>
+    public static int LastAllowedIn<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, int from, int to, CharSet set)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+#if NET
+        int i = input.Slice(from, to - from).LastIndexOfAny(enc.Members(set));
+        return i < 0 ? -1 : from + i;
+#else
+        for (int i = to - 1; i >= from; i--)
+        {
+            int c = enc.Unit(input, i);
+            if (c < 0x80 && set.HasAscii(c))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+#endif
+    }
+
+    /// <summary>
+    /// Whether the text a group captured is at a position, and how many units it takes there: compared unit by
+    /// unit for a pattern with the u flag and no folding, else a character at a time, folding case when asked. A
+    /// group that has not taken part matches the empty string.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="input">The text.</param>
+    /// <param name="pos">The position.</param>
+    /// <param name="from">The start of the capture, or <see cref="MatchState.None"/>.</param>
+    /// <param name="to">The end of the capture.</param>
+    /// <param name="fold">Whether case is folded.</param>
+    /// <param name="unicode">Whether the pattern has the u flag.</param>
+    /// <param name="width">The units taken.</param>
+    /// <returns>Whether it is.</returns>
+    public static bool BackrefAt<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, int pos, int from, int to, bool fold, bool unicode, out int width)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        width = 0;
+        if (from == MatchState.None)
+        {
+            return true;
+        }
+
+        int len = input.Length;
+        int n = to - from;
+        if (unicode && !fold)
+        {
+            if (len - pos >= n && input.Slice(pos, n).SequenceEqual(input.Slice(from, n)))
+            {
+                width = n;
+                return true;
+            }
+
+            return false;
+        }
+
+        bool units = !unicode;
+        int at = pos;
+        while (from < to)
+        {
+            int want = units ? enc.UnitAt(input, from, out int w) : enc.Decode(input, from, out w);
+            from += w;
+            if (at >= len)
+            {
+                return false;
+            }
+
+            int got = units ? enc.UnitAt(input, at, out w) : enc.Decode(input, at, out w);
+            at += w;
+            if (got != want && !(fold && CaseFolding.Canonicalize(got, unicode) == CaseFolding.Canonicalize(want, unicode)))
+            {
+                return false;
+            }
+        }
+
+        width = at - pos;
+        return true;
+    }
+
     /// <summary>The end of the run of one ASCII character that starts at a position.</summary>
     /// <typeparam name="TUnit">The unit of the text.</typeparam>
     /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
@@ -2257,10 +2352,10 @@ public static class Matcher
                     }
                     else if (set is not null)
                     {
-                        if (max >= 8)
+                        if (max >= 20)
                         {
-                            // The ASCII part of the run, within the bound, is found by vector; the loop goes on
-                            // from where that stops.
+                            // The ASCII part of the run, within the bound, is found by vector (two calls, which
+                            // a loop of fewer than twenty characters beats); the loop goes on from where that stops.
                             at = AsciiRun<TUnit, TEncoding>(set, input, at, max, units);
                             n = at - pos;
                             if (n >= min)

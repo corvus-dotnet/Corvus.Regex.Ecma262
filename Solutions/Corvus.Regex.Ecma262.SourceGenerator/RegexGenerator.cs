@@ -213,9 +213,17 @@ public sealed class RegexGenerator : IIncrementalGenerator
         Program bounds = Compiler.Compile(root, unicode, parser.GroupCount, trackAll: false);
         Program captures = Compiler.Compile(root, unicode, parser.GroupCount, trackAll: true);
         StringBuilder sb = new();
-        RunEmitter.EmitRunner(sb, 1, "Bounds", bounds);
+        if (!TreeEmitter.TryEmitRunner(sb, 1, "Bounds", bounds))
+        {
+            RunEmitter.EmitRunner(sb, 1, "Bounds", bounds);
+        }
+
         sb.AppendLine();
-        RunEmitter.EmitRunner(sb, 1, "Captures", captures);
+        if (!TreeEmitter.TryEmitRunner(sb, 1, "Captures", captures))
+        {
+            RunEmitter.EmitRunner(sb, 1, "Captures", captures);
+        }
+
         return sb.ToString();
     }
 

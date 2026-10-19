@@ -16,7 +16,7 @@ namespace Corvus.Ecma262.RegularExpressions.SourceGenerator;
 /// </summary>
 internal static class RunEmitter
 {
-    private const string Ns = "global::Corvus.Ecma262.RegularExpressions.";
+    internal const string Ns = "global::Corvus.Ecma262.RegularExpressions.";
 
     /// <summary>Writes the runner class for a program.</summary>
     /// <param name="sb">Where to write.</param>
@@ -529,7 +529,7 @@ internal static class RunEmitter
         }
         else if (set is not null)
         {
-            if (max >= 8)
+            if (max >= 20)
             {
                 Line(sb, indent + 1, "at = " + Ns + "Matcher.AsciiRun<TUnit, TEncoding>(insts[" + k + "].Set!, input, at, " + max + ", units);");
                 Line(sb, indent + 1, "n = at - pos;");
@@ -808,7 +808,7 @@ internal static class RunEmitter
     }
 
     /// <summary>The test of an ASCII unit against a set, as its two bitmaps.</summary>
-    private static string AsciiTest(CharSet set, string c)
+    internal static string AsciiTest(CharSet set, string c)
     {
         ulong a0 = set.Ascii0;
         ulong a1 = set.Ascii1;
@@ -827,7 +827,7 @@ internal static class RunEmitter
 
     private static string Hex(ulong v) => "0x" + v.ToString("X", CultureInfo.InvariantCulture) + "UL";
 
-    private static void Line(StringBuilder sb, int indent, string text)
+    internal static void Line(StringBuilder sb, int indent, string text)
     {
         for (int k = 0; k < indent; k++)
         {
