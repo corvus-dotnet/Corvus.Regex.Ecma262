@@ -186,9 +186,10 @@ public sealed class Needle<T>
         this.o2 = p2;
         this.ValuesAt(p2, out this.a2, out this.b2, out this.c2);
 
-        // A third anchor pays where the two rarest are still common letters (the, ing): the full comparison
-        // would otherwise be made at more than one position in two thousand.
-        int p3 = (long)shares[p1] * shares[p2] > 500 ? Rarest(shares, counts, p1, p2) : -1;
+        // A third anchor is looked at only in the vectors where the first two agree somewhere, so it costs
+        // little where they are rare and saves the full comparison where they are common (the, ing): it is
+        // taken wherever there is one (Holmes under iu over Sherlock: 44 us to 36).
+        int p3 = Rarest(shares, counts, p1, p2);
         if (this.exact)
         {
             if (typeof(T) == typeof(ushort))
@@ -234,13 +235,21 @@ public sealed class Needle<T>
         // Latin, Greek and Cyrillic, and in the last byte of UTF-8) are tested by one comparison of the unit with
         // those bits set.
         this.masked = Mask(this.a1, this.b1, this.c1, out this.m1) & Mask(this.a2, this.b2, this.c2, out this.m2);
-        if (p3 >= 0)
+        if (p3 >= 0 && this.masked)
         {
-            // A third anchor that no mask joins would cost the mask (and the packing) on all three.
-            this.ValuesAt(p3, out T a3, out T b3, out T c3);
-            if (this.masked && !Mask(a3, b3, c3, out _))
+            // A third anchor that no mask joins would cost the mask (and the packing) on all three: the rarest
+            // position a mask joins is taken instead (sherlock under iu: not the s or the k, whose third form
+            // no mask joins, but the h).
+            while (p3 >= 0)
             {
-                p3 = -1;
+                this.ValuesAt(p3, out T a3, out T b3, out T c3);
+                if (Mask(a3, b3, c3, out _))
+                {
+                    break;
+                }
+
+                shares[p3] = int.MaxValue;
+                p3 = Rarest(shares, counts, p1, p2);
             }
         }
 
@@ -643,7 +652,7 @@ public sealed class Needle<T>
         int best = -1;
         for (int j = 0; j < shares.Length; j++)
         {
-            if (j != not1 && j != not2 && counts[j] <= 3 && (best < 0 || shares[j] < shares[best]))
+            if (j != not1 && j != not2 && counts[j] <= 3 && shares[j] != int.MaxValue && (best < 0 || shares[j] < shares[best]))
             {
                 best = j;
             }
@@ -823,12 +832,17 @@ public sealed class Needle<T>
             ref ushort cur = ref Unsafe.Add(ref s, i);
             Vector256<byte> x1 = Pack(Vector256.LoadUnsafe(ref cur, (nuint)o1), Vector256.LoadUnsafe(ref cur, (nuint)(o1 + 16)));
             Vector256<byte> x2 = Pack(Vector256.LoadUnsafe(ref cur, (nuint)o2), Vector256.LoadUnsafe(ref cur, (nuint)(o2 + 16)));
-            Vector256<byte> x3 = Pack(Vector256.LoadUnsafe(ref cur, (nuint)o3), Vector256.LoadUnsafe(ref cur, (nuint)(o3 + 16)));
-            Vector256<byte> eq = Vector256.Equals(x1 | m1, u1) & Vector256.Equals(x2 | m2, u2) & Vector256.Equals(x3 | m3, u3);
+            Vector256<byte> eq = Vector256.Equals(x1 | m1, u1) & Vector256.Equals(x2 | m2, u2);
             if (eq != Vector256<byte>.Zero)
             {
-                mask = Unpack(eq.ExtractMostSignificantBits());
-                return i;
+                // The third anchor is looked at only where the first two agree somewhere: most vectors pay for two.
+                Vector256<byte> x3 = Pack(Vector256.LoadUnsafe(ref cur, (nuint)o3), Vector256.LoadUnsafe(ref cur, (nuint)(o3 + 16)));
+                eq &= Vector256.Equals(x3 | m3, u3);
+                if (eq != Vector256<byte>.Zero)
+                {
+                    mask = Unpack(eq.ExtractMostSignificantBits());
+                    return i;
+                }
             }
 
             i += 32;
@@ -999,11 +1013,15 @@ public sealed class Needle<T>
         while (i <= lastVector)
         {
             ref T cur = ref Unsafe.Add(ref s, i);
-            Vector256<T> eq = Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o1), v1) & Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o2), v2) & Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o3), v3);
+            Vector256<T> eq = Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o1), v1) & Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o2), v2);
             if (eq != Vector256<T>.Zero)
             {
-                mask = eq.ExtractMostSignificantBits();
-                return i;
+                eq &= Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o3), v3);
+                if (eq != Vector256<T>.Zero)
+                {
+                    mask = eq.ExtractMostSignificantBits();
+                    return i;
+                }
             }
 
             i += Vector256<T>.Count;
@@ -1037,11 +1055,15 @@ public sealed class Needle<T>
         while (i <= lastVector)
         {
             ref T cur = ref Unsafe.Add(ref s, i);
-            Vector256<T> eq = Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o1) | m1, u1) & Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o2) | m2, u2) & Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o3) | m3, u3);
+            Vector256<T> eq = Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o1) | m1, u1) & Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o2) | m2, u2);
             if (eq != Vector256<T>.Zero)
             {
-                mask = eq.ExtractMostSignificantBits();
-                return i;
+                eq &= Vector256.Equals(Vector256.LoadUnsafe(ref cur, (nuint)o3) | m3, u3);
+                if (eq != Vector256<T>.Zero)
+                {
+                    mask = eq.ExtractMostSignificantBits();
+                    return i;
+                }
             }
 
             i += Vector256<T>.Count;
@@ -1079,12 +1101,16 @@ public sealed class Needle<T>
             ref T cur = ref Unsafe.Add(ref s, i);
             Vector256<T> x1 = Vector256.LoadUnsafe(ref cur, (nuint)o1);
             Vector256<T> x2 = Vector256.LoadUnsafe(ref cur, (nuint)o2);
-            Vector256<T> x3 = Vector256.LoadUnsafe(ref cur, (nuint)o3);
-            Vector256<T> eq = (Vector256.Equals(x1, a1) | Vector256.Equals(x1, b1) | Vector256.Equals(x1, c1)) & (Vector256.Equals(x2, a2) | Vector256.Equals(x2, b2) | Vector256.Equals(x2, c2)) & (Vector256.Equals(x3, a3) | Vector256.Equals(x3, b3) | Vector256.Equals(x3, c3));
+            Vector256<T> eq = (Vector256.Equals(x1, a1) | Vector256.Equals(x1, b1) | Vector256.Equals(x1, c1)) & (Vector256.Equals(x2, a2) | Vector256.Equals(x2, b2) | Vector256.Equals(x2, c2));
             if (eq != Vector256<T>.Zero)
             {
-                mask = eq.ExtractMostSignificantBits();
-                return i;
+                Vector256<T> x3 = Vector256.LoadUnsafe(ref cur, (nuint)o3);
+                eq &= Vector256.Equals(x3, a3) | Vector256.Equals(x3, b3) | Vector256.Equals(x3, c3);
+                if (eq != Vector256<T>.Zero)
+                {
+                    mask = eq.ExtractMostSignificantBits();
+                    return i;
+                }
             }
 
             i += Vector256<T>.Count;
@@ -1118,11 +1144,15 @@ public sealed class Needle<T>
         while (i <= lastVector)
         {
             ref T cur = ref Unsafe.Add(ref s, i);
-            Vector128<T> eq = Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o1), v1) & Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o2), v2) & Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o3), v3);
+            Vector128<T> eq = Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o1), v1) & Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o2), v2);
             if (eq != Vector128<T>.Zero)
             {
-                mask = eq.ExtractMostSignificantBits();
-                return i;
+                eq &= Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o3), v3);
+                if (eq != Vector128<T>.Zero)
+                {
+                    mask = eq.ExtractMostSignificantBits();
+                    return i;
+                }
             }
 
             i += Vector128<T>.Count;
@@ -1156,11 +1186,15 @@ public sealed class Needle<T>
         while (i <= lastVector)
         {
             ref T cur = ref Unsafe.Add(ref s, i);
-            Vector128<T> eq = Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o1) | m1, u1) & Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o2) | m2, u2) & Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o3) | m3, u3);
+            Vector128<T> eq = Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o1) | m1, u1) & Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o2) | m2, u2);
             if (eq != Vector128<T>.Zero)
             {
-                mask = eq.ExtractMostSignificantBits();
-                return i;
+                eq &= Vector128.Equals(Vector128.LoadUnsafe(ref cur, (nuint)o3) | m3, u3);
+                if (eq != Vector128<T>.Zero)
+                {
+                    mask = eq.ExtractMostSignificantBits();
+                    return i;
+                }
             }
 
             i += Vector128<T>.Count;
@@ -1198,12 +1232,16 @@ public sealed class Needle<T>
             ref T cur = ref Unsafe.Add(ref s, i);
             Vector128<T> x1 = Vector128.LoadUnsafe(ref cur, (nuint)o1);
             Vector128<T> x2 = Vector128.LoadUnsafe(ref cur, (nuint)o2);
-            Vector128<T> x3 = Vector128.LoadUnsafe(ref cur, (nuint)o3);
-            Vector128<T> eq = (Vector128.Equals(x1, a1) | Vector128.Equals(x1, b1) | Vector128.Equals(x1, c1)) & (Vector128.Equals(x2, a2) | Vector128.Equals(x2, b2) | Vector128.Equals(x2, c2)) & (Vector128.Equals(x3, a3) | Vector128.Equals(x3, b3) | Vector128.Equals(x3, c3));
+            Vector128<T> eq = (Vector128.Equals(x1, a1) | Vector128.Equals(x1, b1) | Vector128.Equals(x1, c1)) & (Vector128.Equals(x2, a2) | Vector128.Equals(x2, b2) | Vector128.Equals(x2, c2));
             if (eq != Vector128<T>.Zero)
             {
-                mask = eq.ExtractMostSignificantBits();
-                return i;
+                Vector128<T> x3 = Vector128.LoadUnsafe(ref cur, (nuint)o3);
+                eq &= Vector128.Equals(x3, a3) | Vector128.Equals(x3, b3) | Vector128.Equals(x3, c3);
+                if (eq != Vector128<T>.Zero)
+                {
+                    mask = eq.ExtractMostSignificantBits();
+                    return i;
+                }
             }
 
             i += Vector128<T>.Count;
