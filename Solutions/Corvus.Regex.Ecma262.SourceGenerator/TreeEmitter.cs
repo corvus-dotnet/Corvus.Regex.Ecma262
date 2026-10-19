@@ -1323,6 +1323,12 @@ internal static class TreeEmitter
                 return true;
             }
 
+            if (p.Shape == SimpleShape.None && p.AfterLoopUtf16.Length > 0 && IsAscii(p.AfterLoopUtf16) && p.AfterLoopMax < 0 && p.AfterLoopAlternation is null && p.AfterLoopSets.Length > 0 && p.AfterLoopSets.All(set => !set.HasNonAscii && !set.IsEmpty) && p.CaseNeedleUtf16 is null && p.RequiredAlternation is null)
+            {
+                EmitAfterLoop(p, find, statics, indent);
+                return true;
+            }
+
             if (p.Shape == SimpleShape.None && p.First is not null && !p.First.HasNonAscii && !p.First.IsEmpty && !p.SkipRun && !p.LeadingWordBoundary && p.Utf16Prefix.Length == 0 && p.RequiredCount < 0 && p.RequiredCountMax < 0 && p.AfterLoopUtf16.Length == 0 && p.AfterLoopAlternation is null && p.AfterLoopMax < 0 && p.CaseNeedleUtf16 is null && p.RequiredAlternation is null)
             {
                 EmitFirst(p, find, statics, indent);
@@ -1804,6 +1810,82 @@ internal static class TreeEmitter
         }
 
         /// <summary>A first set of ASCII: one range by the range search, up to three values by the span search, more by search values held in a static field.</summary>
+        /// <summary>A run of ASCII sets without upper bound then an ASCII literal: the literal is searched for, and the runs before each occurrence are walked back, last loop first, as the runtime does; a failed start fails for every later start of the same run, so the next occurrence is searched for next.</summary>
+        private static void EmitAfterLoop(Program p, StringBuilder find, StringBuilder statics, int indent)
+        {
+            string literal = p.AfterLoopUtf16;
+            CharSet[] sets = p.AfterLoopSets;
+            int[] mins = p.AfterLoopMins;
+            int least = 0;
+            foreach (int m in mins)
+            {
+                least += m;
+            }
+
+            if (literal.Length > 1)
+            {
+                RunEmitter.Line(statics, indent, "private static readonly byte[] B0 = " + Bytes(literal) + ";");
+            }
+
+            Head(find, indent);
+            int i1 = indent + 1;
+            RunEmitter.Line(find, i1, "TEncoding enc = default;");
+            RunEmitter.Line(find, i1, "int c;");
+            RunEmitter.Line(find, i1, "while (true)");
+            RunEmitter.Line(find, i1, "{");
+            int i2 = i1 + 1;
+            RunEmitter.Line(find, i2, "if (pos + " + least + " > len - " + literal.Length + ")");
+            RunEmitter.Line(find, i2, "{");
+            RunEmitter.Line(find, i2 + 1, "return false;");
+            RunEmitter.Line(find, i2, "}");
+            sb_blank(find);
+            string args16 = literal.Length == 1 ? Ch(literal[0]) : Str(literal) + ".AsSpan()";
+            string args8 = literal.Length == 1 ? "(byte)" + (int)literal[0] : "B0";
+            RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
+            RunEmitter.Line(find, i2 + 1, "? " + Call("IndexOf", Chars + ".Slice(pos + " + least + ")", args16));
+            RunEmitter.Line(find, i2 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(pos + " + least + ")", args8) + ";");
+            RunEmitter.Line(find, i2, "if (i < 0)");
+            RunEmitter.Line(find, i2, "{");
+            RunEmitter.Line(find, i2 + 1, "return false;");
+            RunEmitter.Line(find, i2, "}");
+            sb_blank(find);
+            RunEmitter.Line(find, i2, "i += pos + " + least + ";");
+            RunEmitter.Line(find, i2, "int s = i;");
+            for (int k = sets.Length - 1; k >= 0; k--)
+            {
+                if (mins[k] == 1)
+                {
+                    RunEmitter.Line(find, i2, "int runEnd" + k + " = s;");
+                }
+
+                RunEmitter.Line(find, i2, "while (s > pos && (c = enc.Unit(input, s - 1)) < 0x80 && " + RunEmitter.AsciiTest(sets[k], "c") + ")");
+                RunEmitter.Line(find, i2, "{");
+                RunEmitter.Line(find, i2 + 1, "s--;");
+                RunEmitter.Line(find, i2, "}");
+                sb_blank(find);
+                if (mins[k] == 1)
+                {
+                    RunEmitter.Line(find, i2, "if (s == runEnd" + k + ")");
+                    RunEmitter.Line(find, i2, "{");
+                    RunEmitter.Line(find, i2 + 1, "pos = i + 1;");
+                    RunEmitter.Line(find, i2 + 1, "continue;");
+                    RunEmitter.Line(find, i2, "}");
+                    sb_blank(find);
+                }
+            }
+
+            RunEmitter.Line(find, i2, "if (len - s < p.Need)");
+            RunEmitter.Line(find, i2, "{");
+            RunEmitter.Line(find, i2 + 1, "return false;");
+            RunEmitter.Line(find, i2, "}");
+            sb_blank(find);
+            RunEmitter.Line(find, i2, "scan.Next = i + 1;");
+            RunEmitter.Line(find, i2, "start = s;");
+            RunEmitter.Line(find, i2, "return true;");
+            RunEmitter.Line(find, i1, "}");
+            Tail(find, indent);
+        }
+
         private static void EmitFirst(Program p, StringBuilder find, StringBuilder statics, int indent)
         {
             CharSet first = p.First!;
