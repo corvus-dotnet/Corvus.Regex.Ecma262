@@ -529,8 +529,35 @@ time.
 | 2 | The whole drop-in surface of section 4, `Sticky`, `Replace`, `Split`, enumerators, timeout, exceptions | Data set extensions of 8.2 written and green; swap test green. **Met 2026-10-18** apart from the swap test: `captures.jsonl` (exec, global, sticky, replace, split; 5,188 patterns, 207,485 texts) in the data repository at 95a64f0, 3,760,290 answers right, 0 wrong, over UTF-16 and UTF-8 |
 | 3 | Prefilters, `SearchValues`, literal search, automaton on UTF-16, benchmarks of section 9, first tables | Interpreter-against-interpreter at or below 1.0 on the industry set; set 3 finishes |
 | 4 | Source generator, stage 1 then stage 2, generator tests, diagnostics | Generated-against-generated at or below 1.0 on the industry set; AOT sample publishes. Stage 1 met 2026-10-19 (the attribute, build-time diagnostics, the analyzer in the package, the AOT sample). Stage 2 emits each program as straight-line code (see 5.5); the whole data set is its gate too, run with every pattern as generated code. **Met 2026-10-20** at 2a56933 ([the run](../benchmarks/2026-10-20.md)): median 0.86 over UTF-16, 46 of 57 at or below 1.0, 0.58 and 51 of 57 over UTF-8; the data set at 0 wrong as generated code; the rows left above 1.0 are the cost of the u flag, see below |
-| 5 | `UnicodeSets` (v flag) | The new family of 8.2 green |
+| 5 | `UnicodeSets` (v flag) | The new family of 8.2 green. **Met 2026-10-20**: `unicode-sets.jsonl` (5,520 patterns, each answered with `v`, with `u` and with neither; 795,150 tests) at 0 wrong, 0 refused, 0 accepted-invalid over both encodings, interpreted and generated |
 | 6 | Adoption in Corvus.JsonSchema: the translator and shape matchers go, the evaluator and the V5 generator call this library, V4 keeps .NET `Regex` | Corvus.JsonSchema's data set run 0 wrong, the 37 corpora give the same answers and the evaluator is not slower, #1025 closed |
+
+**The v flag (2026-10-20).** The grammar of the v flag changes a class and nothing outside it, so it is parser work
+that lands on the nodes the engine has. A class is read as a value of two parts, its code points and its strings
+(each of a length other than one, the empty string among them), with a flag for whether its syntax may hold a
+string, which ECMA-262's MayContainStrings decides from the syntax and not from what the strings turn out to be.
+A string of one character is a character of the class. The union, the intersection (`&&`) and the difference
+(`--`) act on both parts, strings compared whole. With the i flag each operand is case folded as it is read, so
+that the complement of a class, and of `\P{...}`, `\W`, `\D` and `\S`, is of the folded set (with the u flag the
+fold comes after the complement, which is why `\P{Lu}` with `i` matches `A` under `u` and not under `v`); the
+sets hold every form of a character where ECMA-262's hold the folded form, and the two agree under union,
+intersection, difference and complement because a set of ours is a union of whole case classes. A class with
+strings compiles to a non-capturing group of an alternation: the strings longest first, each a sequence of
+characters (each the set of its forms under `i`), then the set; the matcher, the start searches and the generator
+see nothing new. The seven properties of strings are a generated file of their own (`EcmaRegexUnicodeStrings.cs`,
+from the two emoji sequence files of Unicode 17), read the first time a pattern names one. A program with more than
+2,048 instructions (`\p{RGI_Emoji}` alone is 2,760 alternatives) is too large for straight-line code: the
+generator writes a runner that hands it to the interpreter, as the tree emitter already leaves a tree of more
+than 1,500 nodes to the instruction emitter. The data set's generated pass found this by being killed for memory
+on a 12 MB source file. A strings instruction (a trie over the sequences) is the better shape for both engines,
+and is left for when a workload asks for it.
+
+Testing it against V8 found two faults of V8's (13.6) that the family marks and the runner skips: with `i` and
+`v` a string of one character in `\q{...}` is not canonicalized against the text (`[\q{k}]` misses `K` where
+`[k]` finds it), and `\p{ASCII}` is folded without the long s and the Kelvin sign where the same range written out
+is folded with them. Both are found by rewriting the pattern to the form V8 gets right and asking it again. The
+phase cost the optimizations of phase 4 nothing: the hot paths run on the same nodes, and the Industry rows have
+no `v` pattern.
 
 **Phase 4 closed above 1.0 on three rows (2026-10-20).** The gate asked for every industry row at or below .NET's
 generated code, and the run that closed the phase has three rows above it that no further search work will

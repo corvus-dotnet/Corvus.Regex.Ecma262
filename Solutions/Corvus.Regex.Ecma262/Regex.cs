@@ -98,7 +98,8 @@ public sealed partial class Regex
             unicode,
             ignoreCase: (flags & RegexFlags.IgnoreCase) != 0,
             multiline: (flags & RegexFlags.Multiline) != 0,
-            dotAll: (flags & RegexFlags.DotAll) != 0);
+            dotAll: (flags & RegexFlags.DotAll) != 0,
+            unicodeSets: (flags & RegexFlags.UnicodeSets) != 0);
         this.root = parser.Parse();
         this.linear = !parser.HasBackreferences;
         this.limit = this.linear ? TimeSpan.Zero : (matchTimeout == InfiniteMatchTimeout ? TimeSpan.Zero : matchTimeout);
@@ -371,10 +372,6 @@ public sealed partial class Regex
             throw new RegexParseException("Invalid regular expression flags", 0);
         }
 
-        if ((flags & RegexFlags.UnicodeSets) != 0)
-        {
-            throw new NotSupportedException("The v flag (UnicodeSets) is not supported yet.");
-        }
     }
 
     private static void ValidateMatchTimeout(TimeSpan matchTimeout)

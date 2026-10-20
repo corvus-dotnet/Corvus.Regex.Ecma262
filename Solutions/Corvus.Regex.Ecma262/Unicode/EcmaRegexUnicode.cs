@@ -53,6 +53,7 @@ internal static class EcmaRegexUnicode
     private static int[]? simpleFoldingRuns;
     private static int[]? uppercaseRuns;
     private static Folding? legacyFolding;
+    private static (int[] Set, int[][] Strings)[]? stringProperties;
 
     /// <summary>The steps the operations on sets have taken on this thread since <see cref="TakeSteps"/> last read them.</summary>
     [ThreadStatic]
@@ -166,6 +167,144 @@ internal static class EcmaRegexUnicode
         Array.Copy(a, pairs, a.Length);
         Array.Copy(b, 0, pairs, a.Length, b.Length);
         return SetOf(pairs, pairs.Length);
+    }
+
+    /// <summary>The code points in both sets.</summary>
+    /// <param name="a">The first set.</param>
+    /// <param name="b">The second set.</param>
+    /// <returns>The intersection.</returns>
+    public static int[] Intersect(int[] a, int[] b)
+    {
+        if (a.Length == 0 || b.Length == 0)
+        {
+            return [];
+        }
+
+        steps += 1 + ((a.Length + b.Length) / 32);
+        int[] result = new int[a.Length + b.Length];
+        int m = 0;
+        int i = 0;
+        int j = 0;
+        while (i < a.Length && j < b.Length)
+        {
+            int lo = Math.Max(a[i], b[j]);
+            int hi = Math.Min(a[i + 1], b[j + 1]);
+            if (lo <= hi)
+            {
+                result[m++] = lo;
+                result[m++] = hi;
+            }
+
+            if (a[i + 1] < b[j + 1])
+            {
+                i += 2;
+            }
+            else
+            {
+                j += 2;
+            }
+        }
+
+        Array.Resize(ref result, m);
+        return result;
+    }
+
+    /// <summary>The code points of the first set that are not in the second.</summary>
+    /// <param name="a">The first set.</param>
+    /// <param name="b">The second set.</param>
+    /// <param name="max">The last code point of the grammar.</param>
+    /// <returns>The difference.</returns>
+    public static int[] Difference(int[] a, int[] b, int max = Max) => b.Length == 0 ? a : Intersect(a, Complement(b, max));
+
+    /// <summary>
+    /// The set and the strings of a property of strings, which a pattern with the v flag may name: the seven of
+    /// ECMA-262's table, each the single code points and the sequences of an emoji file of the Unicode Character
+    /// Database, and RGI_Emoji the union of the other six.
+    /// </summary>
+    /// <param name="name">The property name, which is case-sensitive.</param>
+    /// <param name="set">Receives the single code points.</param>
+    /// <param name="strings">Receives the sequences, as code points, each of two or more.</param>
+    /// <returns><see langword="false"/> when the name is not a property of strings.</returns>
+    public static bool StringProperty(ReadOnlySpan<char> name, out int[] set, out int[][] strings)
+    {
+        set = [];
+        strings = [];
+        int index = -1;
+        for (int k = 0; k < EcmaRegexUnicodeStrings.Names.Length; k++)
+        {
+            if (name.SequenceEqual(EcmaRegexUnicodeStrings.Names[k].AsSpan()))
+            {
+                index = k;
+            }
+        }
+
+        bool all = index < 0 && name.SequenceEqual(EcmaRegexUnicodeStrings.RGI_Emoji.AsSpan());
+        if (index < 0 && !all)
+        {
+            return false;
+        }
+
+        lock (Sync)
+        {
+            if (stringProperties is null)
+            {
+                int n = EcmaRegexUnicodeStrings.Names.Length;
+                stringProperties = new (int[] Set, int[][] Strings)[n + 1];
+                int[] union = [];
+                List<int[]> every = [];
+                for (int k = 0; k < n; k++)
+                {
+                    int[] codePoints = ParseRanges(EcmaRegexUnicodeStrings.CodePoints(k));
+                    int[][] sequences = ParseSequences(EcmaRegexUnicodeStrings.Sequences(k));
+                    stringProperties[k] = (codePoints, sequences);
+                    union = Union(union, codePoints);
+                    every.AddRange(sequences);
+                }
+
+                stringProperties[n] = (union, [.. every]);
+            }
+
+            (set, strings) = stringProperties[all ? EcmaRegexUnicodeStrings.Names.Length : index];
+            return true;
+        }
+    }
+
+    /// <summary>The code points of a text of hexadecimal ranges ("231A..231B 23F0").</summary>
+    private static int[] ParseRanges(string text)
+    {
+        if (text.Length == 0)
+        {
+            return [];
+        }
+
+        string[] parts = text.Split(' ');
+        int[] pairs = new int[2 * parts.Length];
+        for (int k = 0; k < parts.Length; k++)
+        {
+            int dots = parts[k].IndexOf("..", StringComparison.Ordinal);
+            pairs[2 * k] = Convert.ToInt32(dots < 0 ? parts[k] : parts[k].Substring(0, dots), 16);
+            pairs[(2 * k) + 1] = dots < 0 ? pairs[2 * k] : Convert.ToInt32(parts[k].Substring(dots + 2), 16);
+        }
+
+        return SetOf(pairs, pairs.Length);
+    }
+
+    /// <summary>The sequences of a text of hexadecimal code points ("1F468 200D 1F469;2122 FE0F").</summary>
+    private static int[][] ParseSequences(string text)
+    {
+        string[] parts = text.Split(';');
+        int[][] sequences = new int[parts.Length][];
+        for (int k = 0; k < parts.Length; k++)
+        {
+            string[] points = parts[k].Split(' ');
+            sequences[k] = new int[points.Length];
+            for (int j = 0; j < points.Length; j++)
+            {
+                sequences[k][j] = Convert.ToInt32(points[j], 16);
+            }
+        }
+
+        return sequences;
     }
 
     /// <summary>The code points of the set that lie in the range.</summary>

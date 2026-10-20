@@ -152,11 +152,7 @@ public sealed class RegexGenerator : IIncrementalGenerator
             timeout = ms;
         }
 
-        if ((flags & (int)RegexFlags.UnicodeSets) != 0)
-        {
-            diagnostics.Add(Diagnostic.Create(Diagnostics.InvalidFlags, patternLocation, "the v flag is not supported yet"));
-        }
-        else if (problem is null && (flags & ~0xFF) == 0)
+        if (problem is null && (flags & ~0xFF) == 0)
         {
             // The pattern, parsed and compiled as the library parses and compiles it, and its programs written
             // out as straight-line code.
@@ -208,7 +204,8 @@ public sealed class RegexGenerator : IIncrementalGenerator
             unicode,
             ignoreCase: (flags & (int)RegexFlags.IgnoreCase) != 0,
             multiline: (flags & (int)RegexFlags.Multiline) != 0,
-            dotAll: (flags & (int)RegexFlags.DotAll) != 0);
+            dotAll: (flags & (int)RegexFlags.DotAll) != 0,
+            unicodeSets: (flags & (int)RegexFlags.UnicodeSets) != 0);
         EcmaRegexNode root = parser.Parse();
         Program bounds = Compiler.Compile(root, unicode, parser.GroupCount, trackAll: false);
         Program captures = Compiler.Compile(root, unicode, parser.GroupCount, trackAll: true);

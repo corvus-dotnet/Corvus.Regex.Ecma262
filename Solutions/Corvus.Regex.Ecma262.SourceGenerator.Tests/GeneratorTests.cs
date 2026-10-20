@@ -68,7 +68,7 @@ public class GeneratorTests
     [DataRow("a", "gx", "CRE0003", "'x' is not a flag")]
     [DataRow("a", "gg", "CRE0003", "given twice")]
     [DataRow("a", "uv", "CRE0003", "cannot both")]
-    [DataRow("a", "v", "CRE0003", "not supported yet")]
+    [DataRow("[a--]", "v", "CRE0001", "Invalid set operation")]
     public void APatternOrFlagsThatAreNotValidAreABuildError(string pattern, string flags, string id, string message)
     {
         (_, ImmutableArray<Diagnostic> diagnostics, string generated) = Run($$"""

@@ -31,7 +31,7 @@ in its section 10.
 
 - Phase 1 (the engine and `IsMatch`) passes the whole test data set: 98,777 patterns under each grammar V8 accepts
   them in, 15.95 million answers over UTF-16 and over UTF-8, 0 wrong, 0 refused, 0 matches at their limit, and 0
-  bytes allocated per match once warm. The flags `i`, `m`, `s`, `u` and `y` apply; `v` is not yet supported.
+  bytes allocated per match once warm. The flags `i`, `m`, `s`, `u` and `y` apply.
 - Phase 2 (the surface: `Match`, `Groups`, `Matches`, `Replace`, `Split`, `Escape`, and `EnumerateMatches`, `Count`
   and `TryMatch` over spans) passes the data set's new `captures.jsonl`: V8's `exec`, global, sticky, `replace` and
   `split` answers for 5,188 patterns and 207,485 texts, 3.76 million answers, 0 wrong. The whole set is now
@@ -47,6 +47,10 @@ in its section 10.
   57); see [docs/benchmarks/2026-10-20.md](docs/benchmarks/2026-10-20.md). The three rows left above 1.0 are the
   cost of the `u` flag the benchmark gives every Corvus row (`.` and CRLF, the long s under `i`, a supplementary
   character's two units), set out in [the design document](docs/design/design.md#10-phases).
+- Phase 5 (the `v` flag: nested classes, `--` and `&&`, strings in classes with `\q{...}`, and the seven properties
+  of strings such as `\p{RGI_Emoji}`) passes the data set's new `unicode-sets.jsonl`: 5,520 patterns answered by
+  V8 with `v`, with `u` and with neither, exact on validity in all three grammars and 3.18 million answers right,
+  0 wrong, over UTF-16 and UTF-8, as interpreted and as generated code.
 
 ## Repository structure
 

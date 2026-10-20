@@ -59,6 +59,7 @@
     <Compile Include="Syntax\EcmaRegexParser.cs" />
     <Compile Include="Unicode\EcmaRegexUnicode.cs" />
     <Compile Include="Unicode\EcmaRegexUnicodeData.cs" />
+    <Compile Include="Unicode\EcmaRegexUnicodeStrings.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -75,9 +75,16 @@ foreach (string file in Directory.GetFiles(directory, filter).Order(StringCompar
         bool validUnicode = valid.GetProperty("unicode").GetBoolean();
         bool validLegacy = valid.GetProperty("legacy").GetBoolean();
         r.TryGetProperty("tests", out JsonElement tests);
-        foreach ((bool unicode, bool expectedValid) in new[] { (true, validUnicode), (false, validLegacy) })
+        // The three modes: the u flag ("unicode"), no flag ("legacy") and, in the file that has it, the v flag ("unicode_sets").
+        List<(string Suffix, string AnswerName, bool ExpectedValid)> modes = [("u", "unicode", validUnicode), (string.Empty, "legacy", validLegacy)];
+        if (valid.TryGetProperty("unicode_sets", out JsonElement validSets))
         {
-            string modeFlags = unicode ? flags + "u" : flags;
+            modes.Add(("v", "unicode_sets", validSets.GetBoolean()));
+        }
+
+        foreach ((string suffix, string answerName, bool expectedValid) in modes)
+        {
+            string modeFlags = flags + suffix;
             Regex? regex = null;
             string? error = null;
             try
@@ -123,7 +130,6 @@ foreach (string file in Directory.GetFiles(directory, filter).Order(StringCompar
                 continue;
             }
 
-            string answerName = unicode ? "unicode" : "legacy";
             foreach (JsonElement t in tests.EnumerateArray())
             {
                 if (!t.TryGetProperty(answerName, out JsonElement answer))

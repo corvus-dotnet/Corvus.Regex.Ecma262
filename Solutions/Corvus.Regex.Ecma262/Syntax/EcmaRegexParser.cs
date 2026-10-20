@@ -82,6 +82,12 @@ internal sealed class EcmaRegexParser
     /// <summary>The set of the class atom <see cref="ClassAtom"/> last read, when it was a class escape, and null otherwise.</summary>
     private int[]? atomSet;
 
+    /// <summary>The strings of the property of strings a class escape last read named, or null (the v flag only).</summary>
+    private int[][]? escapeStrings;
+
+    /// <summary>Whether the pattern is read with the grammar of the v flag: the u flag's, with set notation and strings in a class.</summary>
+    private readonly bool unicodeSets;
+
     /// <summary>Initializes a new instance of the <see cref="EcmaRegexParser"/> class.</summary>
     /// <param name="pattern">The pattern.</param>
     /// <param name="unicode">Whether to read it with the grammar of the u flag.</param>
@@ -89,21 +95,23 @@ internal sealed class EcmaRegexParser
     /// <param name="multiline">Whether the m flag is set.</param>
     /// <param name="dotAll">Whether the s flag is set.</param>
     /// <param name="work">The count of the steps taken for the pattern, when the caller keeps one.</param>
-    public EcmaRegexParser(ReadOnlySpan<char> pattern, bool unicode, bool ignoreCase = false, bool multiline = false, bool dotAll = false, EcmaRegexWork? work = null)
+    /// <param name="unicodeSets">Whether to read it with the grammar of the v flag (which implies <paramref name="unicode"/>).</param>
+    public EcmaRegexParser(ReadOnlySpan<char> pattern, bool unicode, bool ignoreCase = false, bool multiline = false, bool dotAll = false, EcmaRegexWork? work = null, bool unicodeSets = false)
     {
         this.work = work ?? new EcmaRegexWork();
-        this.Unicode = unicode;
+        this.Unicode = unicode || unicodeSets;
+        this.unicodeSets = unicodeSets;
         this.ignoreCase = ignoreCase;
         this.multiline = multiline;
         this.dotAll = dotAll;
-        this.max = unicode ? EcmaRegexUnicode.Max : 0xFFFF;
-        this.complements = unicode ? CodePointComplements : CodeUnitComplements;
+        this.max = this.Unicode ? EcmaRegexUnicode.Max : 0xFFFF;
+        this.complements = this.Unicode ? CodePointComplements : CodeUnitComplements;
         int[] units = new int[pattern.Length];
         int n = 0;
         for (int k = 0; k < pattern.Length; k++)
         {
             char c = pattern[k];
-            if (unicode && char.IsHighSurrogate(c) && k + 1 < pattern.Length && char.IsLowSurrogate(pattern[k + 1]))
+            if (this.Unicode && char.IsHighSurrogate(c) && k + 1 < pattern.Length && char.IsLowSurrogate(pattern[k + 1]))
             {
                 units[n++] = char.ConvertToUtf32(c, pattern[++k]);
             }
@@ -884,6 +892,12 @@ internal sealed class EcmaRegexParser
         int[]? set = this.ClassEscape(c);
         if (set is not null)
         {
+            if (this.escapeStrings is not null)
+            {
+                // A property of strings (the v flag): the class of its code points and its sequences.
+                return this.ClassNode(this.StringsValue(this.Folded(set), this.escapeStrings), negated: false);
+            }
+
             return SetNode(this.Folded(set));
         }
 
@@ -919,6 +933,7 @@ internal sealed class EcmaRegexParser
     /// </summary>
     private int[]? ClassEscape(int c)
     {
+        this.escapeStrings = null;
         bool foldWord = this.Unicode && this.ignoreCase;
         switch (c)
         {
@@ -975,13 +990,27 @@ internal sealed class EcmaRegexParser
 
                 int[]? set = EcmaRegexUnicode.Property(expression, out _);
                 this.work.Spend(8);
+                if (set is null && this.unicodeSets && EcmaRegexUnicode.StringProperty(expression, out int[] codePoints, out int[][] strings))
+                {
+                    // A property of strings, which the v flag alone names, and which has no complement.
+                    if (c == 'P')
+                    {
+                        this.i = start;
+                        throw this.Error("Invalid property name");
+                    }
+
+                    this.escapeStrings = strings;
+                    return codePoints;
+                }
+
                 if (set is null)
                 {
                     this.i = start;
                     throw this.Error("Invalid property name");
                 }
 
-                return c == 'P' ? EcmaRegexUnicode.Complement(set, this.max) : set;
+                // With the v flag the complement is of the case-folded set; with the u flag the fold comes after.
+                return c == 'P' ? EcmaRegexUnicode.Complement(this.unicodeSets ? this.Folded(set) : set, this.max) : set;
             }
 
             default:
@@ -1204,6 +1233,11 @@ internal sealed class EcmaRegexParser
     /// <summary>Reads a character class from its '[' to its ']'.</summary>
     private EcmaRegexNode CharacterClass()
     {
+        if (this.unicodeSets)
+        {
+            return this.ClassSetExpression();
+        }
+
         this.i++;
         bool negated = this.Eat('^');
         this.pairCount = 0;
@@ -1265,6 +1299,411 @@ internal sealed class EcmaRegexParser
         int[] set = this.Folded(all);
         return SetNode(negated ? EcmaRegexUnicode.Complement(set, this.max) : set);
     }
+
+    /// <summary>
+    /// Reads a class of the v flag's grammar from its '[' to its ']': a union of characters, ranges, nested classes,
+    /// class escapes, strings and properties of strings; or the intersection (&amp;&amp;) or the difference (--) of
+    /// such operands, which may not be mixed with a union or with each other without a nested class around them.
+    /// With the i flag each operand is case folded before the operations, so that the complement of a class is
+    /// of the folded set. A negated class may not hold anything that may match a string.
+    /// </summary>
+    private EcmaRegexNode ClassSetExpression()
+    {
+        this.i++;
+        bool negated = this.Eat('^');
+        ClassSetValue value = this.ClassSetContents();
+        if (!this.Eat(']'))
+        {
+            throw this.Error("Unterminated character class");
+        }
+
+        if (negated && value.MayContainStrings)
+        {
+            throw this.Error("Negated character class may contain strings");
+        }
+
+        return this.ClassNode(value, negated);
+    }
+
+    /// <summary>Reads the contents of a class of the v flag's grammar, up to its ']'.</summary>
+    private ClassSetValue ClassSetContents()
+    {
+        if (this.Peek() == ']')
+        {
+            return new ClassSetValue([], [], false);
+        }
+
+        ClassSetValue value = this.ClassSetElement(out bool range);
+        int op = this.SetOperator();
+        if (op != 0)
+        {
+            // An intersection or a difference: operands only, with the one operator between every two.
+            if (range)
+            {
+                throw this.Error("Invalid set operation in character class");
+            }
+
+            while (this.SetOperator() == op)
+            {
+                this.i += 2;
+                if (this.Peek() == ']' || !this.More())
+                {
+                    throw this.Error("Invalid set operation in character class");
+                }
+
+                ClassSetValue operand = this.ClassSetElement(out bool operandRange);
+                if (operandRange)
+                {
+                    throw this.Error("Invalid set operation in character class");
+                }
+
+                value = op == '&' ? Intersect(value, operand) : this.Subtract(value, operand);
+            }
+
+            if (this.Peek() != ']')
+            {
+                throw this.Error("Invalid set operation in character class");
+            }
+
+            return value;
+        }
+
+        // A union.
+        while (this.More() && this.Peek() != ']')
+        {
+            if (this.SetOperator() != 0)
+            {
+                throw this.Error("Invalid set operation in character class");
+            }
+
+            value = Union(value, this.ClassSetElement(out _));
+        }
+
+        return value;
+    }
+
+    /// <summary>The set operator at the position ('&amp;' for &amp;&amp;, '-' for --), or 0.</summary>
+    private int SetOperator()
+    {
+        if (this.i + 1 < this.p.Length && this.p[this.i] == this.p[this.i + 1] && (this.p[this.i] == '&' || this.p[this.i] == '-'))
+        {
+            return this.p[this.i];
+        }
+
+        return 0;
+    }
+
+    /// <summary>Reads one element of a class of the v flag's grammar: an operand, or a range of two characters.</summary>
+    private ClassSetValue ClassSetElement(out bool range)
+    {
+        range = false;
+        int c = this.Peek();
+        if (c == '[')
+        {
+            // A nested class: its strings count as strings whether or not there are any.
+            int start = this.i;
+            this.i++;
+            bool negated = this.Eat('^');
+            ClassSetValue inner = this.ClassSetContents();
+            if (!this.Eat(']'))
+            {
+                throw this.Error("Unterminated character class");
+            }
+
+            if (negated)
+            {
+                if (inner.MayContainStrings)
+                {
+                    this.i = start;
+                    throw this.Error("Negated character class may contain strings");
+                }
+
+                return new ClassSetValue(EcmaRegexUnicode.Complement(inner.Set, this.max), [], false);
+            }
+
+            return inner;
+        }
+
+        if (c == '\\')
+        {
+            if (this.i + 1 >= this.p.Length)
+            {
+                throw this.Error("\\ at end of pattern");
+            }
+
+            int e = this.p[this.i + 1];
+            if (e == 'q')
+            {
+                this.i += 2;
+                return this.ClassStringDisjunction();
+            }
+
+            this.i++;
+            int[]? set = this.ClassEscape(e);
+            if (set is not null)
+            {
+                if (this.escapeStrings is not null)
+                {
+                    return this.StringsValue(this.Folded(set), this.escapeStrings);
+                }
+
+                // A class escape is folded as one operand; \P and the complements are already folded (see ClassEscape).
+                return new ClassSetValue(e is 'P' or 'D' or 'W' or 'S' ? set : this.Folded(set), [], false);
+            }
+
+            this.i--;
+        }
+
+        int first = this.ClassSetCharacter();
+        if (this.Peek() == '-' && this.SetOperator() == 0)
+        {
+            int dash = this.i;
+            this.i++;
+            if (this.Peek() == ']' || this.Peek() == '[' || (this.Peek() == '\\' && this.i + 1 < this.p.Length && "qdDwWsSpP".IndexOf((char)this.p[this.i + 1]) >= 0 && this.p[this.i + 1] < 128))
+            {
+                this.i = dash;
+                throw this.Error("Invalid character class range");
+            }
+
+            int second = this.ClassSetCharacter();
+            if (second < first)
+            {
+                this.i = dash;
+                throw this.Error("Range out of order in character class");
+            }
+
+            range = true;
+            return new ClassSetValue(this.Folded([first, second]), [], false);
+        }
+
+        return new ClassSetValue(this.Folded([first, first]), [], false);
+    }
+
+    /// <summary>
+    /// Reads one character of a class of the v flag's grammar: a character that is not a syntax character and does
+    /// not begin a reserved double punctuator, or an escape, which may be of a reserved punctuator.
+    /// </summary>
+    private int ClassSetCharacter()
+    {
+        if (!this.More())
+        {
+            throw this.Error("Unterminated character class");
+        }
+
+        int c = this.p[this.i];
+        if (c == '\\')
+        {
+            if (this.i + 1 >= this.p.Length)
+            {
+                throw this.Error("\\ at end of pattern");
+            }
+
+            int e = this.p[this.i + 1];
+            if (e == 'b')
+            {
+                this.i += 2;
+                return '\b';
+            }
+
+            if (e < 128 && "&-!#%,:;<=>@`~".IndexOf((char)e) >= 0)
+            {
+                this.i += 2;
+                return e;
+            }
+
+            this.i++;
+            return this.CharacterEscape(inClass: true);
+        }
+
+        if (c < 128 && "()[]{}/-\\|".IndexOf((char)c) >= 0)
+        {
+            throw this.Error("Invalid character in character class");
+        }
+
+        if (this.i + 1 < this.p.Length && this.p[this.i + 1] == c && c < 128 && "&!#$%*+,.:;<=>?@^`~".IndexOf((char)c) >= 0)
+        {
+            throw this.Error("Invalid set operation in character class");
+        }
+
+        this.i++;
+        return c;
+    }
+
+    /// <summary>Reads the strings of <c>\q{...}</c> after its <c>\q</c>: a string of one character is a character of the class.</summary>
+    private ClassSetValue ClassStringDisjunction()
+    {
+        if (!this.Eat('{'))
+        {
+            throw this.Error("Invalid escape");
+        }
+
+        List<int> current = [];
+        List<int[]> strings = [];
+        int[] set = [];
+        bool mayContainStrings = false;
+        while (true)
+        {
+            if (!this.More())
+            {
+                throw this.Error("Unterminated character class");
+            }
+
+            int c = this.Peek();
+            if (c == '|' || c == '}')
+            {
+                this.i++;
+                if (current.Count == 1)
+                {
+                    set = EcmaRegexUnicode.Union(set, this.Folded([current[0], current[0]]));
+                }
+                else
+                {
+                    mayContainStrings = true;
+                    strings.Add(this.CanonicalString(current));
+                }
+
+                current.Clear();
+                if (c == '}')
+                {
+                    break;
+                }
+
+                continue;
+            }
+
+            current.Add(this.ClassSetCharacter());
+        }
+
+        return new ClassSetValue(set, strings, mayContainStrings);
+    }
+
+    /// <summary>The value of a property of strings: its code points, and its sequences (case folded in a case-insensitive group).</summary>
+    private ClassSetValue StringsValue(int[] set, int[][] strings)
+    {
+        List<int[]> list = new(strings.Length);
+        foreach (int[] sequence in strings)
+        {
+            list.Add(this.CanonicalString(sequence));
+        }
+
+        this.work.Spend(1 + (strings.Length / 32));
+        return new ClassSetValue(set, list, true);
+    }
+
+    /// <summary>A string as its code points, each canonicalized in a case-insensitive group so that strings are compared as ECMA-262 compares them.</summary>
+    private int[] CanonicalString(IReadOnlyList<int> codePoints)
+    {
+        int[] result = new int[codePoints.Count];
+        for (int k = 0; k < result.Length; k++)
+        {
+            result[k] = this.ignoreCase ? EcmaRegexUnicode.Canonicalize(codePoints[k], unicode: true) : codePoints[k];
+        }
+
+        return result;
+    }
+
+    private static ClassSetValue Union(ClassSetValue a, ClassSetValue b)
+    {
+        List<int[]> strings = new(a.Strings);
+        foreach (int[] str in b.Strings)
+        {
+            if (!HasString(strings, str))
+            {
+                strings.Add(str);
+            }
+        }
+
+        return new ClassSetValue(EcmaRegexUnicode.Union(a.Set, b.Set), strings, a.MayContainStrings || b.MayContainStrings);
+    }
+
+    private static ClassSetValue Intersect(ClassSetValue a, ClassSetValue b)
+    {
+        List<int[]> strings = [];
+        foreach (int[] str in a.Strings)
+        {
+            if (HasString(b.Strings, str))
+            {
+                strings.Add(str);
+            }
+        }
+
+        return new ClassSetValue(EcmaRegexUnicode.Intersect(a.Set, b.Set), strings, a.MayContainStrings && b.MayContainStrings);
+    }
+
+    private ClassSetValue Subtract(ClassSetValue a, ClassSetValue b)
+    {
+        List<int[]> strings = [];
+        foreach (int[] str in a.Strings)
+        {
+            if (!HasString(b.Strings, str))
+            {
+                strings.Add(str);
+            }
+        }
+
+        return new ClassSetValue(EcmaRegexUnicode.Difference(a.Set, b.Set, this.max), strings, a.MayContainStrings);
+    }
+
+    private static bool HasString(List<int[]> strings, int[] str)
+    {
+        foreach (int[] s in strings)
+        {
+            if (s.AsSpan().SequenceEqual(str))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The node of a class of the v flag's grammar: its set, or, where it holds strings, the alternatives of its
+    /// strings longest first and then its set, as ECMA-262 orders them, in a group.
+    /// </summary>
+    private EcmaRegexNode ClassNode(ClassSetValue value, bool negated)
+    {
+        if (negated)
+        {
+            return SetNode(EcmaRegexUnicode.Complement(value.Set, this.max));
+        }
+
+        if (value.Strings.Count == 0)
+        {
+            return SetNode(value.Set);
+        }
+
+        List<int[]> ordered = new(value.Strings);
+        ordered.Sort((x, y) => y.Length.CompareTo(x.Length));
+        List<EcmaRegexNode> alternatives = new(ordered.Count + 1);
+        foreach (int[] str in ordered)
+        {
+            if (str.Length == 0)
+            {
+                alternatives.Add(new EcmaRegexNode(EcmaRegexNodeKind.Empty));
+                continue;
+            }
+
+            EcmaRegexNode[] chars = new EcmaRegexNode[str.Length];
+            for (int k = 0; k < str.Length; k++)
+            {
+                chars[k] = this.CharNode(str[k]);
+            }
+
+            alternatives.Add(new EcmaRegexNode(EcmaRegexNodeKind.Cat) { Subs = chars });
+        }
+
+        if (value.Set.Length != 0)
+        {
+            alternatives.Add(SetNode(value.Set));
+        }
+
+        this.work.Spend(1 + (alternatives.Count / 8));
+        return new EcmaRegexNode(EcmaRegexNodeKind.Group) { Subs = [new EcmaRegexNode(EcmaRegexNodeKind.Alt) { Subs = [.. alternatives] }] };
+    }
+
+    /// <summary>The value of a class of the v flag's grammar: its code points, its strings (each of a length other than one, the empty string among them), and whether its syntax may hold a string.</summary>
+    private readonly record struct ClassSetValue(int[] Set, List<int[]> Strings, bool MayContainStrings);
 
     /// <summary>Reads one member of a class. Returns its character, or sets <see cref="atomSet"/> for a class escape.</summary>
     private int ClassAtom()

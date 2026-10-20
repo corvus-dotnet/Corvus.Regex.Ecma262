@@ -18,6 +18,9 @@ internal static class RunEmitter
 {
     internal const string Ns = "global::Corvus.Ecma262.RegularExpressions.";
 
+    /// <summary>The most instructions a program may have and be written as straight-line code.</summary>
+    private const int MostInstructions = 2048;
+
     /// <summary>Writes the runner class for a program.</summary>
     /// <param name="sb">Where to write.</param>
     /// <param name="indent">The indentation of the class.</param>
@@ -25,6 +28,24 @@ internal static class RunEmitter
     /// <param name="p">The program.</param>
     public static void EmitRunner(StringBuilder sb, int indent, string name, Program p)
     {
+        if (p.Insts.Length > MostInstructions)
+        {
+            // A program too large for straight-line code (a class of thousands of strings, such as \p{RGI_Emoji}
+            // under the v flag): the runner hands it to the interpreter, which is what a regex with no generated
+            // code does.
+            Line(sb, indent, "/// <summary>The program is too large for straight-line code (" + p.Insts.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " instructions): the interpreter runs it.</summary>");
+            Line(sb, indent, "[global::System.CodeDom.Compiler.GeneratedCode(\"Corvus.Regex.Ecma262.SourceGenerator\", \"1.0\")]");
+            Line(sb, indent, "private sealed class " + name + " : " + Ns + "GeneratedRunner");
+            Line(sb, indent, "{");
+            Line(sb, indent + 1, "/// <inheritdoc/>");
+            Line(sb, indent + 1, "public override bool Run(" + Ns + "Program p, " + Ns + "MatchState st, global::System.ReadOnlySpan<char> input, int start, out int end) => " + Ns + "Matcher.Interpret<char, " + Ns + "Utf16Encoding>(p, st, input, start, out end);");
+            sb.AppendLine();
+            Line(sb, indent + 1, "/// <inheritdoc/>");
+            Line(sb, indent + 1, "public override bool Run(" + Ns + "Program p, " + Ns + "MatchState st, global::System.ReadOnlySpan<byte> input, int start, out int end) => " + Ns + "Matcher.Interpret<byte, " + Ns + "Utf8Encoding>(p, st, input, start, out end);");
+            Line(sb, indent, "}");
+            return;
+        }
+
         Line(sb, indent, "/// <summary>The program as straight-line code (see <see cref=\"global::Corvus.Ecma262.RegularExpressions.GeneratedRunner\"/>).</summary>");
         Line(sb, indent, "[global::System.CodeDom.Compiler.GeneratedCode(\"Corvus.Regex.Ecma262.SourceGenerator\", \"1.0\")]");
         Line(sb, indent, "private sealed class " + name + " : " + Ns + "GeneratedRunner");

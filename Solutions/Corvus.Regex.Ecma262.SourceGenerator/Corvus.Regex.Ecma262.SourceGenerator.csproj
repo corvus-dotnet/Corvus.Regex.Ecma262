@@ -36,6 +36,7 @@
     <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexNode.cs" Link="Shared\Syntax\EcmaRegexNode.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexParser.cs" Link="Shared\Syntax\EcmaRegexParser.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicode.cs" Link="Shared\Unicode\EcmaRegexUnicode.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeStrings.cs" Link="Shared\Unicode\EcmaRegexUnicodeStrings.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeData.cs" Link="Shared\Unicode\EcmaRegexUnicodeData.cs" />
   </ItemGroup>
 

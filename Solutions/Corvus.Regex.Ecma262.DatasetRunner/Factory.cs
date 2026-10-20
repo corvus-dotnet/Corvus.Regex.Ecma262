@@ -69,14 +69,20 @@ internal static class Factory
             string pattern = unescape(r.GetProperty("pattern").GetRawText());
             string flags = r.GetProperty("flags").GetString()!;
             JsonElement valid = r.GetProperty("valid");
-            foreach ((string mode, bool isValid) in new[] { ("unicode", valid.GetProperty("unicode").GetBoolean()), ("legacy", valid.GetProperty("legacy").GetBoolean()) })
+            List<(string Mode, bool IsValid)> modes = [("unicode", valid.GetProperty("unicode").GetBoolean()), ("legacy", valid.GetProperty("legacy").GetBoolean())];
+            if (valid.TryGetProperty("unicode_sets", out JsonElement validSets))
+            {
+                modes.Add(("unicode_sets", validSets.GetBoolean()));
+            }
+
+            foreach ((string mode, bool isValid) in modes)
             {
                 if (!isValid)
                 {
                     continue;
                 }
 
-                RegexFlags f = Key(Regex.ParseFlags(mode == "unicode" ? flags + "u" : flags));
+                RegexFlags f = Key(Regex.ParseFlags(mode == "unicode" ? flags + "u" : mode == "unicode_sets" ? flags + "v" : flags));
                 if (seen.Add((pattern, f)))
                 {
                     keys.Add((pattern, f));
