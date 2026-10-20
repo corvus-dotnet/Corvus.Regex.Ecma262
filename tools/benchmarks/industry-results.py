@@ -30,6 +30,7 @@ ap.add_argument("--job", choices=["short", "default"], default="short")
 ap.add_argument("--out-dir", required=True)
 ap.add_argument("--base-path", default="")
 ap.add_argument("--run-url", default="")
+ap.add_argument("--compliance", default="", help="the data-set runner's last line for the Corvus engines (records ... right N wrong N refused-valid N accepted-invalid N ...)")
 args = ap.parse_args()
 run, commit, date, v8_path = args.run, args.commit, args.date, args.v8
 before, after = args.probe_before, args.probe_after
@@ -139,6 +140,19 @@ method_html = (
     + HOST_HTML
 )
 
+import re as _re
+def compliance_of(group):
+    """What an engine answers on the ECMA-262 test data: counts for an engine held to it, the oracle for V8, or not ECMA-262."""
+    if group == "V8":
+        return "the oracle of the test data"
+    if group == ".NET":
+        return "not ECMA-262"
+    m = _re.search(r"right ([\d,]+)\s+wrong ([\d,]+)\s+refused-valid (\d+)\s+accepted-invalid (\d+)", args.compliance)
+    if not m:
+        return None
+    n = lambda k: int(m.group(k).replace(",", ""))
+    return {"right": n(1), "wrong": n(2), "refused": n(3), "acceptedInvalid": n(4)}
+
 data = {
     "meta": {
         "title": "Corvus.Regex.Ecma262: the Industry benchmarks" + TITLE_SUFFIX,
@@ -162,7 +176,7 @@ data = {
         "time": {"label": "Time", "long": "time per Count", "parts": ["time"]},
         "allocated": {"label": "Allocated", "long": "bytes allocated per Count", "parts": ["allocated"], "bytes": True},
     },
-    "impls": [{"id": name, "name": name, "group": group, "version": V8[1] if V8 and name == V8[0] else ""} for _, name, group in ENGINES],
+    "impls": [{"id": name, "name": name, "group": group, "version": V8[1] if V8 and name == V8[0] else "", "compliance": compliance_of(group)} for _, name, group in ENGINES],
     "schemas": [{"name": w, "note": "", "meta": [["text", TEXTS.get(w.split(":")[0], w.split(":")[0])]]} for w in workloads],
     "results": results,
 }

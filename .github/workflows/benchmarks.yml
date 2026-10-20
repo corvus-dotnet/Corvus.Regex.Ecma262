@@ -48,6 +48,11 @@ jobs:
         cd Solutions/Corvus.Regex.Ecma262.Benchmarks
         ./bin/Release/net10.0/Corvus.Regex.Ecma262.Benchmarks --filter '*GeneratedCount*' --job "$job" --artifacts "$GITHUB_WORKSPACE/run" > "$GITHUB_WORKSPACE/run.log" 2>&1 || { tail -50 "$GITHUB_WORKSPACE/run.log"; exit 1; }
         grep -E '^// \* Summary|^\| ' "$GITHUB_WORKSPACE/run.log" | head -5
+    - name: Run the ECMA-262 test data (interpreted, both encodings), for the compliance figure
+      run: |
+        git clone --quiet --depth 1 https://github.com/corvus-dotnet/ecma262-regex-test-data.git data
+        dotnet build Solutions/Corvus.Regex.Ecma262.DatasetRunner/Corvus.Regex.Ecma262.DatasetRunner.csproj -c Release -f net10.0 -m:4 -nr:false
+        dotnet Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll data/data wrong.tsv | tail -1 | tee compliance.txt
     - name: Run V8 (Node 24)
       run: |
         python3 tools/benchmarks/v8/workloads.py Solutions/Corvus.Regex.Ecma262.Benchmarks/Industry.cs > workloads.json
@@ -57,7 +62,7 @@ jobs:
     - name: Write the record and the page
       run: |
         job='${{ github.event.inputs.job || 'default' }}'
-        python3 tools/benchmarks/industry-results.py --run run --commit "${GITHUB_SHA::7}" --date "$(date -u +%FT%TZ)" --v8 v8.json --host ci --job "$job" --out-dir out --base-path /Corvus.Regex.Ecma262 --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+        python3 tools/benchmarks/industry-results.py --run run --commit "${GITHUB_SHA::7}" --date "$(date -u +%FT%TZ)" --v8 v8.json --host ci --job "$job" --out-dir out --base-path /Corvus.Regex.Ecma262 --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --compliance "$(cat compliance.txt)"
         cp v8.json out/industry-v8.json
         python3 tools/benchmarks/results-page/generate_site.py --data out/industry.json --out out/index.html
         head -12 out/industry.md

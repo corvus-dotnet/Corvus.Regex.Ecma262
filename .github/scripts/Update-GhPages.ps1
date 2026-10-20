@@ -116,7 +116,11 @@ for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
                 Get-ChildItem -Force $ci | Where-Object Name -ne 'runs' | Remove-Item -Recurse -Force
                 Copy-Item -Path (Join-Path $Source '*') -Destination $ci -Recurse -Force
                 $data = Join-Path $Source 'industry.json'
-                if (Test-Path $data) { Copy-Item $data (Join-Path $runs "$RunName.json") -Force }
+                if (Test-Path $data) {
+                    Copy-Item $data (Join-Path $runs "$RunName.json") -Force
+                    # The results contract: the latest run as data at benchmarks/latest.json, for the central page to fetch.
+                    Copy-Item $data (Join-Path (Split-Path $ci) 'latest.json') -Force
+                }
                 # Pages lists no directory, so the runs get an index: newest first, one line each.
                 $items = Get-ChildItem $runs -Filter '*.json' | Sort-Object Name -Descending | ForEach-Object {
                     "<li><a href=`"$($_.Name)`">$($_.BaseName)</a> <span>$([math]::Round($_.Length / 1024)) KB</span></li>"
