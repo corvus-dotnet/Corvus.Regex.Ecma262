@@ -39,42 +39,19 @@ jobs:
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '24'
-    - name: Build the benchmarks
-      run: dotnet build Solutions/Corvus.Regex.Ecma262.Benchmarks/Corvus.Regex.Ecma262.Benchmarks.csproj -c Release -m:4 -nr:false
-    - name: Run the .NET and Corvus engines (BenchmarkDotNet)
-      # The benchmark downloads the texts into the local application data directory on first use; V8 reads them there.
+    - name: "Run the harness: every engine, the test data, one data file (the results contract)"
       run: |
         job='${{ github.event.inputs.job || 'default' }}'
-        cd Solutions/Corvus.Regex.Ecma262.Benchmarks
-        ./bin/Release/net10.0/Corvus.Regex.Ecma262.Benchmarks --filter '*GeneratedCount*' --job "$job" --artifacts "$GITHUB_WORKSPACE/run" > "$GITHUB_WORKSPACE/run.log" 2>&1 || { tail -50 "$GITHUB_WORKSPACE/run.log"; exit 1; }
-        grep -E '^// \* Summary|^\| ' "$GITHUB_WORKSPACE/run.log" | head -5
-    - name: Run the ECMA-262 test data (interpreted, both encodings), for the compliance figure
-      run: |
-        git clone --quiet --depth 1 https://github.com/corvus-dotnet/ecma262-regex-test-data.git data
-        dotnet build Solutions/Corvus.Regex.Ecma262.DatasetRunner/Corvus.Regex.Ecma262.DatasetRunner.csproj -c Release -f net10.0 -m:4 -nr:false
-        dotnet Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll data/data wrong.tsv | tail -1 | tee compliance.txt
-    - name: Run V8 (Node 24)
-      run: |
         python3 tools/benchmarks/v8/workloads.py Solutions/Corvus.Regex.Ecma262.Benchmarks/Industry.cs > workloads.json
-        node --version
-        node tools/benchmarks/v8/industry.mjs workloads.json 2 5 > v8.json 2> v8.log
-        tail -3 v8.log
-    - name: Write the record and the page
-      run: |
-        job='${{ github.event.inputs.job || 'default' }}'
-        python3 tools/benchmarks/industry-results.py --run run --commit "${GITHUB_SHA::7}" --date "$(date -u +%FT%TZ)" --v8 v8.json --host ci --job "$job" --out-dir out --base-path /Corvus.Regex.Ecma262 --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --compliance "$(cat compliance.txt)"
-        cp v8.json out/industry-v8.json
+        tools/benchmarks/texts.sh texts
+        CORVUS_REGEX_BASE_PATH=/Corvus.Regex.Ecma262 CORVUS_REGEX_RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" tools/benchmarks/run.sh workloads.json texts out/industry.json "" "$job"
         python3 tools/benchmarks/results-page/generate_site.py --data out/industry.json --out out/index.html
         head -12 out/industry.md
     - name: Keep the run
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: industry-${{ github.run_id }}
-        path: |
-          out
-          run/results
-          run.log
-          v8.log
+        path: out
     - name: Publish to the site
       # The page at benchmarks/ci/ is replaced and the run's data kept under benchmarks/ci/runs/; the rest of gh-pages
       # is untouched (.github/scripts/Update-GhPages.ps1).
