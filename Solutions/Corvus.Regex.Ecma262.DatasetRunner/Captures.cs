@@ -154,6 +154,12 @@ internal static class Captures
         // replace
         Check(ref right, ref wrongCount, wrong, "replace", where, a.GetProperty("replace").GetRawText() == JsonText(re.Replace(text, Replacement)));
         Check(ref right, ref wrongCount, wrong, "replaceAll", where, a.GetProperty("replaceAll").GetRawText() == JsonText(g.Replace(text, Replacement)));
+        if (!lone)
+        {
+            // The same replacements over the UTF-8 text, through the members that write UTF-8 to a buffer writer.
+            Check(ref right, ref wrongCount, wrong, "replace-utf8", where, a.GetProperty("replace").GetRawText() == JsonText(ReplaceUtf8(re, utf8)));
+            Check(ref right, ref wrongCount, wrong, "replaceAll-utf8", where, a.GetProperty("replaceAll").GetRawText() == JsonText(ReplaceUtf8(g, utf8)));
+        }
 
         // split
         Check(ref right, ref wrongCount, wrong, "split", where, SameSplit(a.GetProperty("split"), re.Split(text)));
@@ -279,6 +285,48 @@ internal static class Captures
     }
 
     /// <summary>A string as the data writes it: JSON, ASCII, every other character a \u escape in lower case hex.</summary>
+    private static readonly byte[] Replacement8 = Encoding.UTF8.GetBytes(Replacement);
+
+    private static string ReplaceUtf8(Regex re, byte[] utf8)
+    {
+        Utf8Writer writer = new();
+        re.Replace(utf8, Replacement8, writer);
+        return Encoding.UTF8.GetString(writer.Buffer, 0, writer.Written);
+    }
+
+    /// <summary>A growing buffer writer (the runner also targets .NET Framework, which has no ArrayBufferWriter).</summary>
+    private sealed class Utf8Writer : System.Buffers.IBufferWriter<byte>
+    {
+        public byte[] Buffer { get; private set; } = new byte[256];
+
+        public int Written { get; private set; }
+
+        public void Advance(int count) => this.Written += count;
+
+        public Memory<byte> GetMemory(int sizeHint = 0)
+        {
+            this.Ensure(sizeHint);
+            return this.Buffer.AsMemory(this.Written);
+        }
+
+        public Span<byte> GetSpan(int sizeHint = 0)
+        {
+            this.Ensure(sizeHint);
+            return this.Buffer.AsSpan(this.Written);
+        }
+
+        private void Ensure(int sizeHint)
+        {
+            int need = this.Written + Math.Max(sizeHint, 1);
+            if (need > this.Buffer.Length)
+            {
+                byte[] bigger = new byte[Math.Max(need, this.Buffer.Length * 2)];
+                Array.Copy(this.Buffer, bigger, this.Written);
+                this.Buffer = bigger;
+            }
+        }
+    }
+
     private static string JsonText(string s)
     {
         StringBuilder sb = new(s.Length + 2);

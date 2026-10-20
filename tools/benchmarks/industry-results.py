@@ -164,11 +164,11 @@ def compliance_of(group):
         return "the oracle of the test data"
     if group == ".NET":
         return "not ECMA-262"
-    m = _re.search(r"right ([\d,]+)\s+wrong ([\d,]+)\s+refused-valid (\d+)\s+accepted-invalid (\d+)", args.compliance)
+    m = _re.search(r"right ([\d,]+)\s+wrong ([\d,]+)\s+refused-valid ([\d,]+)\s+accepted-invalid ([\d,]+)(?:\s+limit ([\d,]+))?", args.compliance)
     if not m:
         return None
-    n = lambda k: int(m.group(k).replace(",", ""))
-    return {"right": n(1), "wrong": n(2), "refused": n(3), "acceptedInvalid": n(4)}
+    n = lambda k: int((m.group(k) or "0").replace(",", ""))
+    return {"right": n(1), "wrong": n(2), "refused": n(3), "acceptedInvalid": n(4), "limited": n(5)}
 
 data = {
     "meta": {
