@@ -349,16 +349,15 @@ around the call. The general match entry (a prepared state, a copy of the captur
 to fifteen nanoseconds a match; this is 2.5.
 
 **The guard.** The emitted search and the resume call members the library has only in its `net10.0` build, so
-they are emitted under `#if NET10_0_OR_GREATER`; a consumer on an earlier runtime takes the `netstandard2.0`
-build of the library and the plain paths of the generated code, and gives the same answers. The test project and
+they are emitted under `#if NET10_0_OR_GREATER`; a .NET Framework consumer takes the `netstandard2.0` build of
+the library and the plain paths of the generated code, and gives the same answers. The test project and
 the data set runner compile generated code with the `net10.0` symbols defined, so the emitted search is what they
 exercise.
 
 ## 6. Target frameworks
 
 `net10.0` and `netstandard2.0`. .NET 8 leaves support in November 2026 and .NET 9 left it in May 2026, so neither
-is a target; a project on either, or on .NET Framework, takes the `netstandard2.0` build. netstandard2.0 is needed
-twice: the generator is a netstandard2.0 Roslyn component that compiles the same parser and compiler source, and
+is a target nor supported; the `netstandard2.0` build is for .NET Framework. netstandard2.0 is needed twice: the generator is a netstandard2.0 Roslyn component that compiles the same parser and compiler source, and
 Corvus.JsonSchema targets netstandard2.0 and tests on net481. The SDK is pinned to 10.0 with `rollForward:
 latestFeature`.
 

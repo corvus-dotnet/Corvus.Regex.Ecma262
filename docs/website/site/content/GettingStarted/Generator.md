@@ -6,7 +6,7 @@ Title: "The source generator"
 ---
 ## The source generator
 
-`[GeneratedRegex]` on a partial method or a partial property writes the matcher as code at build time, in the shape of .NET's own attribute. The pattern and the flags are checked by the generator: a pattern that is not valid, a flag that is not one, or `u` with `v`, is a build error with the reason and the position.
+`[GeneratedRegex]` on a partial method or a partial property writes the matcher as code at build time, in the shape of .NET's own attribute (a partial property needs C# 13, which `net10.0` has by default; on `netstandard2.0` set `LangVersion` to 13 or use a method). The pattern and the flags are checked by the generator: a pattern that is not valid, a flag that is not one, or `u` with `v`, is a build error with the reason and the position.
 
 ```csharp
 public static partial class Patterns

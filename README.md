@@ -48,8 +48,8 @@ dotnet add package Corvus.Regex.Ecma262
 ```
 
 The package targets `net10.0` and `netstandard2.0` and carries the source generator. The vectorised searches and the
-generated search code need the .NET 10 or later runtime; a project on an earlier runtime, or on .NET Framework, takes
-the `netstandard2.0` build, where the same patterns give the same answers by the plain paths.
+generated search code need the .NET 10 or later runtime. The `netstandard2.0` build is for .NET Framework, where the
+same patterns give the same answers by the plain paths. .NET 8 and .NET 9 are not supported.
 
 ## Getting started
 
@@ -126,7 +126,7 @@ foreach (Range piece in email.EnumerateSplits(text.AsSpan())) { }
 
 ### At build time
 
-`[GeneratedRegex]` on a partial method or property writes the matcher as code. A pattern that is not valid, a flag
+`[GeneratedRegex]` on a partial method or property (a partial property needs C# 13) writes the matcher as code. A pattern that is not valid, a flag
 that is not one, or `u` with `v`, is a build error with the reason and the position.
 
 ```csharp
