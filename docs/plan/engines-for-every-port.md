@@ -100,14 +100,17 @@ Each step is its own repository, its own pull requests and its own release, in t
    under Python. The search layer maps onto what Rust already has (`memchr::memmem` is the rarest-byte needle,
    `aho-corasick`'s packed search is the fingerprint search), so this is adoption as much as porting; the
    alternation windows, the case search, the automaton and the memo are carried over. Gate: data set 0 wrong;
-   the Industry set against `regex`, `regress` and V8 on the page; crate and C ABI published.
-2. **Java.** Its own engine already; `indexOf` intrinsics for the needle, the Vector API for the fingerprint
+   at or below `regex` on every Industry workload where both answer, a row above it only where an ECMA-262 rule
+   forces the work, named with its cost; `regress` and V8 on the page; crate and C ABI published.
+2. **Everything on the Rust crate, before any other engine.** The C ABI crate goes under the languages that reach
+   the Rust engine through it (Ruby, PHP, Swift, R, Fortran) and under a Python wheel, which retires the Python
+   translator. Gate for each: the data set run through its binding at 0 wrong, and its platform's engines on its
+   page. No other engine is started until Rust is released and every one of these is published.
+3. **Java.** Its own engine already; `indexOf` intrinsics for the needle, the Vector API for the fingerprint
    search, generated code through the Java generator we have (under the method-size limit). Same gate.
-3. **Go.** The scalar parts of the search layer over `bytes.Index`, which is vectorised in the runtime; assembly
+4. **Go.** The scalar parts of the search layer over `bytes.Index`, which is vectorised in the runtime; assembly
    only where a measured row demands it. Same gate.
-4. **Julia.** The search layer with SIMD.jl. Same gate.
-5. **Python.** A wheel over the C ABI; the translator retired. Gate: the data set through the wheel; `re` and
-   `regex` on the page.
+5. **Julia.** The search layer with SIMD.jl. Same gate.
 6. **Object Pascal and OCaml.** Moved out as they are, held to the data, on the page against their platforms'
    engines; the search layer when a consumer asks.
 7. **Phase 6, per library.** When an engine is published: the Corvus library of that language takes the package in
