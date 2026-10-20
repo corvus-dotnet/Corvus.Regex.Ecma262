@@ -846,7 +846,7 @@ function init() {
   if (meta.date) bits.push(`<div><span>Run</span> ${esc(/^\d{4}-\d{2}-\d{2}$/.test(meta.date) ? new Date(meta.date + "T00:00:00Z").toUTCString().replace(/ \d\d:\d\d:\d\d GMT$/, "") : new Date(meta.date).toUTCString().replace(/:\d\d GMT$/, " UTC"))}</div>`);
   if (meta.commit) bits.push(`<div><span>Commit</span> <a href="https://github.com/${esc(meta.repo)}/commit/${esc(meta.commit)}">${esc(meta.commit.slice(0, 10))}</a></div>`);
   if (meta.runUrl) bits.push(`<div><a href="${esc(meta.runUrl)}">Workflow run</a></div>`);
-  // Related pages the data names (meta.links: [{label, url}]), such as the pinned record from the daily run and back.
+  // Related pages the data names (meta.links: [{label, url}]), such as an explanation of the benchmarks.
   for (const l of meta.links || []) if (l && l.url && l.label) bits.push(`<div><a href="${esc(l.url)}">${esc(l.label)}</a></div>`);
   if (meta.runner) bits.push(`<div><span>Runner</span> ${esc(meta.runner)}</div>`);
   for (const [k, v] of (meta.facts || [])) bits.push(`<div><span>${esc(k)}</span> ${esc(v)}</div>`);

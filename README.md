@@ -193,9 +193,8 @@ safe to share between threads.
 - [docs/contributing/contributing.md](docs/contributing/contributing.md): the tools on each platform, the build and
   the gates step by step, and what a pull request needs.
 - [docs/benchmarks/industry.md](docs/benchmarks/industry.md): what the Industry benchmarks measure against
-  `System.Text.RegularExpressions` and V8, and where the library is slower and why; the figures are the
-  [daily run](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) of every engine on one runner, with every
-  day's data kept; and [every Corvus ECMA-262 engine together](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/), across languages.
+  `System.Text.RegularExpressions` and V8, and where the library is slower and why; the figures are on
+  [the benchmark page](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/), beside every Corvus ECMA-262 engine, measured on one runner each night.
 
 ## Repository layout
 

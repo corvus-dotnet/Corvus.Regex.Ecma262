@@ -385,10 +385,14 @@ $spurious = Join-Path $outputDir "site.yml"
 if (Test-Path $spurious) { Remove-Item $spurious -Force }
 Write-StepDuration "Vellum site generation" $sw
 
-# -- Step 5b: benchmarks/index.html sends a reader to the daily run's page, which the benchmarks workflow publishes --
-Write-Host "`n[5b/10] Writing the benchmarks redirect..." -ForegroundColor Cyan
-New-Item -ItemType Directory -Force (Join-Path $outputDir "benchmarks") | Out-Null
-[IO.File]::WriteAllText((Join-Path $outputDir "benchmarks" "index.html"), '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=ci/"><title>Benchmarks</title></head><body><p>The benchmarks are at <a href="ci/">the daily run&#39;s page</a>.</p></body></html>')
+# -- Step 5b: the benchmark pages that used to live here send a reader to the central benchmark site, the one page --
+Write-Host "`n[5b/10] Writing the benchmarks redirects..." -ForegroundColor Cyan
+$central = "https://corvus-oss.org/corvus-regex-ecma262-benchmarks/"
+$redirect = "<!doctype html><html lang=`"en`"><head><meta charset=`"utf-8`"><meta http-equiv=`"refresh`" content=`"0; url=$central`"><link rel=`"canonical`" href=`"$central`"><title>Benchmarks</title></head><body><p>The benchmarks are at <a href=`"$central`">$central</a>.</p></body></html>"
+foreach ($dir in @("benchmarks", "benchmarks/ci", "benchmarks/ci/runs")) {
+    New-Item -ItemType Directory -Force (Join-Path $outputDir $dir) | Out-Null
+    [IO.File]::WriteAllText((Join-Path (Join-Path $outputDir $dir) "index.html"), $redirect)
+}
 if ($LASTEXITCODE -ne 0) { throw "The benchmark results page failed" }
 
 # -- Step 6: Compile SCSS ------------------------------------------------------------------------------------------

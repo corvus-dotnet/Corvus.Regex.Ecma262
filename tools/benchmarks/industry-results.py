@@ -66,12 +66,12 @@ if args.host == "pinned":
     # Relative to the page (benchmarks/index.html on the site), so no base path is needed inside the data.
     LINKS = [{"label": "About these benchmarks", "url": "../docs/industry.html"}]
 else:
-    HOST_MD = """- **Host** a GitHub-hosted `ubuntu-latest` runner, by the daily benchmarks workflow: every engine in one job on one runner, so the figures of a run are comparable with each other, and not pinned, so a run is not comparable with the pinned record to the last few percent."""
-    HOST_HTML = f"<p><b>The host</b> is a GitHub-hosted <code>ubuntu-latest</code> runner, by the daily benchmarks workflow: every engine in one job on one runner, so the figures of a run are comparable with each other; nothing is pinned, so a run is not comparable with the pinned record to the last few percent. .NET 10. Commit {commit}, {date}.</p>"
+    HOST_MD = """- **Host** the runner of the central benchmark site, which runs every engine's harness image in one job on it each night, so the figures of a run are comparable with each other."""
+    HOST_HTML = f"<p><b>The host</b> is the runner of the central benchmark site, which runs every engine's harness image in one job on it each night, so the figures of a run are comparable with each other. .NET 10. Commit {commit}, {date}.</p>"
     FACTS = [["Host", MACHINE or "a CI runner"], ["Runner", "one runner for every engine, not pinned"], ["Runtime", RUNTIME]]
-    TITLE_SUFFIX = " (daily CI run)"
-    LEDE_TAIL = " This is the run of the day on a GitHub-hosted runner; the pinned record is the reference."
-    LINKS = [{"label": "About these benchmarks", "url": "../../docs/industry.html"}, {"label": "Every day's data", "url": "runs/"}, {"label": "Every Corvus engine together", "url": "https://corvus-oss.org/corvus-regex-ecma262-benchmarks/"}]
+    TITLE_SUFFIX = ""
+    LEDE_TAIL = ""
+    LINKS = [{"label": "About the .NET engine's benchmarks", "url": "https://corvus-oss.org/Corvus.Regex.Ecma262/docs/industry.html"}]
 U = {"ns": 1, "us": 1e3, "μs": 1e3, "ms": 1e6, "s": 1e9}
 B = {"B": 1, "KB": 1024, "MB": 1024 * 1024}
 
@@ -236,7 +236,7 @@ md = f"""# Benchmarks: the Industry workloads
 {HOST_MD}
 - **Runtime and harness** .NET 10, {JOB}, the `GeneratedCount` benchmark of `Solutions/Corvus.Regex.Ecma262.Benchmarks`.
 
-The interactive page of this run is at [corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/); its data is `industry.json` beside this file, and `tools/benchmarks/industry-results.py` writes both from a run. The same benchmarks run every night in CI, every engine on one runner, at [benchmarks/ci/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/), with each day's data kept beside it.
+The data of this run is `industry.json` beside this file, in the results-page shape; the central benchmark page, [corvus-oss.org/corvus-regex-ecma262-benchmarks](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/), shows it beside every Corvus ECMA-262 engine.
 
 The workloads are the Industry set of dotnet/performance (`Perf.Regex.Industry`: the Sherlock Holmes, Leipzig and mariomka texts and the rebar names), the set behind .NET's own "regex performance improvements in .NET N" tables. Each is run five ways: .NET's interpreter (`RegexOptions.None`), .NET's source generator (`[GeneratedRegex]`), this library's interpreter over UTF-16, and this library's source generator over UTF-16 and over UTF-8. `Count` over the text, one call per operation. A ratio below 1.0 is this library being faster.
 

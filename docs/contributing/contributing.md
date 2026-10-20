@@ -195,9 +195,9 @@ writes a page's data and table from the `GeneratedCount` CSV, for your own readi
 `tools/benchmarks/v8` runs the same workloads under Node 24 for the V8 column. The ratios of a run on a different
 host are comparable with themselves, never with another host's.
 
-The same benchmarks run every night in CI (`benchmarks.yml`): every engine in one job on one runner, the result
-published at [benchmarks/ci/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) with each day's data kept.
-Run it on demand from the Actions tab with the `short` job for a quick look.
+The published figures are on [the benchmark page](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/), which runs this repository's harness image each night
+beside every other Corvus ECMA-262 engine. `harness-image.yml` builds that image on every push to main and every
+release, smoke-runs it on two workloads, and publishes it; to try the image yourself, see the `Dockerfile`.
 
 A benchmark run must never share the machine with a build: the SDK's build servers and the JIT's tiering of the
 benchmark compete for the same cores and the numbers are worthless.

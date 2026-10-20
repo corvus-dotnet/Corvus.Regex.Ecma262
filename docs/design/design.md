@@ -383,7 +383,7 @@ Corvus.Regex.Ecma262/
   .github/workflows/dataset.yml        the full ECMA-262 test data run (section 8), nightly and on demand
   GitVersion.yml, LICENSE (Apache-2.0), README.md, build.ps1, global.json, nuget.config
   docs/design/design.md                this document
-  docs/benchmarks/                     what the benchmarks measure and where the daily run publishes them (section 9)
+  docs/benchmarks/                     what the benchmarks measure and where their figures are (section 9)
   docs/website/                        the documentation site (Vellum), built and deployed by build.yml
   Solutions/
     Corvus.Regex.Ecma262.slnx
@@ -490,12 +490,12 @@ Runs follow a pinned-host procedure: the virtual machine pinned to the performan
 A pinned run is the procedure for development, read against the run before it; `tools/benchmarks/industry-results.py`
 writes a page's data and table from a run's artifacts, and nothing it writes is committed.
 
-The published figures are the daily run (`.github/workflows/benchmarks.yml`): every engine in one job on one
-GitHub-hosted runner each night, BenchmarkDotNet's default job then V8, so that the figures of a run are comparable
-with each other; the page of the day is at
-[benchmarks/ci/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) with each day's data kept beside it,
-so a change is read against the days before it. `docs/benchmarks/industry.md` says what is measured and where the
-library is slower and why, and repeats no figure. The benchmarks never share a solution with the tests, because BenchmarkDotNet and worktrees
+The published figures are on one page, [the benchmark page](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/): each night it runs every Corvus ECMA-262 engine's
+harness image on one runner, this library's (`.github/workflows/harness-image.yml` publishes it, BenchmarkDotNet's
+default job then V8, then the test data for compliance) among them, so that every figure on it was measured on one
+machine in one hour, with each day's data kept. This repository publishes no figures of its own.
+`docs/benchmarks/industry.md` says what is measured and where the library is slower and why, and repeats no
+figure. The benchmarks never share a solution with the tests, because BenchmarkDotNet and worktrees
 do not mix.
 
 **Where the comparison is not like for like.** Three Industry rows stay above .NET's generated code however the

@@ -7,8 +7,8 @@
 #
 # The texts are the .txt.gz files the benchmark project downloads (Inputs.cs); they are linked into the directory the
 # project reads. The test data is cloned at depth 1 when no directory is given. industry.md and industry-v8.json are
-# written beside <out.json>. The repository's own nightly workflow calls this script; so does the central benchmark
-# site, on its own runner, for every engine in turn.
+# written beside <out.json>. The harness image (Dockerfile) runs this script, and the central benchmark site runs
+# that image on its own runner, beside every other engine's.
 set -euo pipefail
 workloads="$(realpath "$1")"; texts="$(realpath "$2")"; out="$(realpath -m "$3")"; data="${4:-}"; job="${5:-default}"
 here="$(cd "$(dirname "$0")/../.." && pwd)"
