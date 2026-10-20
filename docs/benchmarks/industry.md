@@ -1,5 +1,13 @@
 # Benchmarks: the Industry workloads
 
+**Corvus.Regex.Ecma262 is faster than `System.Text.RegularExpressions` across the board.** On the Industry
+workloads that .NET itself publishes figures for, its interpreter beats .NET's interpreter on all but one or two of
+the 57, taking about half the time at the median and under a fifth at the geometric mean; its generated code is at
+or below .NET's generated code on about four workloads in five over UTF-16 and nine in ten over UTF-8, where it takes
+about half the time at the median; and both are far ahead of V8, which takes six times longer at the median. The
+exact figures are [the daily run's page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/), every engine
+measured on one runner each night.
+
 The library is measured against `System.Text.RegularExpressions` and against V8 on the Industry workload set of
 [dotnet/performance](https://github.com/dotnet/performance) (`Perf.Regex.Industry`): the Sherlock Holmes text and
 the Rust `sherlock` patterns, the Leipzig corpus searches, the mariomka email, URI and IPv4 patterns, and the rebar
