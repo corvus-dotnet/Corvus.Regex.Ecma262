@@ -22,6 +22,7 @@ Corvus library adopt it in place of its hand-rolled one (the design document's p
 | Object Pascal | `corvus-regex-ecma262-pas` | the unit, as the Pascal port ships it | `Corvus.JsonSchema.EcmaRegex.pas` | `TRegExpr` (FPC); V8 |
 | OCaml | `corvus-regex-ecma262-ocaml` | opam `corvus-regex-ecma262` | the engine in `ocaml-corvus-json-schema` | `re`, `pcre`; V8 |
 | C | `corvus-regex-ecma262-rs` (the C ABI crate and its header) | release archives of the shared library and header per platform | the Rust engine | QuickJS `libregexp` (an ECMA-262 engine in C); V8 |
+| C++ | `corvus-regex-ecma262-cpp` | a header-only C++20 library over the C ABI (RAII handles, `std::string_view` and `std::u16string_view`, match ranges), with a CMake package, vcpkg and Conan recipes | the Rust engine | `std::regex` (ECMAScript grammar), Boost.Regex in its ECMAScript mode, SRELL (an ECMAScript library), RE2 (not ECMA-262); V8 |
 | Ruby | `corvus-regex-ecma262-ruby` | gem `corvus-regex-ecma262`, over the C ABI | the Rust engine | `Regexp` (Onigmo); V8 |
 | PHP | `corvus-regex-ecma262-php` | Composer package over FFI to the C ABI | the Rust engine | `preg_*` (PCRE2); V8 |
 | Swift | `corvus-regex-ecma262-swift` | Swift package over the C ABI | the Rust engine | `Regex` and `NSRegularExpression`; V8 |
@@ -107,8 +108,8 @@ Each step is its own repository, its own pull requests and its own release, in t
    alternation windows, the case search, the automaton and the memo are carried over. Gate: data set 0 wrong;
    at or below `regex` on every Industry workload where both answer, a row above it only where an ECMA-262 rule
    forces the work, named with its cost; `regress` and V8 on the page; crate and C ABI published.
-2. **A standalone library for every language on the Rust crate, before any other engine.** Python, Ruby, PHP,
-   Swift, R and Fortran each get their own regex library, in its own repository and on its own package registry
+2. **A standalone library for every language on the Rust crate, before any other engine.** C++, Python, Ruby,
+   PHP, Swift, R and Fortran each get their own regex library, in its own repository and on its own package registry
    (section 1), a binding over the Rust C ABI with an API idiomatic to the language. Each repository holds the
    section 2 contents: the data set run through its binding at 0 wrong, the Industry benchmarks against its
    platform's engines and V8, the harness and its image, and its run published to the central site. These are new
