@@ -60,6 +60,12 @@ $UseGitHubFlavour = $true
 $CreateGitHubRelease = $env:GITHUB_ACTIONS ? $true : $false
 $PublishNuGetPackagesAsGitHubReleaseArtefacts = $true
 
+# The documentation website (docs/website), built after the .NET build when asked for, as Corvus.JsonSchema's.
+$BuildWebsite = [Convert]::ToBoolean((property BUILDVAR_BuildWebsite $Website.ToBool()))
+$IsPreviewDeployment = [Convert]::ToBoolean((property BUILDVAR_IsPreviewDeployment $false))
+$BasePathPrefix = property BUILDVAR_BasePathPrefix $BasePathPrefix
+$VellumDownloadToken = property VELLUM_DOWNLOAD_TOKEN ''
+
 task . FullBuild
 
 #
@@ -72,6 +78,38 @@ task PreTest {
 task PostTest {
     $script:LogLevel = $LogLevelBackup
 }
+task PostBuild BuildWebSiteLocal
+
+# Synopsis: Builds the documentation static site (the CI post-compile phase runs this task on its own).
+task BuildWebsite {
+    $websiteDir = Join-Path $here "docs/website"
+    $websiteBuildArgs = @{ SkipDotNetBuild = $true }
+    if ($VellumDownloadToken) {
+        $websiteBuildArgs += @{ VellumDownloadToken = (ConvertTo-SecureString $VellumDownloadToken -AsPlainText) }
+    }
+
+    $basePathPrefix = $env:BUILDVAR_BasePathPrefix
+    if (!$basePathPrefix) { $basePathPrefix = $BasePathPrefix }
+    if ($basePathPrefix) {
+        $websiteBuildArgs += @{ BasePathPrefix = $basePathPrefix }
+    }
+
+    if ($env:BUILDVAR_IsPreviewDeployment -ieq "true") {
+        $websiteBuildArgs += @{ IsPreviewDeployment = $true }
+    }
+
+    Write-Host "Building documentation website..."
+    Write-Host "  BasePathPrefix: $basePathPrefix"
+    Write-Host "  IsPreviewDeployment: $($env:BUILDVAR_IsPreviewDeployment)"
+    & (Join-Path $websiteDir "build.ps1") @websiteBuildArgs
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+}
+
+# Synopsis: Wrapper task to enable running the standalone BuildWebsite task for local builds
+task BuildWebSiteLocal -If { $BuildWebsite } BuildWebsite
+
 # The publish phase takes the packages from the package phase through the Actions cache, which can be evicted
 # between the two. A publish with nothing to publish fails here rather than "publishing" nothing.
 task PrePublish -If { !$SkipPublish } {

@@ -21,6 +21,12 @@
     The logging verbosity.
 .PARAMETER Clean
     When true, the .NET solution will be cleaned and all output/intermediate folders deleted.
+.PARAMETER Website
+    When true, builds the documentation website after the .NET build completes. The website build reuses the
+    already-compiled binaries. Also set when the BUILDVAR_BuildWebsite environment variable is 'true' (for CI).
+.PARAMETER BasePathPrefix
+    Base URL path prefix for the documentation website ('/Corvus.Regex.Ecma262' for GitHub Pages subpath hosting).
+    Only used when -Website is set. Falls back to the BUILDVAR_BasePathPrefix environment variable if not specified.
 .PARAMETER ZfModulePath
     The path to import the ZeroFailed module from. This is useful when testing pre-release
     versions of ZeroFailed that are not yet available in the PowerShell Gallery.
@@ -50,6 +56,12 @@ param (
 
     [Parameter()]
     [switch] $Clean,
+
+    [Parameter()]
+    [switch] $Website,
+
+    [Parameter()]
+    [string] $BasePathPrefix = "",
 
     [Parameter()]
     [string] $ZfModulePath,

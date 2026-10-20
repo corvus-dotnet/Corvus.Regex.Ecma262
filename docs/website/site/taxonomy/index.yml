@@ -1,0 +1,34 @@
+ContentType: application/vnd.endjin.ssg.page+yaml
+Title: Corvus.Regex.Ecma262
+Navigation:
+  Title: Home
+  Parent:
+  Url: /
+  Rank: 0
+  Header:
+    Visible: True
+    Link: True
+  Footer:
+    Visible: True
+    Link: True
+MetaData:
+  Title: "Corvus.Regex.Ecma262 — ECMA-262 regular expressions for .NET"
+  Description: "An ECMA-262 regular expression engine for .NET: the grammar and answers of ECMAScript, native UTF-8 and UTF-16 matching, zero allocation per match, and a build-time source generator."
+  Keywords: [regex, regular expressions, ECMA-262, ECMAScript, .NET, C#, UTF-8, source generator, JSON Schema]
+OpenGraph:
+  Title: "Corvus.Regex.Ecma262 — ECMA-262 regular expressions for .NET"
+  Description: "The grammar and answers of ECMAScript regular expressions in .NET, over UTF-8 and UTF-16, with no allocation per match."
+  Image:
+ContentBlocks:
+  - ContentType: application/vnd.endjin.ssg.hero+md
+    Id: Hero
+    Spec:
+      Path: ../content/Home/Hero.md
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: Features
+    Spec:
+      Path: ../content/Home/Features.md
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: QuickStart
+    Spec:
+      Path: ../content/Home/QuickStart.md

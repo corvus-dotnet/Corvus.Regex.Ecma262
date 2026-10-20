@@ -1,77 +1,276 @@
 # Corvus.Regex.Ecma262
 
-[![GitHub license](https://img.shields.io/badge/License-Apache%202-blue.svg)](https://raw.githubusercontent.com/corvus-dotnet/Corvus.Regex.Ecma262/main/LICENSE)
+[![NuGet](https://img.shields.io/nuget/v/Corvus.Regex.Ecma262.svg)](https://www.nuget.org/packages/Corvus.Regex.Ecma262)
+[![Build](https://github.com/corvus-dotnet/Corvus.Regex.Ecma262/actions/workflows/build.yml/badge.svg)](https://github.com/corvus-dotnet/Corvus.Regex.Ecma262/actions/workflows/build.yml)
+[![ECMA-262 test data](https://github.com/corvus-dotnet/Corvus.Regex.Ecma262/actions/workflows/dataset.yml/badge.svg)](https://github.com/corvus-dotnet/Corvus.Regex.Ecma262/actions/workflows/dataset.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-An ECMA-262 regular expression engine for .NET.
+An ECMA-262 regular expression engine for .NET: the grammar and the answers of ECMAScript, over UTF-8 and over
+UTF-16, with no allocation per match and a build-time source generator.
 
-- The grammar and the answers of ECMAScript 2025, including lookbehind, named groups, modifier groups, Unicode
-  property escapes with Unicode 17 data, and the `u` and `v` flags. The flags are ECMA-262's (`d`, `g`, `i`, `m`,
-  `s`, `u`, `v`, `y`), not .NET's `RegexOptions`.
-- The public shape of `System.Text.RegularExpressions` (`Regex`, `Match`, `Group`, `Capture`, `Matches`,
-  `Replace`, `Split`, `EnumerateMatches`), in the namespace `Corvus.Ecma262.RegularExpressions`.
-- Native matching over UTF-8 (`ReadOnlySpan<byte>`) and over UTF-16 (`string`, `ReadOnlySpan<char>`), with no
-  transcoding either way.
-- Zero allocation per match once the per-thread working memory has grown, and allocation-free forms of the
-  members that otherwise allocate: `EnumerateMatches` with the groups into a span the caller gives, `TryReplace`
-  into a span, `Replace` into an `IBufferWriter`, and `EnumerateSplits`, each over UTF-8 and UTF-16.
-- A backtracking matcher that remembers where a way has failed, so a repetition inside a repetition takes time
-  proportional to the pattern times the text; a deterministic automaton for the patterns that need no
-  backtracking; a limit of time and of memory on every match; deterministic limits of size on every pattern.
-- A build-time source generator with the shape of `[GeneratedRegex]`, shipped in the same package.
-- Tested against [V8's answers](https://github.com/corvus-dotnet/ecma262-regex-test-data) for 98,839 patterns and
-  4.3 million texts, and benchmarked against `System.Text.RegularExpressions` on the workloads .NET itself publishes.
+Documentation: [corvus-oss.org/Corvus.Regex.Ecma262](https://corvus-oss.org/Corvus.Regex.Ecma262/)
 
-The engine is a port of the ECMA-262 engine of the [Corvus JSON Schema](https://github.com/corvus-dotnet/Corvus.JsonSchema)
-evaluators for Go, Rust, Object Pascal and OCaml, with the C# parser of its .NET translator.
+## Why
 
-## Status
+`System.Text.RegularExpressions` has its own grammar and its own meaning for `\d`, `\w`, `\s`, `.`, case folding and
+Unicode properties. A pattern written for JavaScript, or taken from a JSON Schema (whose `pattern`, `patternProperties`
+and `regex` format are defined as ECMA-262 regular expressions), can parse in .NET and match different texts, or
+fail to parse at all. This library answers as ECMAScript does, and is tested against V8's answers for every pattern
+of the [ECMA-262 regular expression test data](https://github.com/corvus-dotnet/ecma262-regex-test-data): 104,359
+patterns and 5.1 million texts, 0 wrong.
 
-Under construction. The design is in [docs/design/design.md](docs/design/design.md); the phases and their gates are
-in its section 10.
+- **The answers of ECMAScript 2025**: lookbehind, named groups, modifier groups `(?i:...)`, Unicode property escapes
+  on Unicode 17 data, the `u` flag, and the `v` flag with set notation (`[[a-z]--[aeiou]]`, `&&`), strings in classes
+  (`\q{...}`) and the properties of strings (`\p{RGI_Emoji}`). The flags are ECMA-262's letters (`d`, `g`, `i`, `m`,
+  `s`, `u`, `v`, `y`), not `RegexOptions`.
+- **The shape of `System.Text.RegularExpressions`**: `Regex`, `Match`, `Group`, `Capture`, `Matches`, `Replace`,
+  `Split` and `EnumerateMatches`, in the namespace `Corvus.Ecma262.RegularExpressions`, so it drops in where the .NET
+  class is used.
+- **UTF-8 and UTF-16**: one matcher over `ReadOnlySpan<byte>` and over `string` or `ReadOnlySpan<char>`, with no
+  transcoding either way and positions in the units of the text.
+- **Zero allocation per match** once the per-thread working memory has grown, with allocation-free forms of every
+  member: `EnumerateMatches` with the groups into a span the caller gives, `TryMatch`, `TryReplace` into a span,
+  `Replace` into an `IBufferWriter` and `EnumerateSplits`, each over both encodings.
+- **Bounded**: a backtracking matcher that remembers where a way has failed, so a repetition inside a repetition takes
+  time proportional to the pattern times the text; an automaton for the patterns that need no backtracking; a limit of
+  time and of memory on every match; deterministic limits of size on every pattern.
+- **A source generator** with the shape of `[GeneratedRegex]`, in the same package, which writes the search for a
+  start and the match as code at build time and reports a bad pattern as a build error.
+- **Fast**: on the Industry workloads .NET itself publishes, generated code runs at a median of 0.86 of .NET's
+  generated code over UTF-16 and 0.58 over UTF-8; the interpreter at 0.55 of .NET's interpreter. See
+  [docs/benchmarks](docs/benchmarks).
 
-- Phase 1 (the engine and `IsMatch`) passes the whole test data set: 98,777 patterns under each grammar V8 accepts
-  them in, 15.95 million answers over UTF-16 and over UTF-8, 0 wrong, 0 refused, 0 matches at their limit, and 0
-  bytes allocated per match once warm. The flags `i`, `m`, `s`, `u` and `y` apply.
-- Phase 2 (the surface: `Match`, `Groups`, `Matches`, `Replace`, `Split`, `Escape`, and `EnumerateMatches`, `Count`
-  and `TryMatch` over spans) passes the data set's new `captures.jsonl`: V8's `exec`, global, sticky, `replace` and
-  `split` answers for 5,188 patterns and 207,485 texts, 3.76 million answers, 0 wrong. The whole set is now
-  19.7 million answers at 0 wrong.
-- Phase 3 (the searches for where a match can start, and the measured run against `System.Text.RegularExpressions`
-  on dotnet/performance's workloads): see [docs/benchmarks](docs/benchmarks) for the table. On the Industry set
-  the library is at or below .NET's interpreter on 55 of 57 workloads over UTF-16 (median 0.55) and over UTF-8
-  (median 0.49); the exceptions are the two memory-bound literal searches over a 16 MB text, where both engines
-  run .NET's span search, and the two CJK searches over UTF-8, where three bytes a character with no rare byte
-  cannot be found as fast as one UTF-16 unit.
-- Phase 4 (the source generator's structured code and emitted search): generated code against .NET's generated
-  code on the same workloads, median 0.86 over UTF-16 (at or below 1.0 on 46 of 57) and 0.58 over UTF-8 (51 of
-  57); see [docs/benchmarks/2026-10-20.md](docs/benchmarks/2026-10-20.md). The three rows left above 1.0 are the
-  cost of the `u` flag the benchmark gives every Corvus row (`.` and CRLF, the long s under `i`, a supplementary
-  character's two units), set out in [the design document](docs/design/design.md#10-phases).
-- Phase 5 (the `v` flag: nested classes, `--` and `&&`, strings in classes with `\q{...}`, and the seven properties
-  of strings such as `\p{RGI_Emoji}`) passes the data set's new `unicode-sets.jsonl`: 5,520 patterns answered by
-  V8 with `v`, with `u` and with neither, exact on validity in all three grammars and 3.18 million answers right,
-  0 wrong, over UTF-16 and UTF-8, as interpreted and as generated code.
+## Install
 
-## Repository structure
-
-- `Solutions` - the library, the source generator, the tests and the benchmarks.
-- `docs/design` - the design.
-- `docs/benchmarks` - committed benchmark results, with the host, the date and the commit.
-- `tools/unicode` - the script that regenerates the Unicode tables.
-
-## Building
-
+```bash
+dotnet add package Corvus.Regex.Ecma262
 ```
+
+The package targets `net10.0` and `netstandard2.0` and carries the source generator. The vectorised searches and the
+generated search code need the .NET 8 or later runtime; on `netstandard2.0` the same patterns give the same answers.
+
+## Getting started
+
+```csharp
+using Corvus.Ecma262.RegularExpressions;
+
+// The flags are ECMA-262's: g for every match, i to ignore case, u to match by code point.
+Regex regex = new(@"\b[a-z]+ing\b", "giu");
+
+bool any = regex.IsMatch("Sherlock was walking");
+int count = regex.Count("Sherlock was walking and talking");       // 2
+
+Match m = regex.Match("walking and talking");
+Console.WriteLine(m.Value);                                          // walking
+foreach (Match each in regex.Matches("walking and talking"))
+{
+    Console.WriteLine($"{each.Index}: {each.Value}");
+}
+
+string replaced = regex.Replace("walking and talking", "<$&>");      // <walking> and <talking>
+string?[] parts = regex.Split("a walking b talking c");             // ["a ", " b ", " c"]
+```
+
+Named groups, lookbehind and the Unicode properties, as in JavaScript:
+
+```csharp
+Regex date = new(@"(?<=on )(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})", "u");
+Match d = date.Match("on 2026-10-20");
+string year = d.Groups["year"].Value;                                // 2026
+
+Regex greek = new(@"\p{Script=Greek}+", "u");
+Regex consonants = new(@"[[a-z]--[aeiou]]+", "v");                   // the v flag: set difference
+```
+
+### Over UTF-8
+
+Every member that takes `ReadOnlySpan<char>` has a twin that takes UTF-8 bytes. The bytes are matched as they are,
+and the positions are byte offsets.
+
+```csharp
+Regex words = new(@"\p{L}+", "gu");
+ReadOnlySpan<byte> utf8 = "Шерлок Холмс"u8;
+
+int n = words.Count(utf8);                                           // 2
+foreach (ValueMatch w in words.EnumerateMatches(utf8))
+{
+    ReadOnlySpan<byte> word = utf8.Slice(w.Index, w.Length);
+}
+```
+
+### Without allocating
+
+`Match`, `Matches`, `Replace` with a string and `Split` allocate what they return, as .NET's do. The span members
+beside them allocate nothing:
+
+```csharp
+Regex email = new(@"(?<user>\w+)@(?<host>\w+)\.\w+", "gu");
+string text = "mail sherlock@baker.st or watson@baker.st";
+
+Span<ValueCapture> groups = stackalloc ValueCapture[email.GroupCount + 1];
+foreach (ValueMatch match in email.EnumerateMatches(text.AsSpan(), groups))
+{
+    ReadOnlySpan<char> host = text.AsSpan(groups[2].Index, groups[2].Length);
+}
+
+Span<char> buffer = stackalloc char[128];
+if (email.TryReplace(text.AsSpan(), "$<user>".AsSpan(), buffer, out int written))
+{
+    ReadOnlySpan<char> result = buffer.Slice(0, written);
+}
+
+foreach (Range piece in email.EnumerateSplits(text.AsSpan())) { }
+```
+
+### At build time
+
+`[GeneratedRegex]` on a partial method or property writes the matcher as code. A pattern that is not valid, a flag
+that is not one, or `u` with `v`, is a build error with the reason and the position.
+
+```csharp
+public static partial class Patterns
+{
+    [GeneratedRegex(@"\b\d{1,2}/\d{1,2}/\d{2,4}\b", "gu")]
+    public static partial Regex Dates();
+
+    [GeneratedRegex(@"(?<word>\w+)", RegexFlags.Global | RegexFlags.Unicode | RegexFlags.IgnoreCase, 100)]
+    public static partial Regex Words { get; }
+}
+
+int dates = Patterns.Dates().Count("on 11/18/2019 and 1/2/03");    // 2
+```
+
+### Validity without an exception
+
+JSON Schema reads a pattern with the `u` flag first and with the Annex B grammar when that refuses. `TryCreate`
+costs no exception:
+
+```csharp
+if (!Regex.TryCreate(pattern, RegexFlags.Unicode, out Regex? regex, out string? error)
+    && !Regex.TryCreate(pattern, RegexFlags.None, out regex, out error))
+{
+    Console.WriteLine(error);
+}
+```
+
+## The flags
+
+| Flag | `RegexFlags` | Meaning |
+|---|---|---|
+| `d` | `HasIndices` | Accepted for completeness; indices are always kept. |
+| `g` | `Global` | `Replace` replaces every match; without it, the first, as `String.prototype.replace` does. |
+| `i` | `IgnoreCase` | Simple case folding with `u` or `v`, `toUpperCase` without. Never the culture. |
+| `m` | `Multiline` | `^` and `$` at line terminators. |
+| `s` | `DotAll` | The dot matches line terminators. |
+| `u` | `Unicode` | The `u` flag grammar; matched by code point. |
+| `v` | `UnicodeSets` | Set notation and properties of strings; matched by code point. `u` and `v` together is a syntax error. |
+| `y` | `Sticky` | A match only at the start position. |
+
+With no flag the pattern is read with the Annex B grammar and matched by UTF-16 code unit, as ECMA-262 does.
+`Matches`, `EnumerateMatches` and `Count` are the global search whether or not `g` is set; where ECMA-262 keeps
+`lastIndex` on the `RegExp`, the library takes the position as an argument. A `Regex` has no mutable state and is
+safe to share between threads.
+
+## Differences from .NET's Regex
+
+- **The grammar**: no `(?i)` inline option (ECMA-262 has `(?i:...)` groups), no atomic groups, no possessive
+  quantifiers, no `\A` and `\z`, no conditionals, no balancing groups.
+- **The classes**: `\d` is `[0-9]`, `\w` the 63 ASCII word characters, `\s` ECMAScript's white space and line
+  terminators, and `.` excludes LF, CR, U+2028 and U+2029.
+- **Case**: with `i` and `u` simple case folding (`ſ` matches `s`, `K` matches `k`); with `i` and no flag,
+  `toUpperCase` of one character.
+- **Captures**: ECMA-262 keeps a group's last capture under a quantifier, so `Group.Captures` has one entry.
+- **Timeouts**: patterns without backreferences are linear and take no timeout; `MatchTimeout` applies to the others,
+  and a match that reaches its limit of time or memory throws `RegexMatchTimeoutException`.
+
+## Documentation
+
+- [The site](https://corvus-oss.org/Corvus.Regex.Ecma262/): getting started, the design and the API reference.
+- [docs/design/design.md](docs/design/design.md): what is ported and from where, the public surface, one matcher over
+  two encodings, the searches for where a match can start, the source generator, the test data, the benchmarks, and
+  the phases with their gates.
+- [docs/benchmarks](docs/benchmarks): the measured runs against `System.Text.RegularExpressions`, each with the host,
+  the commit and every row.
+
+## Repository layout
+
+- `Solutions/Corvus.Regex.Ecma262` - the library: the parser (`Syntax`), the Unicode tables (`Unicode`), the compiler,
+  the matcher and the searches (`Engine`), and the public surface.
+- `Solutions/Corvus.Regex.Ecma262.SourceGenerator` - the source generator, which compiles the engine's sources in.
+- `Solutions/Corvus.Regex.Ecma262.Tests`, `Corvus.Regex.Ecma262.SourceGenerator.Tests` - the unit tests, each pattern
+  run as interpreted and as generated code.
+- `Solutions/Corvus.Regex.Ecma262.DatasetRunner` - the run over the whole ECMA-262 test data, interpreted or generated.
+- `Solutions/Corvus.Regex.Ecma262.Benchmarks` - the BenchmarkDotNet comparisons with `System.Text.RegularExpressions`.
+- `Solutions/Corvus.Regex.Ecma262.AotSample` - a native AOT sample of the generator.
+- `docs/design`, `docs/benchmarks` - the design and the committed benchmark tables.
+- `docs/website` - the documentation site.
+- `tools/unicode` - the scripts that regenerate the Unicode tables and the properties of strings.
+
+## Building and testing
+
+The build needs the .NET 10 SDK. The repository build, on ZeroFailed, compiles, tests, analyses and packs:
+
+```bash
 pwsh ./build.ps1
 ```
 
-or, with the .NET SDK alone:
+With the .NET SDK alone:
 
-```
+```bash
 dotnet build Solutions/Corvus.Regex.Ecma262.slnx
 dotnet test --solution Solutions/Corvus.Regex.Ecma262.slnx
 ```
 
-## Licence
+The ECMA-262 test data is the gate for every change to the engine. Clone
+[ecma262-regex-test-data](https://github.com/corvus-dotnet/ecma262-regex-test-data) beside this repository and run:
 
-Apache-2.0. Copyright (c) Endjin Limited.
+```bash
+dotnet build Solutions/Corvus.Regex.Ecma262.DatasetRunner -c Release
+dotnet Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll ../ecma262-regex-test-data/data wrong.tsv
+dotnet Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll ../ecma262-regex-test-data/data wrong-generated.tsv '*.jsonl' both --generated
+```
+
+The pass is 0 wrong, 0 refused-valid, 0 accepted-invalid and 0 at the limit, for the interpreter and for the generated
+code. `dataset.yml` runs it in CI on every push, pull request and night; the data is pinned to a commit there, moved
+when the data grows.
+
+The documentation site is built with `pwsh ./build.ps1 -Website` (see [docs/website/DEVELOPMENT.md](docs/website/DEVELOPMENT.md)).
+
+## Contributing
+
+Pull requests are welcome. Before opening one:
+
+- Build warning-free: every project treats warnings as errors, and the analyzers run on the generator's output too.
+- Run the unit tests and the data set, interpreted and generated, and say in the pull request what they reported.
+- A change to the engine's semantics needs its case in the test data first: the data repository's families are
+  built around the faults found, with V8 as the oracle, and a fault V8 itself has is marked there rather than copied.
+- A change made for speed needs a measured run, pinned to the performance cores as [docs/benchmarks](docs/benchmarks)
+  describes, with the table in the pull request. The structured code of the generator and the interpreter share the
+  engine, so an optimisation of one is considered for the other.
+- The design document is kept current: a decision taken while working is written into it, not into a separate file.
+
+Releases are tagged from `main` by the release automation when a pull request is merged; a pull request that should
+not make a release carries the `no_release` label.
+
+## Project sponsor
+
+This project is sponsored by [endjin](https://endjin.com), a UK based Microsoft Gold Partner for Cloud Platform, Data
+Platform, Data Analytics, DevOps, and a Power BI Partner.
+
+For more information about our products and services, or for commercial support of this project, please
+[contact us](https://endjin.com/contact-us).
+
+Keep up with everything that's going on at endjin via our [blog](https://endjin.com/blog), follow us on
+[Twitter](https://twitter.com/endjin), or [LinkedIn](https://www.linkedin.com/company/1671851/). Our other open
+source projects can be found at [https://endjin.com/open-source](https://endjin.com/open-source).
+
+## Code of conduct
+
+This project has adopted a code of conduct adapted from the [Contributor Covenant](http://contributor-covenant.org/)
+to clarify expected behavior in our community. For more information see the
+[Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact
+[hello@endjin.com](mailto:hello@endjin.com) with any additional questions or comments.
+
+## License
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details. Copyright (c) Endjin Limited.

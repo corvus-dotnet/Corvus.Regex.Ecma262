@@ -4,6 +4,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Corvus.Ecma262.RegularExpressions.SourceGenerator.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
+    <!-- No apphost: the build phase runs on Linux and the test phase on Windows too, from the same compiled output, so the test app is run as a dll on both. -->
+    <UseAppHost>false</UseAppHost>
     <NoWarn>$(NoWarn);CS1591;CA1707;CA1812</NoWarn>
     <!-- The generator ships System.Memory for Visual Studio's host; this net10.0 test has its own. -->
     <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3243;MSB3277</MSBuildWarningsAsMessages>

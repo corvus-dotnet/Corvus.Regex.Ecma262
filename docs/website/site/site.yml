@@ -1,0 +1,8 @@
+Title: Corvus.Regex.Ecma262
+Description: "ECMA-262 regular expressions for .NET — the answers of ECMAScript, over UTF-8 and UTF-16, with no allocation per match."
+Url: https://corvus-oss.org/Corvus.Regex.Ecma262
+ContentType: application/vnd.endjin.ssg.site+yml
+Taxonomy: taxonomy
+Assets: theme/corvus/assets
+Content: content
+Theme: theme/corvus/views

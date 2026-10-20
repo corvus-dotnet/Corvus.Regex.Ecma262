@@ -31,11 +31,12 @@ concurrency:
 permissions:
   actions: write  # enable cache clean-up
   checks: write  # enable test result annotations
-  contents: write  # enable creating releases
+  contents: write  # enable creating releases and GitHub Pages branch deployment
   id-token: write  # enable OIDC authentication
   issues: read
   packages: write  # enable publishing packages
-  pull-requests: write  # enable test result annotations
+  pages: write  # enable GitHub Pages environment
+  pull-requests: write  # enable test result annotations and PR preview comments
 
 jobs:
   prepareConfig:
@@ -50,8 +51,12 @@ jobs:
       with:
         environmentVariablesYaml: |
           ZF_NUGET_PUBLISH_SOURCE: ${{ (startsWith(github.ref, 'refs/tags/') || github.event.inputs.forcePublicNugetDestination == 'true') && 'https://api.nuget.org/v3/index.json' || format('https://nuget.pkg.github.com/{0}/index.json', github.repository_owner) }}
+          BUILDVAR_BuildWebsite: "false"
+          BUILDVAR_IsPreviewDeployment: "${{ github.event_name == 'pull_request' }}"
+          BUILDVAR_BasePathPrefix: "${{ github.event_name == 'pull_request' && format('/{0}/pr-preview/pr-{1}', github.event.repository.name, github.event.pull_request.number) || format('/{0}', github.event.repository.name) }}"
         secretsYaml: |
           NUGET_API_KEY: "${{ startsWith(github.ref, 'refs/tags/') && secrets.NUGET_APIKEY || secrets.BUILD_PUBLISHER_PAT }}"
+          VELLUM_DOWNLOAD_TOKEN: "${{ secrets.ENDJIN_PACKAGES_TOKEN }}"
         secretsEncryptionKey: ${{ secrets.SHARED_WORKFLOW_KEY }}
 
   build:
@@ -78,8 +83,101 @@ jobs:
         **/bin
         **/obj
         .zf
+        docs/website/.endjin
+        docs/website/.output
+      # The documentation site is built after the compile phase from the compiled library (the ZeroFailed task
+      # BuildWebsite in .zf/config.ps1) and kept as an artifact for the deployments below.
+      postCompilePhaseTasks: BuildWebsite
+      postCompileRunnerOs: ubuntu-latest
+      postCompilePhaseEnv: ${{ needs.prepareConfig.outputs.RESOLVED_ENV_VARS }}
+      postCompileArtifactName: website-output
+      postCompileArtifactPath: docs/website/.output
     secrets:
       compilePhaseAzureCredentials: ${{ secrets.AZURE_READER_CREDENTIALS }}
       compilePhaseSecrets: ${{ needs.prepareConfig.outputs.RESOLVED_SECRETS }}
       publishPhaseSecrets: ${{ needs.prepareConfig.outputs.RESOLVED_SECRETS }}
+      postCompilePhaseSecrets: ${{ needs.prepareConfig.outputs.RESOLVED_SECRETS }}
       secretsEncryptionKey: ${{ secrets.SHARED_WORKFLOW_KEY }}
+
+  deploy-docs:
+    name: Deploy Documentation
+    needs:
+      - build
+    # The documentation site is updated, by this build, from stable release tags only.
+    if: github.event_name == 'push' && github.ref_type == 'tag' && !contains(github.ref_name, '-')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: https://corvus-oss.org/Corvus.Regex.Ecma262/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download website artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: website-output
+          path: docs/website/.output
+
+      - name: Deploy to GitHub Pages
+        # gh-pages holds one commit, which every write replaces (.github/scripts/Update-GhPages.ps1 says why).
+        # Previews of pull requests that are no longer open are removed in the same write.
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $open = gh pr list --repo $env:GITHUB_REPOSITORY --state open --limit 1000 --json number --jq '[.[].number]|join(",")'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list the open pull requests.' }
+          ./.github/scripts/Update-GhPages.ps1 -Mode Site -Source docs/website/.output -OpenPullRequests "$open"
+
+  deploy-preview:
+    name: Deploy PR Preview
+    needs:
+      - build
+    # Fork PRs run without repository secrets, so the post-compile website build cannot download the access-gated
+    # Vellum SSG and skips itself; no website-output artifact exists to deploy, and the fork PR's read-only token
+    # could not push to gh-pages anyway. Previews are for same-repo PRs only.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency: preview-${{ github.event.pull_request.number }}
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download website artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: website-output
+          path: docs/website/.output
+
+      - name: Deploy PR preview
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          $open = gh pr list --repo $env:GITHUB_REPOSITORY --state open --limit 1000 --json number --jq '[.[].number]|join(",")'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list the open pull requests.' }
+          ./.github/scripts/Update-GhPages.ps1 -Mode Preview -Source docs/website/.output -PullRequest $env:PR -OpenPullRequests "$open"
+          ./.github/scripts/Set-PreviewComment.ps1 -PullRequest $env:PR -Body "The documentation preview for this pull request is at https://corvus-oss.org/Corvus.Regex.Ecma262/pr-preview/pr-$($env:PR)/ (built from $($env:HEAD_SHA.Substring(0, 7))). GitHub Pages takes a minute or two to publish it."
+
+  # The required status check for pull requests (the ruleset on main names it): it passes when the .NET build
+  # succeeded.
+  dotnet-gate:
+    name: .NET build gate
+    needs:
+      - build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check
+        env:
+          BUILD: ${{ needs.build.result }}
+        run: |
+          if [ "$BUILD" != success ]; then
+            echo "::error::The .NET build did not succeed ($BUILD)."
+            exit 1
+          fi
+          echo "The .NET build succeeded."

@@ -1,0 +1,33 @@
+@model SiteViewModel
+@{
+    Layout = "../Shared/_Layout.cshtml";
+    var docsParent = Model.SiteContext.Navigation?.Children?
+        .FirstOrDefault(x => x.Url?.ToString()?.Contains("/docs/") == true);
+    var docPages = docsParent?.Children?.OrderBy(x => x.Rank).ToList();
+}
+<div class="layout-docs container">
+    @await Html.PartialAsync("_Sidebar").ConfigureAwait(false)
+    <main id="main-content" class="layout-docs__main">
+        <div class="doc__content">
+            <h1>Documentation</h1>
+            <p>
+                The design of the engine and the measured runs against <code>System.Text.RegularExpressions</code>,
+                as they are kept in the repository. New to the library? Start with the
+                <a href="/getting-started/index.html">Getting Started guide</a>, or go to the
+                <a href="/api/index.html">API reference</a>.
+            </p>
+            <div class="card-grid" style="margin-top:var(--space-lg)">
+                @if (docPages != null)
+                {
+                    @foreach (var doc in docPages)
+                    {
+                        <a class="card card--link" href="@doc.Url">
+                            <h3 class="card__title">@doc.Title</h3>
+                            <p class="card__body">@doc.Description</p>
+                        </a>
+                    }
+                }
+            </div>
+        </div>
+    </main>
+</div>

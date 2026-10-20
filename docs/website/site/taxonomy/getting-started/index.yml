@@ -1,0 +1,51 @@
+ContentType: application/vnd.endjin.ssg.page+yaml
+Title: Getting Started
+Navigation:
+  Title: Getting Started
+  Description: "Install the package, write a pattern with ECMA-262 flags, match over strings and UTF-8, and generate code at build time."
+  Parent: /
+  Url: /getting-started/index.html
+  Rank: 1
+  Header:
+    Visible: True
+    Link: True
+  Footer:
+    Visible: True
+    Link: True
+MetaData:
+  Title: "Getting Started — Corvus.Regex.Ecma262"
+  Description: "Install Corvus.Regex.Ecma262, write a pattern with the flags of ECMA-262, match over strings and over UTF-8 without allocating, and generate the matcher at build time with [GeneratedRegex]."
+  Keywords: [getting started, installation, regex, ECMA-262, source generator, C#, tutorial, UTF-8]
+OpenGraph:
+  Title: "Getting Started — Corvus.Regex.Ecma262"
+  Description: "Install the package, write a pattern, match over strings and UTF-8, and generate code at build time."
+  Image:
+ContentBlocks:
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: Introduction
+    Spec:
+      Path: ../../content/GettingStarted/Introduction.md
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: Setup
+    Spec:
+      Path: ../../content/GettingStarted/Setup.md
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: Patterns
+    Spec:
+      Path: ../../content/GettingStarted/Patterns.md
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: Matching
+    Spec:
+      Path: ../../content/GettingStarted/Matching.md
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: Utf8
+    Spec:
+      Path: ../../content/GettingStarted/Utf8.md
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: Generator
+    Spec:
+      Path: ../../content/GettingStarted/Generator.md
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: Differences
+    Spec:
+      Path: ../../content/GettingStarted/Differences.md

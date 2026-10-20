@@ -1,0 +1,22 @@
+ContentType: application/vnd.endjin.ssg.page+yaml
+Title: API Reference
+Navigation:
+  Title: API
+  Description: "API reference for the Corvus.Regex.Ecma262 package."
+  Parent: /
+  Url: /api/index.html
+  Rank: 3
+  Header:
+    Visible: True
+    Link: True
+  Footer:
+    Visible: True
+    Link: True
+MetaData:
+  Title: "API Reference — Corvus.Regex.Ecma262"
+  Description: "API reference for the Corvus.Ecma262.RegularExpressions namespace: Regex, Match, Group, Capture, the enumerators and the generated regex attribute."
+  Keywords: [API, reference, Regex, Corvus.Ecma262.RegularExpressions, NuGet]
+OpenGraph:
+  Title: "API Reference — Corvus.Regex.Ecma262"
+  Description: "API reference for the Corvus.Regex.Ecma262 package."
+  Image:

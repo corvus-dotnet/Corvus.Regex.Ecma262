@@ -1,0 +1,156 @@
+@model SiteViewModel
+@{
+    Layout = "Shared/_Layout.cshtml";
+    ViewBag.GitHubUrl = "https://github.com/corvus-dotnet/Corvus.Regex.Ecma262";
+    ViewBag.MetaTitle = Model.PageContext.MetaData.Title;
+    ViewBag.BodyClass = "page-home";
+}
+<!-- Hero -->
+<section id="main-content" class="hero">
+    <div class="hero__content">
+        <h1 class="hero__title">ECMA-262 <span class="brand">regular expressions</span> for .NET</h1>
+        <p class="hero__subtitle">
+            The grammar and the answers of ECMAScript, over UTF-8 and over UTF-16, with no allocation per match
+            and a build-time source generator.
+        </p>
+        <div class="hero__actions">
+            <a href="/getting-started/index.html" class="btn btn--primary btn--lg">Get Started</a>
+            <a href="/docs/index.html" class="btn btn--secondary btn--lg">Read the design</a>
+            <a href="@ViewBag.GitHubUrl"
+               class="btn btn--secondary btn--lg" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+        </div>
+    </div>
+</section>
+
+<!-- Stats -->
+<div class="container">
+    <div class="home-stats">
+        <div class="home-stats__item">
+            <div class="home-stats__value">22.9M</div>
+            <div class="home-stats__label">V8 answers matched, 0 wrong</div>
+        </div>
+        <div class="home-stats__item">
+            <div class="home-stats__value">0 B</div>
+            <div class="home-stats__label">Allocated per match</div>
+        </div>
+        <div class="home-stats__item">
+            <div class="home-stats__value">UTF-8</div>
+            <div class="home-stats__label">Matched without transcoding</div>
+        </div>
+        <div class="home-stats__item">
+            <div class="home-stats__value">0.86</div>
+            <div class="home-stats__label">Median time against .NET's generated regex</div>
+        </div>
+    </div>
+</div>
+
+<!-- Features -->
+<section class="home-features">
+    <div class="container">
+        <div class="home-features__heading">
+            <h2 class="home-features__title">Built to answer as ECMAScript does</h2>
+            <p class="home-features__subtitle">A pattern written for JavaScript, or taken from a JSON Schema, matches the same texts here.</p>
+        </div>
+        <div class="home-simple">
+            <pre><code class="language-csharp">Regex regex = new(@@"\b[a-z]+ing\b", "giu");
+int count = regex.Count("Sherlock was walking and talking");   // 2</code></pre>
+            <p class="home-simple__footnote"><a href="/getting-started/index.html">Read the guide &rarr;</a></p>
+        </div>
+        <div class="card-grid">
+            <div class="card">
+                <div class="card__icon">📜</div>
+                <h3 class="card__title">The answers of ECMAScript</h3>
+                <p class="card__body">ECMAScript 2025: lookbehind, named groups, modifier groups, Unicode property escapes on Unicode 17 data, and the <code>u</code> and <code>v</code> flags. Tested against V8 on 104,359 patterns and 5.1 million texts.</p>
+            </div>
+            <div class="card">
+                <div class="card__icon">🔤</div>
+                <h3 class="card__title">UTF-8 and UTF-16</h3>
+                <p class="card__body">One matcher over <code>ReadOnlySpan&lt;byte&gt;</code> and over <code>string</code> or <code>ReadOnlySpan&lt;char&gt;</code>, with no transcoding either way and positions in the units of the text.</p>
+            </div>
+            <div class="card">
+                <div class="card__icon">⚡</div>
+                <h3 class="card__title">Zero allocation</h3>
+                <p class="card__body">Nothing allocated per match once the per-thread working memory has grown. <code>EnumerateMatches</code>, <code>TryMatch</code>, <code>TryReplace</code> and <code>EnumerateSplits</code> are the allocation-free forms of every member.</p>
+            </div>
+            <div class="card">
+                <div class="card__icon">🧩</div>
+                <h3 class="card__title">The shape of .NET's Regex</h3>
+                <p class="card__body"><code>Regex</code>, <code>Match</code>, <code>Group</code>, <code>Capture</code>, <code>Matches</code>, <code>Replace</code>, <code>Split</code> and <code>EnumerateMatches</code>, so the library drops in where <code>System.Text.RegularExpressions</code> is used.</p>
+            </div>
+            <div class="card">
+                <div class="card__icon">🔧</div>
+                <h3 class="card__title">A source generator</h3>
+                <p class="card__body"><code>[GeneratedRegex]</code> writes the search for a start and the match as structured code at build time, with the pattern checked by the compiler. <a href="/getting-started/index.html">Read the guide &rarr;</a></p>
+            </div>
+            <div class="card">
+                <div class="card__icon">⏱️</div>
+                <h3 class="card__title">Bounded in time and memory</h3>
+                <p class="card__body">A backtracking matcher that remembers where a way has failed, an automaton for the patterns that need no backtracking, and a limit of time and of memory on every match.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Code Example -->
+<section class="home-code">
+    <div class="container">
+        <div class="home-code__inner">
+            <div class="home-code__text">
+                <h2 class="home-code__title">From pattern to generated code</h2>
+                <p class="home-code__description">
+                    Put the attribute on a partial method, and the generator writes the matcher as code. The same
+                    flags, the same answers, over both encodings.
+                </p>
+                <a href="/getting-started/index.html" class="btn btn--primary">Get Started</a>
+            </div>
+            <div class="home-code__example">
+                <pre><code class="language-csharp">using Corvus.Ecma262.RegularExpressions;
+
+public static partial class Patterns
+{
+    [GeneratedRegex(@@"(?&lt;word&gt;\w+)@@(?&lt;host&gt;\w+)\.\w+", "gu")]
+    public static partial Regex Email();
+}
+
+// Over a string
+Match m = Patterns.Email().Match("mail sherlock@baker.st");
+string host = m.Groups["host"].Value;                   // "baker"
+
+// Over UTF-8, allocating nothing
+ReadOnlySpan&lt;byte&gt; utf8 = "a@b.c and d@e.f"u8;
+int n = Patterns.Email().Count(utf8);                   // 2</code></pre>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Packages -->
+<section class="section">
+    <div class="container">
+        <div class="home-features__heading">
+            <h2 class="home-features__title">The package</h2>
+            <p class="home-features__subtitle">One package carries the library and the source generator</p>
+        </div>
+        <div class="card-grid">
+            <div class="card">
+                <h3 class="card__title"><a href="/getting-started/index.html" style="color:inherit">Corvus.Regex.Ecma262</a></h3>
+                <p class="card__body">The engine, the drop-in surface, the UTF-8 members and the generator. Targets net10.0 and netstandard2.0. <a href="/getting-started/index.html">Get started &rarr;</a></p>
+                <pre style="margin-top:var(--space-sm)"><code class="language-bash">dotnet add package Corvus.Regex.Ecma262</code></pre>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="home-cta">
+    <div class="container">
+        <div class="home-cta__inner">
+            <h2 class="home-cta__title">Ready to get started?</h2>
+            <p class="home-cta__description">Install the package, write a pattern with ECMA-262's flags, and match over strings or UTF-8.</p>
+            <div class="home-cta__actions">
+                <a href="/getting-started/index.html" class="btn btn--primary btn--lg">Get Started</a>
+                <a href="/api/index.html" class="btn btn--secondary btn--lg">API Reference</a>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,3 @@
+source: design/design.md
+navTitle: "Design"
+description: "What is ported and from where, the public surface, one matcher over two encodings, the searches for a start, the source generator, the test data, the benchmarks and the phases."

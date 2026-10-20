@@ -7,6 +7,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- The netstandard2.0 build is for the source generator host and for consumers that target it; the analyzers
          that ask for the net APIs (CA1510 and the like) do not apply there. -->
     <NoWarn Condition="'$(TargetFramework)' == 'netstandard2.0'">$(NoWarn);CA1510;CA1511;CA1512;CA1513;CA1845;CA1846;CA1847</NoWarn>
@@ -18,12 +19,18 @@
     <PackageDescription>An ECMA-262 regular expression engine for .NET: the grammar and answers of ECMAScript, native UTF-8 and UTF-16 matching, zero allocation per match, and a build-time source generator.</PackageDescription>
     <PackageTags>regex;regular-expressions;ecmascript;ecma-262;utf8;source-generator</PackageTags>
     <PackageReleaseNotes></PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://corvus-oss.org/Corvus.Regex.Ecma262/</PackageProjectUrl>
   </PropertyGroup>
 
   <PropertyGroup>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode Condition="$(ContinuousIntegrationBuild) == 'true'">true</RestoreLockedMode>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="Engine\CaseFolding.cs" />

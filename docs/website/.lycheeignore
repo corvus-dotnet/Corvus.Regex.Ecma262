@@ -1,0 +1,18 @@
+# Known-flaky or expected-missing URLs to exclude from link checking.
+# One pattern per line; supports regex.
+
+# Placeholder/example URLs
+https?://example\.com
+https?://localhost
+
+# CDN resources (may rate-limit CI)
+https://cdnjs\.cloudflare\.com
+
+# Links pinned to a commit of the repository (GitHub rate-limits the checker; the build checks the files exist)
+https://github\.com/corvus-dotnet/Corvus\.Regex\.Ecma262/blob/
+
+# The package page exists once the first release is published
+https://www\.nuget\.org/packages/Corvus\.Regex\.Ecma262
+
+# The site's own absolute URLs (canonical links, the sitemap): not there until the site is deployed, and checked as root-relative links anyway
+https://corvus-oss\.org/Corvus\.Regex\.Ecma262

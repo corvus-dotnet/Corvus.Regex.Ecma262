@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Corvus.Ecma262.RegularExpressions.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
+    <!-- No apphost: the build phase runs on Linux and the test phase on Windows too, from the same compiled output, so the test app is run as a dll on both. -->
+    <UseAppHost>false</UseAppHost>
     <NoWarn>$(NoWarn);CS1591;CA1707;CA1812</NoWarn>
   </PropertyGroup>
   <ItemGroup>

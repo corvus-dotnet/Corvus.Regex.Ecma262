@@ -1,0 +1,27 @@
+ContentType: application/vnd.endjin.ssg.page+yaml
+Title: Documentation
+Navigation:
+  Title: Documentation
+  Description: "The design of the engine, and the benchmark tables against System.Text.RegularExpressions."
+  Parent: /
+  Url: /docs/index.html
+  Rank: 2
+  Header:
+    Visible: True
+    Link: True
+  Footer:
+    Visible: True
+    Link: True
+MetaData:
+  Title: "Documentation — Corvus.Regex.Ecma262"
+  Description: "The design of Corvus.Regex.Ecma262: one matcher over two encodings, the searches for where a match can start, the source generator, the test data and the benchmarks against System.Text.RegularExpressions."
+  Keywords: [documentation, design, benchmarks, regex engine, ECMA-262]
+OpenGraph:
+  Title: "Documentation — Corvus.Regex.Ecma262"
+  Description: "The design of the engine and the benchmark tables."
+  Image:
+ContentBlocks:
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: Overview
+    Spec:
+      Path: ../../content/Docs/Overview.md
