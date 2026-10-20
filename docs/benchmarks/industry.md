@@ -5,7 +5,7 @@
 - **Health probe** 13.6 to 14.2 ns before the run and 13.2 to 14.2 ns after; 12.5 to 16 is the band that makes a run valid.
 - **Runtime and harness** .NET 10, BenchmarkDotNet's short job (one launch, three warm-ups, three iterations), the `GeneratedCount` benchmark of `Solutions/Corvus.Regex.Ecma262.Benchmarks`.
 
-The interactive page of this run is at [corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/); its data is `industry.json` beside this file, and `tools/benchmarks/industry-results.py` writes both from a run.
+The interactive page of this run is at [corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/); its data is `industry.json` beside this file, and `tools/benchmarks/industry-results.py` writes both from a run. The same benchmarks run every night in CI, every engine on one runner, at [benchmarks/ci/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/), with each day's data kept beside it.
 
 The workloads are the Industry set of dotnet/performance (`Perf.Regex.Industry`: the Sherlock Holmes, Leipzig and mariomka texts and the rebar names), the set behind .NET's own "regex performance improvements in .NET N" tables. Each is run five ways: .NET's interpreter (`RegexOptions.None`), .NET's source generator (`[GeneratedRegex]`), this library's interpreter over UTF-16, and this library's source generator over UTF-16 and over UTF-8. `Count` over the text, one call per operation. A ratio below 1.0 is this library being faster.
 
