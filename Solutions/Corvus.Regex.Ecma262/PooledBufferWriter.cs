@@ -11,6 +11,12 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// <typeparam name="T">The unit.</typeparam>
 internal sealed class PooledBufferWriter<T> : IBufferWriter<T>, IDisposable
 {
+    /// <summary>The longest buffer a thread's writer keeps between calls; a longer one goes back to the pool.</summary>
+    private const int MostKept = 1 << 16;
+
+    [ThreadStatic]
+    private static PooledBufferWriter<T>? kept;
+
     private T[] buffer;
     private int written;
 
@@ -23,6 +29,40 @@ internal sealed class PooledBufferWriter<T> : IBufferWriter<T>, IDisposable
 
     /// <summary>Gets the length written.</summary>
     public int WrittenLength => this.written;
+
+    /// <summary>
+    /// The thread's writer, empty and with room for the capacity, for a member that allocates nothing: the
+    /// netstandard2.0 build of a span member writes through it where the modern build writes to the span itself.
+    /// It is given back with <see cref="Release"/>, never disposed.
+    /// </summary>
+    /// <param name="capacity">The room needed.</param>
+    /// <returns>The writer.</returns>
+    public static PooledBufferWriter<T> Rent(int capacity)
+    {
+        PooledBufferWriter<T>? writer = kept;
+        if (writer is null)
+        {
+            return new PooledBufferWriter<T>(capacity);
+        }
+
+        kept = null;
+        writer.written = 0;
+        writer.Ensure(capacity);
+        return writer;
+    }
+
+    /// <summary>Gives a writer from <see cref="Rent"/> back to the thread, its buffer kept unless it is long.</summary>
+    public void Release()
+    {
+        this.written = 0;
+        if (this.buffer.Length > MostKept)
+        {
+            ArrayPool<T>.Shared.Return(this.buffer);
+            this.buffer = [];
+        }
+
+        kept = this;
+    }
 
     /// <summary>Gets what was written.</summary>
     public ReadOnlySpan<T> WrittenSpan => this.buffer.AsSpan(0, this.written);
@@ -81,7 +121,11 @@ internal sealed class PooledBufferWriter<T> : IBufferWriter<T>, IDisposable
 
         T[] bigger = ArrayPool<T>.Shared.Rent(Math.Max(this.buffer.Length * 2, this.written + need));
         this.buffer.AsSpan(0, this.written).CopyTo(bigger);
-        ArrayPool<T>.Shared.Return(this.buffer);
+        if (this.buffer.Length != 0)
+        {
+            ArrayPool<T>.Shared.Return(this.buffer);
+        }
+
         this.buffer = bigger;
     }
 }

@@ -232,11 +232,20 @@ public sealed partial class Regex
         written = output.Written;
         return ok;
 #else
-        using PooledBufferWriter<char> writer = new(input.Length + 16);
-        WriterOutput<char> output = new(writer);
-        this.ReplaceInto<char, Utf16Encoding, WriterOutput<char>>(input, replacement, ref output);
-        written = writer.WrittenLength;
-        return writer.WrittenSpan.TryCopyTo(destination);
+        // No ref struct can be the output here (ref struct interfaces need the modern runtime), so the thread's
+        // pooled writer takes the result and the destination gets a copy; nothing is allocated once it is warm.
+        PooledBufferWriter<char> writer = PooledBufferWriter<char>.Rent(input.Length + 16);
+        try
+        {
+            WriterOutput<char> output = new(writer);
+            this.ReplaceInto<char, Utf16Encoding, WriterOutput<char>>(input, replacement, ref output);
+            written = writer.WrittenLength;
+            return writer.WrittenSpan.TryCopyTo(destination);
+        }
+        finally
+        {
+            writer.Release();
+        }
 #endif
     }
 
@@ -255,11 +264,18 @@ public sealed partial class Regex
         written = output.Written;
         return ok;
 #else
-        using PooledBufferWriter<byte> writer = new(utf8.Length + 16);
-        WriterOutput<byte> output = new(writer);
-        this.ReplaceInto<byte, Utf8Encoding, WriterOutput<byte>>(utf8, replacement, ref output);
-        written = writer.WrittenLength;
-        return writer.WrittenSpan.TryCopyTo(destination);
+        PooledBufferWriter<byte> writer = PooledBufferWriter<byte>.Rent(utf8.Length + 16);
+        try
+        {
+            WriterOutput<byte> output = new(writer);
+            this.ReplaceInto<byte, Utf8Encoding, WriterOutput<byte>>(utf8, replacement, ref output);
+            written = writer.WrittenLength;
+            return writer.WrittenSpan.TryCopyTo(destination);
+        }
+        finally
+        {
+            writer.Release();
+        }
 #endif
     }
 
