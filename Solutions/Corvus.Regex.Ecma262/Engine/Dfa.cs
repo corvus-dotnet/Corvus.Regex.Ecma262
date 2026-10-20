@@ -30,8 +30,9 @@ internal enum DfaResult : byte
 /// <remarks>
 /// The automaton reads units below 0x80 only. A text with any other unit is handed back to the backtracking
 /// matcher from the start, so nothing here needs to know UTF-8 or the Unicode classes: a class is its ASCII
-/// members. A pattern with a word boundary, or whose automaton has more states than a byte can number, has no
-/// automaton. The automaton is built on the first match, not when the pattern is compiled, so a program pays
+/// members. A word boundary is passed when the next unit is known, from what the state carries of the unit
+/// before; a pattern with a boundary under the i and u flags together (where word characters fold), or whose
+/// automaton has more states than a byte can number, has no automaton. The automaton is built on the first match, not when the pattern is compiled, so a program pays
 /// nothing for the patterns it never matches.
 /// </remarks>
 internal sealed class Dfa

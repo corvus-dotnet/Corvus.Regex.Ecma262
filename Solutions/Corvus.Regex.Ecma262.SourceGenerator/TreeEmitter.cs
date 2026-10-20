@@ -72,7 +72,7 @@ internal static class TreeEmitter
 
         if (statics.Length > 0)
         {
-            RunEmitter.Line(sb, 0, "#if NET8_0_OR_GREATER");
+            RunEmitter.Line(sb, 0, "#if NET10_0_OR_GREATER");
             sb.Append(statics);
             RunEmitter.Line(sb, 0, "#endif");
             sb.AppendLine();
@@ -80,7 +80,7 @@ internal static class TreeEmitter
 
         if (ownsSearch)
         {
-            RunEmitter.Line(sb, 0, "#if NET8_0_OR_GREATER");
+            RunEmitter.Line(sb, 0, "#if NET10_0_OR_GREATER");
             RunEmitter.Line(sb, indent + 1, "/// <inheritdoc/>");
             RunEmitter.Line(sb, indent + 1, "public override bool OwnsSearch => true;");
             RunEmitter.Line(sb, 0, "#endif");
@@ -219,7 +219,7 @@ internal static class TreeEmitter
                 // The loop over the starts the search yields: the setting up above is done once for them all.
                 if (ownsSearch)
                 {
-                    RunEmitter.Line(this.code, 0, "#if NET8_0_OR_GREATER");
+                    RunEmitter.Line(this.code, 0, "#if NET10_0_OR_GREATER");
                     this.Line("while (scan.Kind == " + Ns + "CandidateScan.Emitted ? Find<TUnit, TEncoding>(p, st, input, ref scan, out start, out end) : " + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start))");
                     RunEmitter.Line(this.code, 0, "#else");
                     this.Line("while (" + Ns + "Matcher.NextStart<TUnit, TEncoding>(p, st, input, ref scan, out start))");
@@ -236,7 +236,7 @@ internal static class TreeEmitter
                 {
                     // The search verified the alternative (or found the literal that is the whole pattern) and
                     // gave its length: the match is known.
-                    RunEmitter.Line(this.code, 0, "#if NET8_0_OR_GREATER");
+                    RunEmitter.Line(this.code, 0, "#if NET10_0_OR_GREATER");
                     this.Line("if (end >= 0)");
                     this.Line("{");
                     this.Line("    st.Steps = steps;");
@@ -1457,6 +1457,18 @@ internal static class TreeEmitter
             return true;
         }
 
+        /// <summary>The runtime's search for strings by their fingerprints: held in a static field, and called from a method of its own, never from the generic find directly, where the JIT gave it nearly twice its time (aei over Sherlock: 57 us from the find, 30 from the method; the probe of 2026-10-20).</summary>
+        private static void StringSearch(StringBuilder statics, int indent, string name, IEnumerable<string> literals, bool ignoreCase)
+        {
+            RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> " + name + " = global::System.Buffers.SearchValues.Create(new string[] { " + string.Join(", ", literals.Select(Str)) + " }, global::System.StringComparison." + (ignoreCase ? "OrdinalIgnoreCase" : "Ordinal") + ");");
+            statics.AppendLine();
+            RunEmitter.Line(statics, indent, "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
+            RunEmitter.Line(statics, indent, "private static int Find" + name + "(global::System.ReadOnlySpan<char> s) => global::System.MemoryExtensions.IndexOfAny(s, " + name + ");");
+        }
+
+        /// <summary>The call of the search a <see cref="StringSearch"/> declared: the index in the span, or -1.</summary>
+        private static string StringSearchCall(string name, string span) => "Find" + name + "(" + span + ")";
+
         /// <summary>A call of a span extension by its static name: the generated file has no using directive for System.</summary>
         private static string Call(string method, string span, string args) => "global::System.MemoryExtensions." + method + "(" + span + (args.Length > 0 ? ", " + args : string.Empty) + ")";
 
@@ -1494,7 +1506,7 @@ internal static class TreeEmitter
 
         private static void Head(StringBuilder find, int indent)
         {
-            RunEmitter.Line(find, 0, "#if NET8_0_OR_GREATER");
+            RunEmitter.Line(find, 0, "#if NET10_0_OR_GREATER");
             RunEmitter.Line(find, indent, "/// <summary>The search for starts, as code.</summary>");
             RunEmitter.Line(find, indent, "/// <remarks>The end is the match's where the search verified an alternative of a literal alternation, else -1.</remarks>");
             RunEmitter.Line(find, indent, "private static bool Find<TUnit, TEncoding>(" + Ns + "Program p, " + Ns + "MatchState st, global::System.ReadOnlySpan<TUnit> input, ref " + Ns + "CandidateScan scan, out int start, out int end)");
@@ -1538,10 +1550,10 @@ internal static class TreeEmitter
                     string[] heads = literals.Select((l, k) => l.Substring(0, prefixes[k])).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
                     int minHead = heads.Min(h => h.Length);
                     string name = "F" + Math.Abs(string.Join("|", heads).GetHashCode()).ToString(CultureInfo.InvariantCulture);
-                    RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> " + name + " = global::System.Buffers.SearchValues.Create(new string[] { " + string.Join(", ", heads.Select(Str)) + " }, global::System.StringComparison.OrdinalIgnoreCase);");
+                    StringSearch(statics, indent, name, heads, ignoreCase: true);
                     RunEmitter.Line(find, i1, "if (typeof(TUnit) == typeof(char))");
                     RunEmitter.Line(find, i1, "{");
-                    RunEmitter.Line(find, i1 + 1, "i = pos <= len - " + minHead + " ? " + Call("IndexOfAny", Chars + ".Slice(pos)", name) + " : -1;");
+                    RunEmitter.Line(find, i1 + 1, "i = pos <= len - " + minHead + " ? " + StringSearchCall(name, Chars + ".Slice(pos)") + " : -1;");
                     RunEmitter.Line(find, i1 + 1, "i = i < 0 ? -1 : pos + i;");
                     RunEmitter.Line(find, i1, "}");
                     RunEmitter.Line(find, i1, "else");
@@ -1660,11 +1672,11 @@ internal static class TreeEmitter
             if (firsts.Count > 3)
             {
                 string name = "F" + Math.Abs(string.Join("|", literals).GetHashCode()).ToString(CultureInfo.InvariantCulture);
-                RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> " + name + " = global::System.Buffers.SearchValues.Create(new string[] { " + string.Join(", ", literals.Select(Str)) + " }, global::System.StringComparison.Ordinal);");
+                StringSearch(statics, indent, name, literals, ignoreCase: false);
                 RunEmitter.Line(find, i2, "int i;");
                 RunEmitter.Line(find, i2, "if (typeof(TUnit) == typeof(char))");
                 RunEmitter.Line(find, i2, "{");
-                RunEmitter.Line(find, i2 + 1, "i = " + Call("IndexOfAny", Chars + ".Slice(pos)", name) + ";");
+                RunEmitter.Line(find, i2 + 1, "i = " + StringSearchCall(name, Chars + ".Slice(pos)") + ";");
                 RunEmitter.Line(find, i2, "}");
                 RunEmitter.Line(find, i2, "else");
                 RunEmitter.Line(find, i2, "{");
@@ -1817,7 +1829,7 @@ internal static class TreeEmitter
                 if (p.RequiredUtf16Needle is { PrefersStringSearch: true })
                 {
                     // Common letters at both ends: the runtime's fingerprint search, held in a static field.
-                    RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> P0 = global::System.Buffers.SearchValues.Create(new string[] { " + Str(literal) + " }, global::System.StringComparison.Ordinal);");
+                    StringSearch(statics, indent, "P0", [literal], ignoreCase: false);
                     method16 = "IndexOfAny";
                     args16 = "P0";
                 }
@@ -1838,7 +1850,7 @@ internal static class TreeEmitter
                 else
                 {
                     RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
-                    RunEmitter.Line(find, i2 + 1, "? " + Call(method16, Chars + ".Slice(pos + offset)", args16));
+                    RunEmitter.Line(find, i2 + 1, "? " + (method16 == "IndexOfAny" ? StringSearchCall(args16, Chars + ".Slice(pos + offset)") : Call(method16, Chars + ".Slice(pos + offset)", args16)));
                     RunEmitter.Line(find, i2 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(pos + offset)", args8) + ";");
                     RunEmitter.Line(find, i2, "if (i < 0)");
                     RunEmitter.Line(find, i2, "{");
@@ -1913,10 +1925,10 @@ internal static class TreeEmitter
             {
                 // Every form ASCII: the runtime's search ignoring case knows them all.
                 string literal = new(p.CaseForms.Select(f => (char)f[0]).ToArray());
-                RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> C0 = global::System.Buffers.SearchValues.Create(new string[] { " + Str(literal) + " }, global::System.StringComparison.OrdinalIgnoreCase);");
+                StringSearch(statics, indent, "C0", [literal], ignoreCase: true);
                 RunEmitter.Line(find, i1, "if (typeof(TUnit) == typeof(char))");
                 RunEmitter.Line(find, i1, "{");
-                RunEmitter.Line(find, i1 + 1, "i = pos <= len - " + literal.Length + " ? " + Call("IndexOfAny", Chars + ".Slice(pos)", "C0") + " : -1;");
+                RunEmitter.Line(find, i1 + 1, "i = pos <= len - " + literal.Length + " ? " + StringSearchCall("C0", Chars + ".Slice(pos)") + " : -1;");
                 RunEmitter.Line(find, i1 + 1, "i = i < 0 ? -1 : pos + i;");
                 RunEmitter.Line(find, i1, "}");
                 RunEmitter.Line(find, i1, "else");
@@ -2015,13 +2027,13 @@ internal static class TreeEmitter
             if (p.Utf16PrefixNeedle is { PrefersStringSearch: true })
             {
                 // Common letters at both ends: the runtime's fingerprint search, held in a static field.
-                RunEmitter.Line(statics, indent, "private static readonly global::System.Buffers.SearchValues<string> P0 = global::System.Buffers.SearchValues.Create(new string[] { " + Str(literal) + " }, global::System.StringComparison.Ordinal);");
+                StringSearch(statics, indent, "P0", [literal], ignoreCase: false);
                 method16 = "IndexOfAny";
                 args16 = "P0";
             }
 
             RunEmitter.Line(find, i1, "int i = typeof(TUnit) == typeof(char)");
-            RunEmitter.Line(find, i1 + 1, "? " + Call(method16, Chars + ".Slice(pos)", args16));
+            RunEmitter.Line(find, i1 + 1, "? " + (method16 == "IndexOfAny" ? StringSearchCall(args16, Chars + ".Slice(pos)") : Call(method16, Chars + ".Slice(pos)", args16)));
             RunEmitter.Line(find, i1 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(pos)", args8) + ";");
             RunEmitter.Line(find, i1, "if (i < 0 || len - (pos + i) < p.Need)");
             RunEmitter.Line(find, i1, "{");

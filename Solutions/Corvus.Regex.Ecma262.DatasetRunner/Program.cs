@@ -31,7 +31,7 @@ long right = 0, wrong = 0, refusedValid = 0, acceptedInvalid = 0, limited = 0, e
 ConcurrentQueue<string> wrongCases = new();
 Stopwatch clock = Stopwatch.StartNew();
 
-foreach (string file in Directory.GetFiles(directory, filter).Order(StringComparer.Ordinal))
+foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, StringComparer.Ordinal))
 {
     string name = Path.GetFileName(file);
     long fileRight = 0, fileWrong = 0, fileRefused = 0, fileAccepted = 0, fileLimited = 0;
@@ -159,7 +159,7 @@ foreach (string file in Directory.GetFiles(directory, filter).Order(StringCompar
     Console.WriteLine($"{name,-24} right {fileRight,10:N0}  wrong {fileWrong,6:N0}  refused-valid {fileRefused,4}  accepted-invalid {fileAccepted,4}  limit {fileLimited,4}  {clock.Elapsed:mm\\:ss}");
 }
 
-File.WriteAllLines(wrongPath, wrongCases.Order(StringComparer.Ordinal));
+File.WriteAllLines(wrongPath, wrongCases.OrderBy(c => c, StringComparer.Ordinal));
 Console.WriteLine();
 Console.WriteLine($"records {records:N0} (skipped {skipped} deviations)  right {right:N0}  wrong {wrong:N0}  refused-valid {refusedValid}  accepted-invalid {acceptedInvalid}  limit {limited}  errors {errors}  in {clock.Elapsed}");
 return wrong + refusedValid + acceptedInvalid + errors == 0 ? 0 : 1;

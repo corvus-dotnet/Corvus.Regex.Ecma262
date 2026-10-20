@@ -88,7 +88,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Corvus.Regex.Ecma262.SourceGenerator\Corvus.Regex.Ecma262.SourceGenerator.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
     <None Include="..\Corvus.Regex.Ecma262.SourceGenerator\bin\$(Configuration)\netstandard2.0\Corvus.Regex.Ecma262.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-    <None Include="$(NuGetPackageRoot)system.memory\4.6.3\lib\netstandard2.0\System.Memory.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <!-- The package root with its slash made sure of (on CI it has none) and the version Directory.Packages.props pins; the path property restore writes is empty in the outer build that packs. -->
+    <None Include="$([MSBuild]::EnsureTrailingSlash('$(NuGetPackageRoot)'))system.memory/$(SystemMemoryVersion)/lib/netstandard2.0/System.Memory.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>

@@ -42,3 +42,32 @@ jobs:
       with:
         name: wrong-cases
         path: wrong-cases.tsv
+
+  dataset-net481:
+    # The same data over the netstandard2.0 build of the library, on .NET Framework 4.8.1: the plain paths the modern
+    # build never takes.
+    name: ECMA-262 test data (net481)
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        repository: corvus-dotnet/ecma262-regex-test-data
+        ref: 41ed6db477c0d57192673a3a1a76a3b7a194603b
+        path: ecma262-regex-test-data
+        persist-credentials: false
+    - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+      with:
+        global-json-file: global.json
+    - name: Build the runner
+      run: dotnet build Solutions/Corvus.Regex.Ecma262.DatasetRunner/Corvus.Regex.Ecma262.DatasetRunner.csproj -c Release -f net481
+    - name: Run the data
+      run: ./Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net481/Corvus.Regex.Ecma262.DatasetRunner.exe ecma262-regex-test-data/data wrong-cases-net481.tsv
+    - name: Keep the wrong cases
+      if: failure()
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: wrong-cases-net481
+        path: wrong-cases-net481.tsv

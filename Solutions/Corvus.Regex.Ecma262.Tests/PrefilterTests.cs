@@ -281,7 +281,11 @@ public class PrefilterTests
             // (\b is not the same in .NET, whose word characters take every script, so it is not compared here.)
         })
         {
+#if NETFRAMEWORK
+            int expected = System.Text.RegularExpressions.Regex.Matches(text, netPattern, options).Count;
+#else
             int expected = System.Text.RegularExpressions.Regex.Count(text, netPattern, options);
+#endif
             Regex r = new(pattern, flags);
             Assert.AreEqual(expected, r.Count(text), pattern + " UTF-16");
             Assert.AreEqual(expected, r.Count(utf8), pattern + " UTF-8");

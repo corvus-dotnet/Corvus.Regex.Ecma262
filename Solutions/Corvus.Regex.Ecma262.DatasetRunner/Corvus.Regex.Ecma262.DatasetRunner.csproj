@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- net481 runs the data over the netstandard2.0 build of the library, on Windows (dataset.yml). -->
+    <TargetFrameworks>net10.0;net481</TargetFrameworks>
     <RootNamespace>Corvus.Ecma262.RegularExpressions.DatasetRunner</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
@@ -14,7 +15,21 @@
     <ProjectReference Include="..\Corvus.Regex.Ecma262.SourceGenerator\Corvus.Regex.Ecma262.SourceGenerator.csproj" Aliases="Gen" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <PackageReference Include="System.Memory" />
+    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="PolySharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
   <PropertyGroup>
     <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3243;MSB3277</MSBuildWarningsAsMessages>
   </PropertyGroup>
+  <!-- The generator's output carries its own System.Memory beside it (for a .NET Framework build host); referenced as a library on net481 that copy would be a second System.Memory beside the package's, and every ReadOnlySpan in the library's signatures would then be a different type from the test's. The package's is kept. -->
+  <Target Name="DropTheGeneratorsSystemMemory" AfterTargets="ResolveAssemblyReferences" Condition="'$(TargetFramework)' == 'net481'">
+    <ItemGroup>
+      <ReferencePath Remove="@(ReferencePath)" Condition="'%(Filename)' == 'System.Memory' and $([System.String]::new('%(FullPath)').Replace('\', '/').Contains('/netstandard2.0/'))" />
+    </ItemGroup>
+  </Target>
 </Project>

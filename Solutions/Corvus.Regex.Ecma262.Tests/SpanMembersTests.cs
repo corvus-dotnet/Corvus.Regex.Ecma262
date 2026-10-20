@@ -101,7 +101,7 @@ public class SpanMembersTests
 
         ArrayBufferWriter<byte> writer8 = new();
         r.Replace(utf8, Encoding.UTF8.GetBytes(replacement), writer8);
-        Assert.AreEqual(expected, Encoding.UTF8.GetString(writer8.WrittenSpan), "UTF-8 writer");
+        Assert.AreEqual(expected, Encoding.UTF8.GetString(writer8.WrittenSpan.ToArray()), "UTF-8 writer");
 
         Assert.IsFalse(r.TryReplace(Lorem.AsSpan(), replacement.AsSpan(), buffer.AsSpan(0, 3), out _), "too short");
     }
@@ -137,7 +137,7 @@ public class SpanMembersTests
             input.Slice(captures[1].Index, captures[1].Length).CopyTo(span.Slice(second.Length + 1));
             destination.Advance(second.Length + 1 + captures[1].Length);
         }, writer8);
-        Assert.AreEqual(expected, Encoding.UTF8.GetString(writer8.WrittenSpan));
+        Assert.AreEqual(expected, Encoding.UTF8.GetString(writer8.WrittenSpan.ToArray()));
     }
 
     [TestMethod]

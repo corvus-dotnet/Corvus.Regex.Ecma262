@@ -1,6 +1,7 @@
 <Project Sdk="MSTest.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <!-- net481 runs the same tests against the netstandard2.0 build of the library (and the generated code's plain paths); the compile phase builds it on Linux from the reference assemblies, and the test phase runs it on Windows. -->
+    <TargetFrameworks>net10.0;net481</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Corvus.Ecma262.RegularExpressions.SourceGenerator.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
@@ -15,4 +16,17 @@
     <ProjectReference Include="..\Corvus.Regex.Ecma262.SourceGenerator\Corvus.Regex.Ecma262.SourceGenerator.csproj" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <PackageReference Include="System.Memory" />
+    <PackageReference Include="PolySharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <!-- The generator's output carries its own System.Memory beside it (for a .NET Framework build host); referenced as a library on net481 that copy would be a second System.Memory beside the package's, and every ReadOnlySpan in the library's signatures would then be a different type from the test's. The package's is kept. -->
+  <Target Name="DropTheGeneratorsSystemMemory" AfterTargets="ResolveAssemblyReferences" Condition="'$(TargetFramework)' == 'net481'">
+    <ItemGroup>
+      <ReferencePath Remove="@(ReferencePath)" Condition="'%(Filename)' == 'System.Memory' and $([System.String]::new('%(FullPath)').Replace('\', '/').Contains('/netstandard2.0/'))" />
+    </ItemGroup>
+  </Target>
 </Project>

@@ -2,7 +2,8 @@
   <PropertyGroup>
     <!-- The generator is built for netstandard2.0 and carries System.Memory 4.x; the test runs on the runtime's. -->
     <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3243;MSB3277</MSBuildWarningsAsMessages>
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <!-- net481 runs the same tests against the netstandard2.0 build of the library (and the generated code's plain paths); the compile phase builds it on Linux from the reference assemblies, and the test phase runs it on Windows. -->
+    <TargetFrameworks>net10.0;net481</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Corvus.Ecma262.RegularExpressions.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
@@ -17,4 +18,17 @@
     <ProjectReference Include="..\Corvus.Regex.Ecma262.SourceGenerator\Corvus.Regex.Ecma262.SourceGenerator.csproj" Aliases="Gen" SetTargetFramework="TargetFramework=netstandard2.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <PackageReference Include="System.Memory" />
+    <PackageReference Include="PolySharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <!-- The generator's output carries its own System.Memory beside it (for a .NET Framework build host); referenced as a library on net481 that copy would be a second System.Memory beside the package's, and every ReadOnlySpan in the library's signatures would then be a different type from the test's. The package's is kept. -->
+  <Target Name="DropTheGeneratorsSystemMemory" AfterTargets="ResolveAssemblyReferences" Condition="'$(TargetFramework)' == 'net481'">
+    <ItemGroup>
+      <ReferencePath Remove="@(ReferencePath)" Condition="'%(Filename)' == 'System.Memory' and $([System.String]::new('%(FullPath)').Replace('\', '/').Contains('/netstandard2.0/'))" />
+    </ItemGroup>
+  </Target>
 </Project>

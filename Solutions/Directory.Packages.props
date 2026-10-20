@@ -1,11 +1,14 @@
 <Project>
   <PropertyGroup>
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+    <!-- Named, because the library packs this version's assembly beside the generator (Corvus.Regex.Ecma262.csproj). -->
+    <SystemMemoryVersion>4.6.3</SystemMemoryVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Endjin.RecommendedPractices.GitHub" Version="2.1.18" />
     <PackageVersion Include="PolySharp" Version="1.15.0" />
-    <PackageVersion Include="System.Memory" Version="4.6.3" />
+    <PackageVersion Include="System.Memory" Version="$(SystemMemoryVersion)" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.0" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
   </ItemGroup>
