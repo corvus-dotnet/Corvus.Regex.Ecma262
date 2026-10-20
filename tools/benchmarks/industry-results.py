@@ -88,7 +88,7 @@ data = {
         "title": "Corvus.Regex.Ecma262: the Industry benchmarks",
         "lede": "Five engines over the Industry workloads of dotnet/performance: .NET's interpreter and source generator, and this library's interpreter and source generator over UTF-16 and over UTF-8. Pick the engines to compare and the figure to compare them on; every view below follows.",
         "repo": "corvus-dotnet/Corvus.Regex.Ecma262",
-        "commit": commit,
+        "commit": commit, "icon": "/assets/images/favicon.svg",
         "date": date,
         "runUrl": "",
         "runs": 0,
