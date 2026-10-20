@@ -68,14 +68,20 @@ its platform's competitors on one runner, and **publishes the run as data**, not
   "not ECMA-262"); `schemas` are the Industry workload ids, the same names in every repository (the list comes from
   one place, `workloads.py`); `measures.time` is nanoseconds per `Count`.
 
-One repository, `corvus-regex-ecma262-benchmarks`, builds the page. Its manifest lists the sources (each engine
-repository's `latest.json` URL); its daily workflow, scheduled after the engines' runs, fetches every source, merges
-them into one data file (implementations grouped by language, V8 once, every workload matched by id), writes the
-page with each source's commit, time and runner in the header, and publishes it to
-`corvus-oss.org/regex-benchmarks/` with the merged data of the day kept. The page says plainly that the runs come
-from different runners on different nights, so a figure across languages is a guide and a figure within a language
-is a measurement; a later step may move every engine onto one runner in this repository's workflow, with the same
-contract, if the cross-language figures are wanted to the last few percent.
+- **A runnable harness**, `tools/benchmarks/run.sh <workloads.json> <texts dir> <out.json>` (or a documented
+  equivalent), that builds the engine and its competitors, runs the Industry workloads, runs the test data for the
+  compliance figures, and writes that data file. The repository's own nightly job calls it; so does the central
+  site.
+
+One repository, `corvus-regex-ecma262-benchmarks`, builds the page, and it builds it from runs it makes itself:
+its nightly job installs every toolchain, checks out each source at its latest release, runs each harness in turn
+on the same runner, and merges the results (implementations grouped by language, V8 once, every workload matched
+by id) into one data file and one page, published at `corvus-oss.org/corvus-regex-ecma262-benchmarks/` with the
+day's merged data kept. Within a run every figure is comparable, because every engine ran on the same machine in
+the same hour; the runner changes from night to night, which the kept daily files show, and V8 in every harness
+(the same Node) gives a figure read across two nights a common reference. The sources' own `latest.json` files are
+each repository's view for its own readers and a fallback the central site can show, marked as foreign, when a
+harness fails to run.
 
 Until an engine publishes, it has no row; the page gains a row the night after a repository's first run. The .NET
 repository conforms by writing `latest.json` beside what it publishes today, and its own page becomes a link to the
