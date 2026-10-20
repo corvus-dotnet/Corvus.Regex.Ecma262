@@ -57,7 +57,7 @@ jobs:
     - name: Write the record and the page
       run: |
         job='${{ github.event.inputs.job || 'default' }}'
-        python3 tools/benchmarks/industry-results.py --run run --commit "${GITHUB_SHA::7}" --date "$(date -u +%F)" --v8 v8.json --host ci --job "$job" --out-dir out --base-path /Corvus.Regex.Ecma262 --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+        python3 tools/benchmarks/industry-results.py --run run --commit "${GITHUB_SHA::7}" --date "$(date -u +%FT%TZ)" --v8 v8.json --host ci --job "$job" --out-dir out --base-path /Corvus.Regex.Ecma262 --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
         cp v8.json out/industry-v8.json
         python3 tools/benchmarks/results-page/generate_site.py --data out/industry.json --out out/index.html
         head -12 out/industry.md
