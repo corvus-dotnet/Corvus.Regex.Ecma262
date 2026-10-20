@@ -42,10 +42,11 @@ in its section 10.
   (median 0.49); the exceptions are the two memory-bound literal searches over a 16 MB text, where both engines
   run .NET's span search, and the two CJK searches over UTF-8, where three bytes a character with no rare byte
   cannot be found as fast as one UTF-16 unit.
-- Phase 4 (the source generator's structured code and emitted search, in progress): generated code against
-  .NET's generated code on the same workloads, median 0.86 over UTF-16 (at or below 1.0 on 46 of 57) and 0.58
-  over UTF-8 (51 of 57); see [docs/benchmarks/2026-10-20.md](docs/benchmarks/2026-10-20.md) for the rows above
-  1.0 and why.
+- Phase 4 (the source generator's structured code and emitted search): generated code against .NET's generated
+  code on the same workloads, median 0.86 over UTF-16 (at or below 1.0 on 46 of 57) and 0.58 over UTF-8 (51 of
+  57); see [docs/benchmarks/2026-10-20.md](docs/benchmarks/2026-10-20.md). The three rows left above 1.0 are the
+  cost of the `u` flag the benchmark gives every Corvus row (`.` and CRLF, the long s under `i`, a supplementary
+  character's two units), set out in [the design document](docs/design/design.md#10-phases).
 
 ## Repository structure
 
