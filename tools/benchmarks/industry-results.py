@@ -71,7 +71,7 @@ else:
     FACTS = [["Host", MACHINE or "a CI runner"], ["Runner", "one runner for every engine, not pinned"], ["Runtime", RUNTIME]]
     TITLE_SUFFIX = " (daily CI run)"
     LEDE_TAIL = " This is the run of the day on a GitHub-hosted runner; the pinned record is the reference."
-    LINKS = [{"label": "About these benchmarks", "url": "../../docs/industry.html"}, {"label": "Every day's data", "url": "runs/"}]
+    LINKS = [{"label": "About these benchmarks", "url": "../../docs/industry.html"}, {"label": "Every day's data", "url": "runs/"}, {"label": "Every Corvus engine together", "url": "https://corvus-oss.org/corvus-regex-ecma262-benchmarks/"}]
 U = {"ns": 1, "us": 1e3, "μs": 1e3, "ms": 1e6, "s": 1e9}
 B = {"B": 1, "KB": 1024, "MB": 1024 * 1024}
 
