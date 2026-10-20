@@ -5,8 +5,7 @@ workloads that .NET itself publishes figures for, its interpreter beats .NET's i
 the 57, taking about half the time at the median and under a fifth at the geometric mean; its generated code is at
 or below .NET's generated code on about four workloads in five over UTF-16 and nine in ten over UTF-8, where it takes
 about half the time at the median; and both are far ahead of V8, which takes six times longer at the median. The
-exact figures are [the daily run's page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/), every engine
-measured on one runner each night.
+exact figures are on [the benchmark page](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/), every engine measured on one runner each night.
 
 The library is measured against `System.Text.RegularExpressions` and against V8 on the Industry workload set of
 [dotnet/performance](https://github.com/dotnet/performance) (`Perf.Regex.Industry`): the Sherlock Holmes text and
@@ -16,18 +15,12 @@ improvements in .NET N" posts, so the figures can be read beside theirs.
 
 ## The figures
 
-The figures are published by the daily run, every engine in one job on one GitHub-hosted runner each night, so that
-the figures of a run are comparable with each other:
-
-- **[The results page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/)**: pick the engines and the
-  measure, and read the leaderboard, the matrix of every workload, one workload at a time with its spread, or two
-  engines head to head. Its header says which commit, which run and which runner.
-- **[Every day's data](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/runs/)**: the page's data file for
-  each day, named by date and commit, so a change can be read against the days before it.
-
-- **[Every Corvus engine together](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/)**: this library beside the Corvus ECMA-262 engines for the other languages
-  and their platforms' engines, each run from its published image on the same runner each night, with each engine's
-  ECMA-262 compliance beside its name.
+The figures are on one page, [corvus-oss.org/corvus-regex-ecma262-benchmarks](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/). Each night it runs every Corvus
+ECMA-262 engine's published harness image, this library's among them, one after another on one runner, so every
+figure on it was measured on the same machine in the same hour. Pick the engines and the measure, and read the
+leaderboard, the matrix of every workload, one workload at a time with its spread, or two engines head to head.
+Each engine's ECMA-262 compliance is beside its name, its header says which release of each engine ran, and every
+day's data is kept.
 
 No figure is repeated here: a table in a document goes stale the night after it is written, and the page does not.
 
@@ -88,5 +81,6 @@ A run whose figures are to be compared with the page follows the pinned-host pro
 [design document](../design/design.md) (section 9): the machine pinned to its performance cores, a settle after the
 last build, nothing else running, the run under `taskset`. `tools/benchmarks/industry-results.py` then writes a
 page's data and table from the run's artifacts (`--host pinned`, with the probe readings), and
-`tools/benchmarks/results-page/generate_site.py` renders the page; the daily workflow (`.github/workflows/benchmarks.yml`)
-is the same two steps on the runner.
+`tools/benchmarks/results-page/generate_site.py` renders the page. `tools/benchmarks/run.sh` is the same steps as
+one script, and the harness image (`Dockerfile`, published by `.github/workflows/harness-image.yml`) runs it; that
+image is what the benchmark page runs each night.

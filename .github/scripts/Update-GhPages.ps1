@@ -14,9 +14,8 @@
     Run it from a checkout of the repository whose 'origin' can push (actions/checkout leaves it so).
 
 .PARAMETER Mode
-    Site replaces the site at the root of the branch and keeps the previews and the daily benchmark runs. Preview
-    replaces one pull request's preview. RemovePreview removes one pull request's preview. Benchmarks replaces the
-    daily benchmark run's page (benchmarks/ci/) and adds the run's data file to benchmarks/ci/runs/, keeping the rest.
+    Site replaces the site at the root of the branch and keeps the previews. Preview replaces one pull request's
+    preview. RemovePreview removes one pull request's preview.
 
 .PARAMETER Source
     The directory holding the built site (Site and Preview).
@@ -41,14 +40,12 @@
 #>
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory)][ValidateSet('Site', 'Preview', 'RemovePreview', 'Benchmarks')][string] $Mode,
+    [Parameter(Mandatory)][ValidateSet('Site', 'Preview', 'RemovePreview')][string] $Mode,
     [string] $Source,
     [int] $PullRequest,
     [AllowEmptyString()][string] $OpenPullRequests,
     [string] $Branch = 'gh-pages',
     [string] $PreviewDirectory = 'pr-preview',
-    [string] $BenchmarksDirectory = 'benchmarks/ci',
-    [string] $RunName,
     [string] $Remote = 'origin',
     [int] $MaxAttempts = 6
 )
@@ -62,7 +59,6 @@ if ($Mode -ne 'RemovePreview') {
     if (@(Get-ChildItem -Force $Source).Count -eq 0) { throw "The site directory '$Source' is empty." }
 }
 if ($Mode -in 'Preview', 'RemovePreview' -and $PullRequest -le 0) { throw "Mode $Mode needs -PullRequest." }
-if ($Mode -eq 'Benchmarks' -and !$RunName) { throw 'Mode Benchmarks needs -RunName, the name of the run (its date and commit).' }
 if ($PSBoundParameters.ContainsKey('OpenPullRequests') -and $OpenPullRequests -notmatch '^[\d,\s]*$') {
     throw "-OpenPullRequests must be numbers separated by commas or spaces, not '$OpenPullRequests'."
 }
@@ -79,7 +75,6 @@ $message = switch ($Mode) {
     'Site' { 'Deploy the documentation site' }
     'Preview' { "Deploy the preview of pull request $PullRequest" }
     'RemovePreview' { "Remove the preview of pull request $PullRequest" }
-    'Benchmarks' { "Publish the benchmark run $RunName" }
 }
 
 for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
@@ -101,38 +96,9 @@ for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
         $previews = Join-Path $worktree $PreviewDirectory
         switch ($Mode) {
             'Site' {
-                # The daily benchmark runs live under the site's benchmarks directory and are kept through a deployment.
-                $ci = Join-Path $worktree $BenchmarksDirectory
-                $kept = if (Test-Path $ci) { $held = Join-Path ([IO.Path]::GetTempPath()) "gh-pages-ci-$([Guid]::NewGuid().ToString('N'))"; Move-Item $ci $held; $held } else { $null }
                 Get-ChildItem -Force $worktree | Where-Object { $_.Name -ne '.git' -and $_.Name -ne $PreviewDirectory } | Remove-Item -Recurse -Force
                 Copy-Item -Path (Join-Path $Source '*') -Destination $worktree -Recurse -Force
                 Get-ChildItem -Force $Source -Filter '.*' -File | Copy-Item -Destination $worktree -Force
-                if ($kept) { New-Item -ItemType Directory -Force (Split-Path $ci) | Out-Null; Move-Item $kept $ci }
-            }
-            'Benchmarks' {
-                $ci = Join-Path $worktree $BenchmarksDirectory
-                $runs = Join-Path $ci 'runs'
-                New-Item -ItemType Directory -Force $runs | Out-Null
-                Get-ChildItem -Force $ci | Where-Object Name -ne 'runs' | Remove-Item -Recurse -Force
-                Copy-Item -Path (Join-Path $Source '*') -Destination $ci -Recurse -Force
-                $data = Join-Path $Source 'industry.json'
-                if (Test-Path $data) {
-                    Copy-Item $data (Join-Path $runs "$RunName.json") -Force
-                    # The results contract: the latest run as data at benchmarks/latest.json, for the central page to fetch.
-                    Copy-Item $data (Join-Path (Split-Path $ci) 'latest.json') -Force
-                }
-                # Pages lists no directory, so the runs get an index: newest first, one line each.
-                $items = Get-ChildItem $runs -Filter '*.json' | Sort-Object Name -Descending | ForEach-Object {
-                    "<li><a href=`"$($_.Name)`">$($_.BaseName)</a> <span>$([math]::Round($_.Length / 1024)) KB</span></li>"
-                }
-                $index = @(
-                    '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-                    '<title>Daily benchmark runs</title>'
-                    '<style>body{font:16px/1.5 system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}li{margin:.25rem 0}span{color:#666;margin-left:.5rem;font-size:.9em}</style></head>'
-                    '<body><h1>Daily benchmark runs</h1><p>The data of each day''s run of the Industry benchmarks, every engine on one runner, newest first; each file is the results page''s data for that day (date and commit in the name). <a href="../">The latest run''s page</a>.</p>'
-                    "<ul>$($items -join '')</ul></body></html>"
-                ) -join "`n"
-                [IO.File]::WriteAllText((Join-Path $runs 'index.html'), $index)
             }
             'Preview' {
                 $target = Join-Path $previews "pr-$PullRequest"

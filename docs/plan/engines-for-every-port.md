@@ -60,41 +60,32 @@ The shape of this repository, cut down to the engine:
 - **Release**: the port's existing release path (crates.io, Maven Central, Go modules, the Julia registry, PyPI,
   opam), the same CI shape as here, a tag per release.
 
-## 3. Publishing results, and the one page that shows them
+## 3. One benchmark page, and the images that feed it
 
-An engine repository is not responsible for a benchmark site. Its nightly benchmarks workflow runs its engines and
-its platform's competitors on one runner, and **publishes the run as data**, nothing else, to its own `gh-pages`:
+There is one page of benchmark figures, the central benchmark site at `corvus-oss.org/corvus-regex-ecma262-benchmarks/`
+(repository `corvus-regex-ecma262-benchmarks`). An engine repository publishes no page and no results of its own; it
+publishes **a harness image**, and the central site runs it.
 
-- `benchmarks/latest.json`: the run, in the results-page data shape (the `corvus-benchmark-results-page` skill:
-  `meta`, `impls`, `schemas`, `measures`, `results`), and `benchmarks/runs/<date>-<commit>.json`, the same file
-  kept per day.
-- `meta` carries the repository, the commit, the run's time, the runner and the host as the harness recorded them
-  (never typed in), the workflow run's URL, and the engine versions; `impls` are the repository's engines, the
+- **The harness**, `tools/benchmarks/run.sh <workloads.json> <texts dir> <out.json>`, builds the engine and its
+  platform's competitors, runs the Industry workloads, runs the ECMA-262 test data for the compliance figures, and
+  writes one data file in the results-page shape (the `corvus-benchmark-results-page` skill: `meta`, `impls`,
+  `schemas`, `measures`, `results`). `meta` carries the repository, the commit, the run's time and the host as the
+  harness recorded them (never typed in), and the engine versions; `impls` are the repository's engines, the
   platform's competitors and V8, each with its `group` (the language) and its compliance (the counts, or
-  "not ECMA-262"); `schemas` are the Industry workload ids, the same names in every repository (the list comes from
-  one place, `workloads.py`); `measures.time` is nanoseconds per `Count`.
-
-- **A runnable harness**, `tools/benchmarks/run.sh <workloads.json> <texts dir> <out.json>`, that builds the
-  engine and its competitors, runs the Industry workloads, runs the test data for the compliance figures, and
-  writes that data file; and **a published container image** with the harness as its entry point,
-  `ghcr.io/corvus-dotnet/corvus-regex-ecma262-<lang>:<version>` (and `:latest`), built by the repository's
-  release workflow, so that a run needs no toolchain on the host:
+  "not ECMA-262"); `schemas` are the Industry workload ids, the same in every repository (the list comes from one
+  place, `workloads.py`); `measures.time` is nanoseconds per `Count`.
+- **The image**, `ghcr.io/corvus-dotnet/corvus-regex-ecma262-<lang>`, has the harness as its entry point:
   `docker run --rm -v <workloads.json>:/workloads.json:ro -v <texts>:/texts:ro -v <out>:/out <image>` writes
-  `/out/industry.json`. The repository's own nightly job runs the same image.
+  `/out/industry.json`. The repository's workflow builds it on every push to main and every release, smoke-runs it
+  on two workloads, and publishes `:latest` from main and the version tag from a release.
 
-One repository, `corvus-regex-ecma262-benchmarks`, builds the page, and it builds it from runs it makes itself:
-its nightly job pulls each source's image at its latest release, runs each in turn on the same runner (the
-same CPU and kernel for every engine; the image only carries the engine's own toolchain), and merges the results (implementations grouped by language, V8 once, every workload matched
-by id) into one data file and one page, published at `corvus-oss.org/corvus-regex-ecma262-benchmarks/` with the
-day's merged data kept. Within a run every figure is comparable, because every engine ran on the same machine in
-the same hour; the runner changes from night to night, which the kept daily files show, and V8 in every harness
-(the same Node) gives a figure read across two nights a common reference. The sources' own `latest.json` files are
-each repository's view for its own readers and a fallback the central site can show, marked as foreign, when a
-harness fails to run.
-
-Until an engine publishes, it has no row; the page gains a row the night after a repository's first run. The .NET
-repository conforms by writing `latest.json` beside what it publishes today, and its own page becomes a link to the
-central one once that exists.
+The central site's nightly job pulls each engine's image at its latest release, runs each in turn on the same
+runner (the same CPU and kernel for every engine; the image only carries the engine's own toolchain), and merges the
+results (implementations grouped by language, V8 once, every workload matched by id) into one data file and one
+page, with each day's merged data kept. Every figure on the page was measured on the same machine in the same hour;
+the runner changes from night to night, which the kept daily files show, and V8 in every harness (the same Node)
+gives a figure read across two nights a common reference. An engine whose image does not run is shown as "not run
+tonight", never filled in from a run elsewhere. An engine has no row until its image is published.
 
 ## 4. Order, and the gate at each step
 
