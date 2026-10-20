@@ -54,23 +54,39 @@ The shape of this repository, cut down to the engine:
 - **Release**: the port's existing release path (crates.io, Maven Central, Go modules, the Julia registry, PyPI,
   opam), the same CI shape as here, a tag per release.
 
-## 3. The central benchmark
+## 3. Publishing results, and the one page that shows them
 
-One repository, `corvus-regex-ecma262-benchmarks`, holds the Industry workload definitions and the texts, and one
-workflow job on one GitHub-hosted runner builds and runs **every** engine and competitor (each language's toolchain
-installed in that job) each night, so that the figures of a run are comparable across languages as well as within
-one. It writes one results page (the implementations grouped by language, which the page already does) to
-`corvus-oss.org/regex-benchmarks/`, keeping each day's data. Figures across languages on one runner are the only
-cross-language figures published; the per-repository pages compare an engine with its own platform's.
+An engine repository is not responsible for a benchmark site. Its nightly benchmarks workflow runs its engines and
+its platform's competitors on one runner, and **publishes the run as data**, nothing else, to its own `gh-pages`:
 
-Until an engine is published, its row is absent; the page gains a row per release.
+- `benchmarks/latest.json`: the run, in the results-page data shape (the `corvus-benchmark-results-page` skill:
+  `meta`, `impls`, `schemas`, `measures`, `results`), and `benchmarks/runs/<date>-<commit>.json`, the same file
+  kept per day.
+- `meta` carries the repository, the commit, the run's time, the runner and the host as the harness recorded them
+  (never typed in), the workflow run's URL, and the engine versions; `impls` are the repository's engines, the
+  platform's competitors and V8, each with its `group` (the language) and its compliance (the counts, or
+  "not ECMA-262"); `schemas` are the Industry workload ids, the same names in every repository (the list comes from
+  one place, `workloads.py`); `measures.time` is nanoseconds per `Count`.
+
+One repository, `corvus-regex-ecma262-benchmarks`, builds the page. Its manifest lists the sources (each engine
+repository's `latest.json` URL); its daily workflow, scheduled after the engines' runs, fetches every source, merges
+them into one data file (implementations grouped by language, V8 once, every workload matched by id), writes the
+page with each source's commit, time and runner in the header, and publishes it to
+`corvus-oss.org/regex-benchmarks/` with the merged data of the day kept. The page says plainly that the runs come
+from different runners on different nights, so a figure across languages is a guide and a figure within a language
+is a measurement; a later step may move every engine onto one runner in this repository's workflow, with the same
+contract, if the cross-language figures are wanted to the last few percent.
+
+Until an engine publishes, it has no row; the page gains a row the night after a repository's first run. The .NET
+repository conforms by writing `latest.json` beside what it publishes today, and its own page becomes a link to the
+central one once that exists.
 
 ## 4. Order, and the gate at each step
 
 Each step is its own repository, its own pull requests and its own release, in this order, one at a time:
 
-0. **This plan**, and the central benchmark repository with the workloads, the texts, the results page, and the two
-   engines that exist (.NET and V8) on it.
+0. **This plan**, the results contract above, and the central benchmark repository building the page from the
+   sources that exist (the .NET repository's run, with V8 on it).
 1. **Rust.** The highest return: the C ABI crate is the engine under Ruby, PHP, Swift, R and Fortran, and can be
    under Python. The search layer maps onto what Rust already has (`memchr::memmem` is the rarest-byte needle,
    `aho-corasick`'s packed search is the fingerprint search), so this is adoption as much as porting; the
@@ -97,8 +113,6 @@ of section 4.
 
 Yours:
 
-- The central benchmark's home and name (`corvus-regex-ecma262-benchmarks`, published at
-  `corvus-oss.org/regex-benchmarks/`), or inside this repository's site instead.
 - Whether the engines leave the JSON Schema monorepo's history behind (a clean start, the port's history staying
   where it is) or carry it (a filtered history per engine).
 - Whether GraalJS TRegex and goja are worth their weight on the Java and Go benchmarks (each is a large dependency
