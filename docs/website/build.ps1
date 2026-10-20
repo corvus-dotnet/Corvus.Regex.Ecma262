@@ -231,7 +231,6 @@ foreach ($dir in @("content/Docs", "taxonomy/docs", "taxonomy/api")) {
     $dst = Join-Path $siteDir $dir
     if (!(Test-Path $dst)) { New-Item -ItemType Directory -Path $dst -Force | Out-Null }
 }
-Copy-Item (Join-Path $sourceDir "content" "Docs" "Overview.md") (Join-Path $siteDir "content" "Docs" "Overview.md") -Force
 foreach ($sub in @("docs", "api")) {
     Copy-Item (Join-Path $sourceDir "taxonomy" $sub "index.yml") (Join-Path $siteDir "taxonomy" $sub "index.yml") -Force
 }
@@ -283,7 +282,7 @@ $docsSourceDir = Join-Path $repoRoot "docs"
 $docsContentDir = Join-Path $siteDir "content" "Docs"
 $docsTaxonomyDir = Join-Path $siteDir "taxonomy" "docs"
 $descriptorsDir = Join-Path $here "doc-descriptors"
-Get-ChildItem $docsContentDir -Filter "*.md" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "Overview.md" } | Remove-Item -Force
+Get-ChildItem $docsContentDir -Filter "*.md" -ErrorAction SilentlyContinue | Remove-Item -Force
 Get-ChildItem $docsTaxonomyDir -Filter "*.yml" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "index.yml" } | Remove-Item -Force
 
 # The descriptors in order, and a map from each source document's file name to its page, for the links between them.

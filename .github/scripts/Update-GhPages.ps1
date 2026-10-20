@@ -14,8 +14,9 @@
     Run it from a checkout of the repository whose 'origin' can push (actions/checkout leaves it so).
 
 .PARAMETER Mode
-    Site replaces the site at the root of the branch and keeps the previews. Preview replaces one pull request's
-    preview. RemovePreview removes one pull request's preview.
+    Site replaces the site at the root of the branch and keeps the previews and the daily benchmark runs. Preview
+    replaces one pull request's preview. RemovePreview removes one pull request's preview. Benchmarks replaces the
+    daily benchmark run's page (benchmarks/ci/) and adds the run's data file to benchmarks/ci/runs/, keeping the rest.
 
 .PARAMETER Source
     The directory holding the built site (Site and Preview).
@@ -40,12 +41,14 @@
 #>
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory)][ValidateSet('Site', 'Preview', 'RemovePreview')][string] $Mode,
+    [Parameter(Mandatory)][ValidateSet('Site', 'Preview', 'RemovePreview', 'Benchmarks')][string] $Mode,
     [string] $Source,
     [int] $PullRequest,
     [AllowEmptyString()][string] $OpenPullRequests,
     [string] $Branch = 'gh-pages',
     [string] $PreviewDirectory = 'pr-preview',
+    [string] $BenchmarksDirectory = 'benchmarks/ci',
+    [string] $RunName,
     [string] $Remote = 'origin',
     [int] $MaxAttempts = 6
 )
@@ -58,7 +61,8 @@ if ($Mode -ne 'RemovePreview') {
     $Source = (Resolve-Path $Source).Path
     if (@(Get-ChildItem -Force $Source).Count -eq 0) { throw "The site directory '$Source' is empty." }
 }
-if ($Mode -ne 'Site' -and $PullRequest -le 0) { throw "Mode $Mode needs -PullRequest." }
+if ($Mode -in 'Preview', 'RemovePreview' -and $PullRequest -le 0) { throw "Mode $Mode needs -PullRequest." }
+if ($Mode -eq 'Benchmarks' -and !$RunName) { throw 'Mode Benchmarks needs -RunName, the name of the run (its date and commit).' }
 if ($PSBoundParameters.ContainsKey('OpenPullRequests') -and $OpenPullRequests -notmatch '^[\d,\s]*$') {
     throw "-OpenPullRequests must be numbers separated by commas or spaces, not '$OpenPullRequests'."
 }
@@ -75,6 +79,7 @@ $message = switch ($Mode) {
     'Site' { 'Deploy the documentation site' }
     'Preview' { "Deploy the preview of pull request $PullRequest" }
     'RemovePreview' { "Remove the preview of pull request $PullRequest" }
+    'Benchmarks' { "Publish the benchmark run $RunName" }
 }
 
 for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
@@ -96,9 +101,22 @@ for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
         $previews = Join-Path $worktree $PreviewDirectory
         switch ($Mode) {
             'Site' {
+                # The daily benchmark runs live under the site's benchmarks directory and are kept through a deployment.
+                $ci = Join-Path $worktree $BenchmarksDirectory
+                $kept = if (Test-Path $ci) { $held = Join-Path ([IO.Path]::GetTempPath()) "gh-pages-ci-$([Guid]::NewGuid().ToString('N'))"; Move-Item $ci $held; $held } else { $null }
                 Get-ChildItem -Force $worktree | Where-Object { $_.Name -ne '.git' -and $_.Name -ne $PreviewDirectory } | Remove-Item -Recurse -Force
                 Copy-Item -Path (Join-Path $Source '*') -Destination $worktree -Recurse -Force
                 Get-ChildItem -Force $Source -Filter '.*' -File | Copy-Item -Destination $worktree -Force
+                if ($kept) { New-Item -ItemType Directory -Force (Split-Path $ci) | Out-Null; Move-Item $kept $ci }
+            }
+            'Benchmarks' {
+                $ci = Join-Path $worktree $BenchmarksDirectory
+                $runs = Join-Path $ci 'runs'
+                New-Item -ItemType Directory -Force $runs | Out-Null
+                Get-ChildItem -Force $ci | Where-Object Name -ne 'runs' | Remove-Item -Recurse -Force
+                Copy-Item -Path (Join-Path $Source '*') -Destination $ci -Recurse -Force
+                $data = Join-Path $Source 'industry.json'
+                if (Test-Path $data) { Copy-Item $data (Join-Path $runs "$RunName.json") -Force }
             }
             'Preview' {
                 $target = Join-Path $previews "pr-$PullRequest"

@@ -191,8 +191,13 @@ A run whose numbers are to be compared with the published record follows the pin
 the machine pinned to its performance cores, a three-minute settle after the last build, nothing else running,
 and the run under `taskset`. `tools/benchmarks/measure.sh <output directory> [filter]` does that, refuses to start
 when the load is above 1.5, and keeps the result files; `tools/benchmarks/industry-results.py` then writes the
-record (`docs/benchmarks/industry.md` and `industry.json`) from the `GeneratedCount` CSV. The ratios of a run on a
-different host are comparable with themselves, never with another host's.
+record (`docs/benchmarks/industry.md` and `industry.json`) from the `GeneratedCount` CSV; `tools/benchmarks/v8`
+runs the same workloads under Node 24 for the V8 column. The ratios of a run on a different host are comparable
+with themselves, never with another host's.
+
+The same benchmarks run every night in CI (`benchmarks.yml`): every engine in one job on one runner, the result
+published at [benchmarks/ci/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) with each day's data kept.
+Run it on demand from the Actions tab with the `short` job for a quick look.
 
 A benchmark run must never share the machine with a build: the SDK's build servers and the JIT's tiering of the
 benchmark compete for the same cores and the numbers are worthless.
@@ -237,8 +242,8 @@ benchmark compete for the same cores and the numbers are worthless.
 Merging a pull request to `main` makes a release: the release automation tags the merge with the version
 GitVersion computes from `GitVersion.yml`, and the build publishes the package to NuGet. A pull request that
 should not make a release (documentation, CI, tooling) carries the `no_release` label. The version is bumped by
-editing `next-version` in `GitVersion.yml`: a breaking change to the public surface is a minor bump while the
-package is below 1.0, and a feature or fix is a patch.
+editing `next-version` in `GitVersion.yml`: a breaking change to the public surface is a major bump, a feature a
+minor one, and a fix a patch.
 
 `main` is protected by a ruleset: changes arrive by pull request with one approving review, the `.NET build
 gate` and `ECMA-262 test data` checks must be green on the branch as it will merge, and the branch is never

@@ -3,7 +3,7 @@
 - **Commit** 535de98, run on 2026-10-20.
 - **Host** an Intel Core i7-13800H under WSL2 on Windows, the virtual machine pinned to the twelve performance cores (vmmemWSL affinity 0xFFF), the run under `taskset -c 0-11` after a settle of at least three minutes.
 - **Health probe** 13.6 to 14.2 ns before the run and 13.2 to 14.2 ns after; 12.5 to 16 is the band that makes a run valid.
-- **Runtime and harness** .NET 10, BenchmarkDotNet's short job, the `GeneratedCount` benchmark of `Solutions/Corvus.Regex.Ecma262.Benchmarks`.
+- **Runtime and harness** .NET 10, BenchmarkDotNet's short job (one launch, three warm-ups, three iterations), the `GeneratedCount` benchmark of `Solutions/Corvus.Regex.Ecma262.Benchmarks`.
 
 The interactive page of this run is at [corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/); its data is `industry.json` beside this file, and `tools/benchmarks/industry-results.py` writes both from a run.
 

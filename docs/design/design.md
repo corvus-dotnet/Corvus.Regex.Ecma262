@@ -489,8 +489,15 @@ Runs follow a pinned-host procedure: the virtual machine pinned to the performan
 `taskset`, a health probe before and after whose reading must fall in an accepted band, nothing else on the host.
 The record of the current run is `docs/benchmarks/industry.md` with its data in `industry.json`, both written by
 `tools/benchmarks/industry-results.py` from the BenchmarkDotNet CSV, and the same run is an
-[interactive page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/) on the documentation site. The
-benchmarks never share a solution with the tests, because BenchmarkDotNet and worktrees do not mix.
+[interactive page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/) on the documentation site.
+
+The benchmarks also run daily in CI (`.github/workflows/benchmarks.yml`): every engine in one job on one
+GitHub-hosted runner, BenchmarkDotNet's default job then V8, so that the figures of a run are comparable with each
+other; the record and the page of the day are published at
+[benchmarks/ci/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) with each day's data kept beside it.
+A runner is not pinned, so a CI run is read against itself and its neighbours, never against the pinned record to
+the last few percent. The benchmarks never share a solution with the tests, because BenchmarkDotNet and worktrees
+do not mix.
 
 **Where the comparison is not like for like.** Three Industry rows stay above .NET's generated code however the
 search is built, because each is the price of matching by ECMA-262's rules under the u flag. `.*`: ECMA-262's

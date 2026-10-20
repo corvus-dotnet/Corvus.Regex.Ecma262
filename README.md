@@ -194,7 +194,8 @@ safe to share between threads.
   the gates step by step, and what a pull request needs.
 - [docs/benchmarks/industry.md](docs/benchmarks/industry.md): the measured run against `System.Text.RegularExpressions`
   and against V8 on the Industry workloads, with the host, the commit and every row; the same run as an
-  [interactive page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/).
+  [interactive page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/), and the
+  [daily CI run](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) of every engine on one runner.
 
 ## Repository layout
 
