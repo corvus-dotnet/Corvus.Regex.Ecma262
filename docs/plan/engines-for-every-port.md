@@ -21,7 +21,12 @@ Corvus library adopt it in place of its hand-rolled one (the design document's p
 | Python | `corvus-regex-ecma262-py` | wheel `corvus-regex-ecma262`, over the C ABI | the Rust engine | `re`, `regex`; V8 |
 | Object Pascal | `corvus-regex-ecma262-pas` | the unit, as the Pascal port ships it | `Corvus.JsonSchema.EcmaRegex.pas` | `TRegExpr` (FPC); V8 |
 | OCaml | `corvus-regex-ecma262-ocaml` | opam `corvus-regex-ecma262` | the engine in `ocaml-corvus-json-schema` | `re`, `pcre`; V8 |
-| C, Ruby, PHP, Swift, R, Fortran | none of their own | the C ABI crate, consumed as the JSON Schema C library is | the Rust engine | QuickJS `libregexp` (an ECMA-262 engine in C), through the C benchmark |
+| C | `corvus-regex-ecma262-rs` (the C ABI crate and its header) | release archives of the shared library and header per platform | the Rust engine | QuickJS `libregexp` (an ECMA-262 engine in C); V8 |
+| Ruby | `corvus-regex-ecma262-ruby` | gem `corvus-regex-ecma262`, over the C ABI | the Rust engine | `Regexp` (Onigmo); V8 |
+| PHP | `corvus-regex-ecma262-php` | Composer package over FFI to the C ABI | the Rust engine | `preg_*` (PCRE2); V8 |
+| Swift | `corvus-regex-ecma262-swift` | Swift package over the C ABI | the Rust engine | `Regex` and `NSRegularExpression`; V8 |
+| R | `corvus-regex-ecma262-r` | R package over the C ABI | the Rust engine | base `regexpr` (TRE and PCRE); V8 |
+| Fortran | `corvus-regex-ecma262-fortran` | fpm package over the C ABI (`iso_c_binding`) | the Rust engine | none on the platform; V8 |
 
 The names follow the JSON Schema ports (`corvus-json-schema-<lang>`). V8 (Node 24, the oracle of the test data) is on
 every benchmark as the common reference; it is the engine the patterns were written for.
@@ -102,10 +107,13 @@ Each step is its own repository, its own pull requests and its own release, in t
    alternation windows, the case search, the automaton and the memo are carried over. Gate: data set 0 wrong;
    at or below `regex` on every Industry workload where both answer, a row above it only where an ECMA-262 rule
    forces the work, named with its cost; `regress` and V8 on the page; crate and C ABI published.
-2. **Everything on the Rust crate, before any other engine.** The C ABI crate goes under the languages that reach
-   the Rust engine through it (Ruby, PHP, Swift, R, Fortran) and under a Python wheel, which retires the Python
-   translator. Gate for each: the data set run through its binding at 0 wrong, and its platform's engines on its
-   page. No other engine is started until Rust is released and every one of these is published.
+2. **A standalone library for every language on the Rust crate, before any other engine.** Python, Ruby, PHP,
+   Swift, R and Fortran each get their own regex library, in its own repository and on its own package registry
+   (section 1), a binding over the Rust C ABI with an API idiomatic to the language. Each repository holds the
+   section 2 contents: the data set run through its binding at 0 wrong, the Industry benchmarks against its
+   platform's engines and V8, the harness and its image, and its run published to the central site. These are new
+   libraries; the Corvus JSON Schema ports are not changed here (that is step 7). No other engine is started until
+   Rust is released and every one of these is published.
 3. **Java.** Its own engine already; `indexOf` intrinsics for the needle, the Vector API for the fingerprint
    search, generated code through the Java generator we have (under the method-size limit). Same gate.
 4. **Go.** The scalar parts of the search layer over `bytes.Index`, which is vectorised in the runtime; assembly
