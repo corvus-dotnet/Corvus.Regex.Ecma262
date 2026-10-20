@@ -43,7 +43,7 @@ internal static class Captures
                 string where = $"/{Escape(pattern)}/{modeFlags}\t{Escape(text)}";
                 try
                 {
-                    right += JudgeMode(pattern, modeFlags, text, a, limit, where, wrong, ref wrongCount);
+                    right += JudgeMode(pattern, modeFlags, text, a, limit, where, unescape, wrong, ref wrongCount);
                 }
                 catch (RegexMatchTimeoutException)
                 {
@@ -56,7 +56,7 @@ internal static class Captures
         return right;
     }
 
-    private static int JudgeMode(string pattern, string modeFlags, string text, JsonElement a, TimeSpan limit, string where, Action<string> wrong, ref int wrongCount)
+    private static int JudgeMode(string pattern, string modeFlags, string text, JsonElement a, TimeSpan limit, string where, Func<string, string> unescape, Action<string> wrong, ref int wrongCount)
     {
         int right = 0;
         RegexFlags flags = Regex.ParseFlags(modeFlags);
@@ -157,8 +157,10 @@ internal static class Captures
         if (!lone)
         {
             // The same replacements over the UTF-8 text, through the members that write UTF-8 to a buffer writer.
-            Check(ref right, ref wrongCount, wrong, "replace-utf8", where, a.GetProperty("replace").GetRawText() == JsonText(ReplaceUtf8(re, utf8)));
-            Check(ref right, ref wrongCount, wrong, "replaceAll-utf8", where, a.GetProperty("replaceAll").GetRawText() == JsonText(ReplaceUtf8(g, utf8)));
+            // V8's answer converted to UTF-8, as the judging rule says: a lone half becomes U+FFFD, since UTF-8 cannot
+            // carry one.
+            Check(ref right, ref wrongCount, wrong, "replace-utf8", where, ToUtf8Lossy(unescape(a.GetProperty("replace").GetRawText())) == ReplaceUtf8(re, utf8));
+            Check(ref right, ref wrongCount, wrong, "replaceAll-utf8", where, ToUtf8Lossy(unescape(a.GetProperty("replaceAll").GetRawText())) == ReplaceUtf8(g, utf8));
         }
 
         // split
@@ -286,6 +288,8 @@ internal static class Captures
 
     /// <summary>A string as the data writes it: JSON, ASCII, every other character a \u escape in lower case hex.</summary>
     private static readonly byte[] Replacement8 = Encoding.UTF8.GetBytes(Replacement);
+
+    private static string ToUtf8Lossy(string s) => Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(s));
 
     private static string ReplaceUtf8(Regex re, byte[] utf8)
     {
