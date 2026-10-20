@@ -385,9 +385,10 @@ $spurious = Join-Path $outputDir "site.yml"
 if (Test-Path $spurious) { Remove-Item $spurious -Force }
 Write-StepDuration "Vellum site generation" $sw
 
-# -- Step 5b: The benchmark results page, from the committed data of the run ----------------------------------------
-Write-Host "`n[5b/10] Writing the benchmark results page..." -ForegroundColor Cyan
-& python3 (Join-Path $repoRoot "tools" "benchmarks" "results-page" "generate_site.py") --data (Join-Path $repoRoot "docs" "benchmarks" "industry.json") --out (Join-Path $outputDir "benchmarks" "index.html")
+# -- Step 5b: benchmarks/index.html sends a reader to the daily run's page, which the benchmarks workflow publishes --
+Write-Host "`n[5b/10] Writing the benchmarks redirect..." -ForegroundColor Cyan
+New-Item -ItemType Directory -Force (Join-Path $outputDir "benchmarks") | Out-Null
+[IO.File]::WriteAllText((Join-Path $outputDir "benchmarks" "index.html"), '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=ci/"><title>Benchmarks</title></head><body><p>The benchmarks are at <a href="ci/">the daily run&#39;s page</a>.</p></body></html>')
 if ($LASTEXITCODE -ne 0) { throw "The benchmark results page failed" }
 
 # -- Step 6: Compile SCSS ------------------------------------------------------------------------------------------

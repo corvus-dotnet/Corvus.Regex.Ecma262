@@ -190,10 +190,10 @@ dotnet run -c Release -- --filter '*GeneratedCount*' --job short
 A run whose numbers are to be compared with the published record follows the pinned-host procedure, on Linux:
 the machine pinned to its performance cores, a three-minute settle after the last build, nothing else running,
 and the run under `taskset`. `tools/benchmarks/measure.sh <output directory> [filter]` does that, refuses to start
-when the load is above 1.5, and keeps the result files; `tools/benchmarks/industry-results.py` then writes the
-record (`docs/benchmarks/industry.md` and `industry.json`) from the `GeneratedCount` CSV; `tools/benchmarks/v8`
-runs the same workloads under Node 24 for the V8 column. The ratios of a run on a different host are comparable
-with themselves, never with another host's.
+when the load is above 1.5, and keeps the result files; `tools/benchmarks/industry-results.py --out-dir <dir>` then
+writes a page's data and table from the `GeneratedCount` CSV, for your own reading (nothing it writes is committed);
+`tools/benchmarks/v8` runs the same workloads under Node 24 for the V8 column. The ratios of a run on a different
+host are comparable with themselves, never with another host's.
 
 The same benchmarks run every night in CI (`benchmarks.yml`): every engine in one job on one runner, the result
 published at [benchmarks/ci/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) with each day's data kept.

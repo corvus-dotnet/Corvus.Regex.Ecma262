@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Writes the Industry benchmark record from a GeneratedCount run: docs/benchmarks/industry.json (the data of the
-results page, see tools/benchmarks/results-page/generate_site.py) and docs/benchmarks/industry.md (the table).
+"""Writes the Industry benchmark record from a GeneratedCount run into a directory: industry.json (the data of the
+results page, see tools/benchmarks/results-page/generate_site.py) and industry.md (the table). The daily workflow is
+its publisher; nothing it writes is committed.
 
 Usage: industry-results.py --run <BenchmarkDotNet artifacts dir> --commit <sha> --date <date> [--v8 <results json>]
                            [--host pinned|ci] [--probe-before <ns> --probe-after <ns>] [--job short|default]
@@ -26,7 +27,7 @@ ap.add_argument("--host", choices=["pinned", "ci"], default="pinned")
 ap.add_argument("--probe-before", default="")
 ap.add_argument("--probe-after", default="")
 ap.add_argument("--job", choices=["short", "default"], default="short")
-ap.add_argument("--out-dir")
+ap.add_argument("--out-dir", required=True)
 ap.add_argument("--base-path", default="")
 ap.add_argument("--run-url", default="")
 args = ap.parse_args()
@@ -34,8 +35,7 @@ run, commit, date, v8_path = args.run, args.commit, args.date, args.v8
 before, after = args.probe_before, args.probe_after
 if args.host == "pinned" and not (before and after):
     raise SystemExit("a pinned run has its probe readings: --probe-before and --probe-after")
-root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-out_dir = args.out_dir or os.path.join(root, "docs", "benchmarks")
+out_dir = args.out_dir
 os.makedirs(out_dir, exist_ok=True)
 JOB = {"short": "BenchmarkDotNet's short job (one launch, three warm-ups, three iterations)", "default": "BenchmarkDotNet's default job (one launch, warm-ups and iterations as it settles them, fifteen or more)"}[args.job]
 if args.host == "pinned":
@@ -46,14 +46,14 @@ if args.host == "pinned":
     TITLE_SUFFIX = ""
     LEDE_TAIL = ""
     # Relative to the page (benchmarks/index.html on the site), so no base path is needed inside the data.
-    LINKS = [{"label": "The daily CI run", "url": "ci/"}, {"label": "The record", "url": "../docs/industry.html"}]
+    LINKS = [{"label": "About these benchmarks", "url": "../docs/industry.html"}]
 else:
     HOST_MD = """- **Host** a GitHub-hosted `ubuntu-latest` runner, by the daily benchmarks workflow: every engine in one job on one runner, so the figures of a run are comparable with each other, and not pinned, so a run is not comparable with the pinned record to the last few percent."""
     HOST_HTML = f"<p><b>The host</b> is a GitHub-hosted <code>ubuntu-latest</code> runner, by the daily benchmarks workflow: every engine in one job on one runner, so the figures of a run are comparable with each other; nothing is pinned, so a run is not comparable with the pinned record to the last few percent. .NET 10. Commit {commit}, {date}.</p>"
     FACTS = [["Host", "GitHub-hosted ubuntu-latest, one runner for every engine"], ["Runtime", ".NET 10"]]
     TITLE_SUFFIX = " (daily CI run)"
     LEDE_TAIL = " This is the run of the day on a GitHub-hosted runner; the pinned record is the reference."
-    LINKS = [{"label": "The pinned record's page", "url": "../"}, {"label": "Every day's data", "url": "runs/"}]
+    LINKS = [{"label": "About these benchmarks", "url": "../../docs/industry.html"}, {"label": "Every day's data", "url": "runs/"}]
 U = {"ns": 1, "us": 1e3, "μs": 1e3, "ms": 1e6, "s": 1e9}
 B = {"B": 1, "KB": 1024, "MB": 1024 * 1024}
 
