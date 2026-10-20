@@ -189,6 +189,40 @@ public class SpanMembersTests
     }
 
     [TestMethod]
+    [DataRow("()", "g", "\U0001F600,", "-", "-\uFFFD-\uFFFD-,-", DisplayName = "an empty match between the halves of an emoji")]
+    [DataRow("(?=\\udc00|\\ude00)", "", "\U0001F600", "[$`]", "\uFFFD[\uFFFD]\uFFFD", DisplayName = "the text before a match that splits a character")]
+    [DataRow("(?=\\ude00)", "", "a\U0001F600b", "[$']", "a\uFFFD[\uFFFDb]\uFFFDb", DisplayName = "the text after a match that splits a character")]
+    public void AReplacementOverUtf8WritesEachHalfOfASplitCharacterAsAReplacementCharacter(string pattern, string flags, string text, string replacement, string expected)
+    {
+        // Without the u flag a match can fall between the halves of a supplementary character (in UTF-8, at its third
+        // byte). UTF-16 carries a lone half; UTF-8 cannot, so each half is written as U+FFFD, which is what a lossy
+        // conversion of the UTF-16 answer gives, and the result stays valid UTF-8.
+        Regex r = new(pattern, flags);
+        Assert.AreEqual(expected, ToLossyUtf8(r.Replace(text, replacement)), "the UTF-16 answer, converted");
+        byte[] utf8 = Encoding.UTF8.GetBytes(text);
+        ArrayBufferWriter<byte> writer = new();
+        r.Replace(utf8, Encoding.UTF8.GetBytes(replacement), writer);
+        byte[] written = writer.WrittenSpan.ToArray();
+        Assert.AreEqual(expected, Encoding.UTF8.GetString(written), "the UTF-8 answer");
+        Assert.IsTrue(IsValidUtf8(written), "the UTF-8 answer is valid UTF-8");
+
+        static string ToLossyUtf8(string s) => Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(s));
+
+        static bool IsValidUtf8(byte[] bytes)
+        {
+            try
+            {
+                _ = new UTF8Encoding(false, true).GetString(bytes);
+                return true;
+            }
+            catch (DecoderFallbackException)
+            {
+                return false;
+            }
+        }
+    }
+
+    [TestMethod]
     public void TheSpanMembersAllocateNothingOnceWarm()
     {
         Regex words = new(@"tempus|magna|semper", "gu");

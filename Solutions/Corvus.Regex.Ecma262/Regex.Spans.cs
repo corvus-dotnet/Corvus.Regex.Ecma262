@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Corvus.Ecma262.RegularExpressions;
 
@@ -658,6 +659,41 @@ public sealed partial class Regex
     }
 
     /// <summary>
+    /// Appends the input from one position to another. Over UTF-8 a position can fall between the halves of a
+    /// supplementary character (at its third byte, where ECMA-262 without the u flag puts a code unit boundary); UTF-8
+    /// cannot carry half a character, so each half at the edge of a piece is written as U+FFFD, as a lossy conversion
+    /// of the UTF-16 answer writes it, and the result stays valid UTF-8.
+    /// </summary>
+    private static bool AppendInput<TUnit, TOutput>(ReadOnlySpan<TUnit> input, int from, int to, ref TOutput output)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TOutput : IOutput<TUnit>
+#if NET
+        , allows ref struct
+#endif
+    {
+        if (typeof(TUnit) != typeof(byte) || from >= to)
+        {
+            return output.Append(input.Slice(from, to - from));
+        }
+
+        ReadOnlySpan<byte> bytes = MemoryMarshal.Cast<TUnit, byte>(input);
+        bool lowHalf = IsBetweenHalves(bytes, from);
+        bool highHalf = IsBetweenHalves(bytes, to);
+        int start = lowHalf ? from + 2 : from;
+        int end = highHalf ? to - 2 : to;
+        ReadOnlySpan<byte> replacementCharacter = [0xEF, 0xBF, 0xBD];
+        ReadOnlySpan<TUnit> fffd = MemoryMarshal.Cast<byte, TUnit>(replacementCharacter);
+        return (!lowHalf || output.Append(fffd))
+            && (start >= end || output.Append(input.Slice(start, end - start)))
+            && (!highHalf || output.Append(fffd));
+    }
+
+    /// <summary>Whether a byte position is between the halves of a supplementary character: at the third byte of a well-formed four-byte sequence.</summary>
+    private static bool IsBetweenHalves(ReadOnlySpan<byte> bytes, int at) =>
+        at >= 2 && at + 1 < bytes.Length && bytes[at - 2] >= 0xF0 && bytes[at - 2] <= 0xF4
+        && (bytes[at - 1] & 0xC0) == 0x80 && (bytes[at] & 0xC0) == 0x80 && (bytes[at + 1] & 0xC0) == 0x80;
+
+    /// <summary>
     /// The replacement loop: every match (or the first) replaced by the expansion of the template, the text
     /// between kept, written to the output. Returns false when the output refuses what is written (a span that
     /// is full).
@@ -691,7 +727,7 @@ public sealed partial class Regex
 
             int from = slots[0];
             int to = slots[1];
-            if (!output.Append(input.Slice(last, from - last)))
+            if (!AppendInput(input, last, from, ref output))
             {
                 return false;
             }
@@ -710,7 +746,7 @@ public sealed partial class Regex
             next = to > from ? to : this.AdvanceAfterEmptyMatchOf<TUnit, TEncoding>(input, to);
         }
 
-        return output.Append(input.Slice(last));
+        return AppendInput(input, last, input.Length, ref output);
     }
 
     /// <summary>The expansion of a replacement template for one match (GetSubstitution), written to the output.</summary>
@@ -739,6 +775,7 @@ public sealed partial class Regex
             int d = enc.Unit(replacement, k + 1);
             int consumed;
             ReadOnlySpan<TUnit> piece;
+            int pieceAt = -1;
             switch (d)
             {
                 case '$':
@@ -747,14 +784,17 @@ public sealed partial class Regex
                     break;
                 case '&':
                     piece = input.Slice(start, end - start);
+                    pieceAt = start;
                     consumed = 2;
                     break;
                 case '`':
                     piece = input.Slice(0, start);
+                    pieceAt = 0;
                     consumed = 2;
                     break;
                 case '\'':
                     piece = input.Slice(end);
+                    pieceAt = end;
                     consumed = 2;
                     break;
                 case '<':
@@ -771,6 +811,7 @@ public sealed partial class Regex
                     if (number > 0)
                     {
                         piece = input.Slice(slots[2 * number], slots[(2 * number) + 1] - slots[2 * number]);
+                        pieceAt = slots[2 * number];
                     }
 
                     consumed = gt + 1 - k;
@@ -809,12 +850,13 @@ public sealed partial class Regex
 
                     int from = slots[2 * index];
                     piece = from < 0 ? default : input.Slice(from, slots[(2 * index) + 1] - from);
+                    pieceAt = from;
                     consumed = 1 + digits;
                     break;
                 }
             }
 
-            if (!output.Append(replacement.Slice(literal, k - literal)) || !output.Append(piece))
+            if (!output.Append(replacement.Slice(literal, k - literal)) || !(pieceAt < 0 ? output.Append(piece) : AppendInput(input, pieceAt, pieceAt + piece.Length, ref output)))
             {
                 return false;
             }
