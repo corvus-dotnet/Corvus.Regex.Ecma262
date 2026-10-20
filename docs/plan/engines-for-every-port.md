@@ -129,11 +129,8 @@ Each step is its own repository, its own pull requests and its own release, in t
 ## 5. Decisions taken here, and the ones that are yours
 
 Taken, unless you say otherwise: the repository and package names of section 1; V8 on every benchmark; GraalJS
-TRegex and goja as the ECMA-262 competitors on the Java and Go benchmarks, and PCRE2 on the C benchmark; the C ABI
-living in the Rust repository; the central benchmark as its own repository with one job on one runner; the order
+TRegex and goja as the ECMA-262 competitors on the Java and Go benchmarks, and PCRE2 on the C benchmark; each engine carrying its history out of the JSON Schema
+monorepo (a filtered history, as the Rust engine did); the C ABI living in the Rust repository; the central benchmark as its own repository with one job on one runner; the order
 of section 4.
 
-Yours:
-
-- Whether the engines leave the JSON Schema monorepo's history behind (a clean start, the port's history staying
-  where it is) or carry it (a filtered history per engine).
+Nothing is left open.
