@@ -1,76 +1,67 @@
 # Corvus.Regex.Ecma262: design
 
-Status: agreed 2026-10-18 (the owner took every fork; the answers are folded in below). Each numbered section ends
-with a **Decision** line.
+This document describes the library as it is: what it offers, how the engine is built, why the decisions that
+shape it were taken, and how it is tested and measured. The getting-started pages on the
+[documentation site](https://corvus-oss.org/Corvus.Regex.Ecma262/) show how to use it; this document is for a
+reader who wants to know what is underneath, or who intends to change it.
 
 ## 1. What it is
 
 A regular expression library for .NET whose grammar and answers are those of ECMA-262 (ECMAScript 2025), with the
-public shape of `System.Text.RegularExpressions`, so that a project moves to it by changing a `using` directive. It
-includes a build-time source generator with the shape of `[GeneratedRegex]`. It matches UTF-8 text natively, in
-addition to UTF-16, and a match allocates nothing once the per-thread working memory has grown.
+public shape of `System.Text.RegularExpressions`, so that a project moves to it by changing a `using` directive and
+its options. It includes a build-time source generator with the shape of `[GeneratedRegex]`. It matches UTF-8
+text natively, in addition to UTF-16, and a match allocates nothing once the per-thread working memory has grown.
 
-It is its own library in its own repository, `corvus-dotnet/Corvus.Regex.Ecma262`, so that it can be used anywhere.
-Corvus.JsonSchema is its first intended consumer, but not until the gate in section 2 is met.
+It is its own library in its own repository, `corvus-dotnet/Corvus.Regex.Ecma262`, and its own NuGet package,
+so that it can be used anywhere. Corvus.JsonSchema, whose `pattern` and `patternProperties` keywords are defined
+over ECMA-262 expressions, is its first intended consumer; the adoption is a separate decision, taken on the
+benchmarks of section 9.
 
-**Decision.** Standalone repository and NuGet package. Corvus.JsonSchema is a consumer, not the home.
+**Why ECMA-262 and not .NET's grammar.** JSON Schema, OpenAPI and many wire formats specify their patterns as
+ECMAScript regular expressions. .NET's engine reads a different grammar with different classes (`\d` and `\w`
+are Unicode in .NET, ASCII in ECMA-262), a different case-folding rule and a different notion of a line
+terminator. A translation layer from one to the other can never be exact, and the shapes it cannot translate
+have to be refused or interpreted by hand. An engine that reads the ECMA-262 grammar directly, held to the same
+answers as V8 over a large data set (section 8), removes the translation and its exceptions.
 
-## 2. The adoption gate
+## 2. Origins: what is ported and from where
 
-When the library is proved as fast or faster than `System.Text.RegularExpressions` on general regular expression
-workloads, Corvus.JsonSchema replaces its ECMA-262 to .NET translator (`EcmaRegexTranslator`, the
-`(?#interpreted)` routing, the shape matchers that exist only to keep patterns away from .NET's engine, and issue
-#1025) with this library. Until then, nothing in Corvus.JsonSchema changes.
-
-The comparison is against the .NET engine, not against the JSON Schema corpora. "As fast or faster" is measured by
-the benchmarks of section 9: on the industry set (the patterns and texts .NET itself publishes numbers for), the
-median of the ratio (this library over .NET) is at or below 1.0 for the same engine class (interpreted against
-interpreted, generated against generated), and 0 bytes are allocated per match. The pathological set must finish
-where .NET times out. At adoption time the JSON Schema corpora are a conformance check (the same answers, nothing
-slower for the evaluator as a whole), not the benchmark.
-
-**Decision.** The gate is numeric, per engine class, against the .NET engine on general workloads, run on a pinned
-host with the procedure Corvus.JsonSchema already uses for A/B measurement.
-
-## 3. What is ported, and from where
-
-Four Corvus ports already have their own ECMA-262 engine (Go, Rust, Object Pascal, OCaml), one source with four
-copies, and the C# translator has a parser of its own. Nothing is rebuilt that one of them has:
+The Corvus JSON Schema ports in Go, Rust, Object Pascal and OCaml each carry an ECMA-262 engine, one design in
+four copies, and the C# code generator carries a parser of its own. The library was built from those rather than
+from nothing:
 
 | Piece | Source | Notes |
 |---|---|---|
-| Parser, syntax tree, both grammars (u flag; Annex B without), group names, modifier groups | `src/Corvus.Text.Json.CodeGeneration/EcmaRegexParser.cs` (1,670 lines, C#) | Already C#, already netstandard2.0, already Unicode 17 and ECMAScript 2025. Taken as the base. |
-| Unicode property tables, case folding (Canonicalize for both modes), sets | `EcmaRegexUnicode.cs`, `EcmaRegexUnicodeData.cs` (generated) and the Go `ucd` package | The generator script `gen-ecma-unicode-data.ps1` moves with them. |
-| Compiler (tree to flat program), instruction set | `src-go/.../ecmaregex/compile.go` and `src-rs/.../ecmaregex/compile.rs` | `opChar`, `opSet`, `opLit`, anchors, `opSplit`, captures, `opLook*`, `opRep`, `opLoop*`, backreferences in four forms. |
-| Backtracking matcher: explicit stack, memo of failed places, counted loops with `needs`, `quick` first sets, time and memory limits | `vm.go` / `vm.rs` | The Rust form (per-thread state, retained caps) is the closer model for .NET. |
-| ASCII automaton for linear patterns | `dfa.go` / `dfa.rs` | 256 states, built on first use. |
-| Matching by UTF-16 code unit over UTF-8 text | `units.go` / `units.rs` | The position between the halves of a four-byte character is the offset of its third byte. |
-| Resource limits | `parse.rs` limits, `re2.rs` cost model | Pattern length, nesting, program size, construction cost, match time, backtracking memory. |
+| Parser, syntax tree, both grammars (the u flag; Annex B without), group names, modifier groups | `EcmaRegexParser.cs` from Corvus.JsonSchema's code generator | Already C#, already netstandard2.0, already Unicode 17 and ECMAScript 2025. The base of the front end. |
+| Unicode property tables, case folding (Canonicalize for both modes), sets | `EcmaRegexUnicode.cs`, `EcmaRegexUnicodeData.cs` (generated) and the Go `ucd` package | The generator script `tools/unicode/gen-ecma-unicode-data.ps1` moved with them. |
+| Compiler (tree to flat program), instruction set | The Go and Rust `ecmaregex` compilers | Characters, sets, literals, anchors, splits, captures, lookarounds, counted loops, backreferences in four forms. |
+| Backtracking matcher: explicit stack, memo of failed places, counted loops, first sets, time and memory limits | The Go and Rust virtual machines | The Rust form (per-thread state, retained capacity) is the closer model for .NET. |
+| ASCII automaton for linear patterns | The Go and Rust automata | 256 states, built on first use. |
+| Matching by UTF-16 code unit over UTF-8 text | The Go and Rust `units` cursors | The position between the halves of a four-byte character is the offset of its third byte. |
+| Resource limits | The Rust parser's limits and cost model | Pattern nesting, program size, construction cost, match time, backtracking memory. |
 
-Everything is copied with its file-level provenance recorded, then changed where .NET needs it. Both repositories are
-Apache-2.0 and the same owner's.
+Each file records its provenance. The v flag (section 3.2) and everything in sections 4.3, 4.4 and 5 beyond the
+instruction interpreter were written for this library and have since been carried back to the ports where they
+apply.
 
-**Decision.** Port, do not rebuild. The C# parser is the base for the front end; the Go/Rust engine for the back end.
+## 3. Public surface
 
-## 4. Public surface
+### 3.1 Names and namespace
 
-### 4.1 Names
+The types are named as .NET names them: `Regex`, `Match`, `Group`, `Capture`, `MatchCollection`,
+`GroupCollection`, `CaptureCollection`, `MatchEvaluator`, `ValueMatch`, `GeneratedRegexAttribute`,
+`RegexParseException`, `RegexMatchTimeoutException`. The options type is not `RegexOptions`: it is `RegexFlags`,
+the flags of ECMA-262 (section 3.2). Moving a project to the library is a change of `using` plus a change of its
+options; that break in source compatibility was accepted so that the options say what the engine does rather than
+carry .NET options the engine cannot honour.
 
-The types are named as .NET names them: `Regex`, `Match`, `Group`, `Capture`, `MatchCollection`, `GroupCollection`,
-`CaptureCollection`, `MatchEvaluator`, `ValueMatch`, `GeneratedRegexAttribute`, `RegexParseException`,
-`RegexMatchTimeoutException`. The options type is not `RegexOptions`: it is `RegexFlags`, the flags of ECMA-262
-(section 4.2). Moving a project to the library is a change of `using` plus a change of its options, which the
-owner accepted as a break in source compatibility.
+The namespace is `Corvus.Ecma262.RegularExpressions`, which mirrors `System.Text.RegularExpressions`, and the
+package id is `Corvus.Regex.Ecma262`. The namespace cannot contain a segment named `Regex`: C# resolves a simple
+name by walking the enclosing namespaces before it reads the `using` directives of the compilation unit, so inside
+`namespace Corvus.Text.Json` the name `Regex` would bind to a namespace `Corvus.Regex` and not to the type, and
+any consumer in a `Corvus.*` namespace would hit the same.
 
-The namespace cannot contain a segment named `Regex`. C# resolves a simple name by walking the enclosing namespaces
-before it reads the `using` directives of the compilation unit, so inside `namespace Corvus.Text.Json` the name
-`Regex` would bind to the namespace `Corvus.Regex` and not to the type, and Corvus.JsonSchema itself could not use
-it. Any consumer in a `Corvus.*` namespace would hit the same.
-
-**Decision.** Package id `Corvus.Regex.Ecma262`; namespace `Corvus.Ecma262.RegularExpressions`, which mirrors
-`System.Text.RegularExpressions` and has no `Regex` segment.
-
-### 4.2 Flags
+### 3.2 Flags
 
 The options are ECMA-262's flags and nothing else: a `[Flags] enum RegexFlags` with one member for each flag of
 `RegExp`, and a constructor that also takes the flags as the string `new RegExp(pattern, flags)` takes.
@@ -87,7 +78,9 @@ The options are ECMA-262's flags and nothing else: a `[Flags] enum RegexFlags` w
 | `Sticky` | `y` | A match only at the start position. |
 
 `RegexFlags.None` is `new RegExp(pattern)` with no flags: the Annex B grammar and matching by UTF-16 code unit,
-which is what ECMA-262 does with no flag.
+which is what ECMA-262 does with no flag. The u-first reading JSON Schema uses (the u flag grammar, then Annex B
+when that refuses) is the caller's: two calls of the non-throwing `Regex.TryCreate(pattern, flags, out Regex?
+regex, out string? error)`, which costs no exception, and `Regex.Flags` says which flags are in force.
 
 Where ECMA-262 keeps `lastIndex` on the `RegExp` object, the library takes the position as an argument, as .NET
 does: `Match(input, startAt)` is `exec` with `lastIndex` set to `startAt`, and `Sticky` anchors it there. There is
@@ -96,444 +89,8 @@ no mutable state on a `Regex`, so an instance is safe to share between threads, 
 without `g`; a method named `Matches` does not need the flag to say what it does). `Split` ignores `Global`, as
 `RegExp.prototype[Symbol.split]` does.
 
-JSON Schema's reading (u flag first, Annex B when that refuses) is the caller's: two calls of the non-throwing
-`Regex.TryCreate(pattern, flags, out Regex? regex, out string? error)`, which costs no exception. `Regex.Flags`
-says which flags are in force.
-
-**Decision.** ECMA-262's flags, by name and by string. `None` means no flags. The u-first reading is not a default
-of the library.
-
-### 4.3 Errors, and the members whose algorithm is ECMA-262's
-
-A pattern that is not valid in the grammar of its flags throws `RegexParseException` with the ECMA-262 message and
-the offset. A pattern over a limit of size throws a distinct `RegexPatternTooLargeException` (an
-`ArgumentException`), never a parse error: a caller must be able to tell "not valid" from "too large".
-
-`Regex.Replace` substitutes as ECMA-262's `GetSubstitution` does: `$$`, `$&`, `` $` ``, `$'`, `$n`, `$nn`, `$<name>`.
-.NET's `$_`, `$+` and `${name}` are not recognised and are left as they are, as ECMA-262 leaves them. `Regex.Split`
-follows `RegExp.prototype[Symbol.split]`: captures are spliced into the result, an empty match at the start or the
-end of the text splits nothing, and `count` is ECMA-262's `limit`. `Regex.Escape` escapes the ECMA-262 syntax
-characters. `Regex.Unescape` reverses `Escape`. Nothing of .NET's that has no ECMA-262 meaning (right-to-left
-matching, pattern whitespace, explicit capture, the culture) exists in the surface, so nothing has to be refused
-at run time.
-
-**Decision.** Where .NET and ECMA-262 differ in an algorithm, ECMA-262's is used; what has no ECMA-262 meaning is
-absent.
-
-### 4.4 Input and positions
-
-Every matching member has an overload for `string`, `ReadOnlySpan<char>` and `ReadOnlySpan<byte>` (UTF-8). A
-`Match` from a string input holds the input and gives `Value` as a substring, as .NET does. A `Match` from a span is
-not possible in .NET's shape (a class cannot hold a span), so the span overloads are the ones .NET itself gives spans
-and a few more, every one of them allocation-free (owner, 2026-10-18: "We should have allocation free options for
-matches, replacements etc."):
-
-- `IsMatch`, `Count`, and `EnumerateMatches` (`ValueMatch` with `Index` and `Length`), as .NET has them.
-- `EnumerateMatches(input, Span<ValueCapture> captures)`: after each `MoveNext` the caller's span holds the match
-  as element 0 and what each group captured (`Index`, `Length`, `Success`), so a loop over the matches reads the
-  groups without a `Match`. `TryMatch` does the same for one match.
-- `TryReplace(input, replacement, Span<T> destination, out int written)` and `Replace(input, replacement,
-  IBufferWriter<T> destination)`, with the template expanded as `GetSubstitution` expands it, and
-  `Replace(input, evaluator, IBufferWriter<T>)` where the evaluator writes its replacement rather than returning a
-  string. `Replace(string, string)` runs the same loop over pooled memory, so the result string is its only
-  allocation.
-- `EnumerateSplits(input[, count])`: the pieces of `Split` as positions, without the captures `Split` puts between
-  them (as .NET's `EnumerateSplits` leaves them out).
-
-`Index` and `Length` are in the unit of the input: chars for UTF-16, bytes for UTF-8.
-
-A UTF-8 input that is not valid UTF-8 is read a byte at a time as U+FFFD, as the Go engine reads it. A UTF-16 input
-can hold a lone surrogate, and it is matched as ECMA-262 matches it (a code unit without `u`, a code point of its
-own with `u`). Nothing is transcoded: there is no UTF-16 copy of a UTF-8 text and no UTF-8 copy of a string.
-
-**Decision.** Both encodings are native. No overload transcodes.
-
-### 4.5 Limits
-
-A `matchTimeout` as in .NET, default `Regex.InfiniteMatchTimeout` for the drop-in, settable per instance and by the
-`REGEX_DEFAULT_MATCH_TIMEOUT` `AppContext` switch .NET reads, so a consumer's existing configuration applies. A
-match that passes it throws `RegexMatchTimeoutException`. A match whose backtracking stack reaches its cap throws
-`RegexMatchTimeoutException` too, with a message that says memory, because .NET has no exception for that and a
-consumer's `catch` must already hold the case. Limits of size on the pattern (length, nesting, program size,
-construction cost) are those of the Go/Rust engine and are deterministic: never a clock.
-
-**Decision.** .NET's timeout shape and configuration; the engine's deterministic size limits.
-
-## 5. Engine design
-
-### 5.1 One matcher, two encodings, no copy
-
-The matcher's methods are generic over the unit of the text and an empty struct that reads it:
-`Run<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, ...) where TEncoding : struct, ITextEncoding<TUnit>`, with
-`Utf8Encoding : ITextEncoding<byte>` and `Utf16Encoding : ITextEncoding<char>`. Each encoding gives `Decode`,
-`DecodeBefore`, `UnitAt` and `UnitBefore` (the UTF-16 code unit at a position, for Annex B matching), the line
-terminator tests, the literal and prefix searches. The JIT specialises every generic method for the struct, so
-there is no virtual call and no branch on the encoding in the loop. (A `ref struct` cursor that holds the span and
-implements the interface would read the same, but ref-struct interfaces need a .NET 9 or later runtime, and the
-netstandard2.0 build must compile the same source.) The Go engine's `units` trick, which places the position between the halves of a
-supplementary character at its third byte, is the UTF-8 cursor's code-unit mode. The UTF-16 cursor's code-unit mode
-is the natural one.
-
-Literal runs are stored in both encodings at compile time (a few bytes each), so `opLit` is a span comparison and,
-for a literal prefix, an anchored search (section 5.3).
-
-### 5.2 Program and working memory
-
-The program is flat arrays (instruction kind, operands, set tables) in a sealed class the `Regex` holds. The
-per-thread working memory (backtracking stack, capture slots, loop counters, memo bitset) is a `[ThreadStatic]`
-state, grown to what a match needs and retained up to a cap, as the Rust port does. A small match stackallocs its
-capture slots. No closures, no boxing, no LINQ, no iterator blocks on the match path. The clock is read every 4,096
-steps, as the ports do, so a match that ends before the first check never reads it.
-
-### 5.3 Finding where to start
-
-Before the matcher runs, the `Regex` applies what it learned at compile time, in this order: an anchored pattern
-starts only at 0; a literal every match starts with, or holds at a fixed distance from its start, or holds after a
-leading loop, is found by an anchored search; a first set is found by `SearchValues<byte>` / `SearchValues<char>`
-(a table on netstandard2.0); a minimum length rules out short rests. This is the part of .NET's
-`RegexFindOptimizations` that applies to ECMA-262 patterns, and it is where most of the time of a search on a long
-text goes.
-
-**The anchored search** (`Needle<T>`, one class for `byte` and `ushort`). The span search finds a literal by its
-first and last units, and in UTF-8 those are often the units every character of a script shares: every Cyrillic
-letter starts with D0 or D1, every common CJK character with E4 to E9, so it compares at nearly every character.
-The needle instead picks the two (or three) positions of the literal that text makes rarest, by a table of how
-common each unit is (English letter frequencies for ASCII, and what UTF-8 makes of other scripts: lead bytes
-common, continuation bytes spread over sixty-four values), compares those positions over a vector of starts, and
-compares the literal in full only where every anchor agrees. A unit rare enough on its own (q, z, a digit,
-punctuation) is searched for alone by the span search for one value, which is the fastest search there is. Over
-UTF-16 a literal matched exactly keeps the span search, which is as fast as any for that. The loop that compares
-the anchors is a static method whose constants are its arguments and which makes no call, so everything stays in
-registers; the full comparison is made outside it.
-
-The same search is case-insensitive. Under the i flag the parser reads a letter as the class of its forms, and a
-run of such classes (or characters, or any small class of single characters: `[ab][cd]`) at the start of the
-pattern is one needle whose positions each allow up to three values; two forms that differ in the bits of a mask
-(a letter's cases differ in 0x20, in ASCII, in UTF-16 for Latin, Greek and Cyrillic, and in the last byte of
-UTF-8) are one comparison of the unit with those bits set, and ASCII anchors over UTF-16 are packed thirty-two to
-a vector. A form whose encoding is longer than the character's own (the long s and the Kelvin sign over UTF-8,
-which are two and three bytes where s and k are one) cannot be at a fixed position: it is looked for apart, and
-every start from which the literal could reach it is tried. This replaced the `OrdinalIgnoreCase` span search and
-an ASCII-only fold scan, which left a Cyrillic literal under the i flag at fourteen times .NET over UTF-16.
-
-**Several literals at once** (`MultiNeedle<T>`): an alternation of literals, the pairs of first characters of a
-sequence of classes, and the forms a case-insensitive search leaves out. One position that every literal has is
-chosen, or two, by a cost model (the comparisons at every vector against the full comparisons at the starts the
-units let through); one position is the span search for any of several values, two are a straight-line loop over
-up to six distinct units at each, and over UTF-8 two adjacent positions are compared as one sixteen-bit value,
-which admits only the literals' own pairs of bytes rather than every pairing of a unit of one position with a unit
-of the other.
-
-**Fingerprints** (`Teddy`, over UTF-8; `SearchValues<string>` over UTF-16, which is the runtime's Teddy). Where no
-position is rare enough for the needle (the cost model puts it at 0.35 or more: three or more literals, or any
-case-insensitive alternation, where a letter's two cases are common together), the literals go into up to eight
-buckets, and for each of up to three positions two tables of sixteen entries map a byte's nibbles to the buckets
-with that byte there in any of its forms. A vector of starts is looked up by two shuffles per position, and only
-the starts whose bytes agree with a bucket at every position are compared. The positions are the rarest the
-literals share, so that beyond ASCII the bytes that tell the literals apart are looked at and not a script's lead bytes; as many of the three as pay, each costing its
-shuffles at every vector against the starts it turns away. Measured on the search alone over UTF-8, three names
-under the i flag went from 0.26 to 0.06 ms, seven from 0.95 to 0.08, four over sixteen million characters from
-12.2 to 1.8, and five Russian names from 1.12 to 0.15. Over UTF-16 the same search looks at the low byte of each
-unit, so it has twice the lanes to look at: the runtime's search keeps ASCII literals there (three names under
-the i flag: 0.07 ms against 0.11), with the forms its comparison does not know (the long s, the Kelvin sign)
-looked for apart, and the fingerprints take the rest (five Russian names under the i flag: 0.18 ms against the
-needle's 0.67 and the runtime's 7.8). Below the cost of 0.35 the needle's one anchor position wins by half: two
-or three literals that start with capitals (`Sher|Hol`, `Sherlock|Street`, `Holmes|Watson`) search at 0.53 to
-0.65 of the runtime's time.
-
-**The literal every alternative holds.** A pattern that is an alternation, or starts with one, whose alternatives
-each start with a literal or hold one at a fixed or bounded distance from their start
-(`([A-Za-z]awyer|[A-Za-z]inn)\s`, `Tom.{10,25}river|river.{10,25}Tom`, `Sher[a-z]+|Hol[a-z]+`, with or without
-the i flag) is searched for by all those literals at once; each occurrence opens the window of starts from which
-some alternative could reach it, tried in order and never twice, and where every alternative starts with its
-literal the matcher runs at the occurrence alone. These rows had been the matcher's: tried at every letter.
-
-**What this cannot do.** A CJK literal over UTF-8 in a text that fits the cache runs at about 1.2 to 1.5 times
-.NET over UTF-16: every character is three bytes and no byte of it is rare, where UTF-16 has one rare unit per
-character for the span search to find alone. Over a text larger than the cache the smaller encoding wins back.
-
-### 5.4 Linear patterns
-
-The ASCII automaton of the ports (256 states, lazy) is kept for both cursors: an ASCII text is one table read per
-unit either way, and any other unit hands the text to the matcher. It takes `\b` and `\B` (not under the i and u
-flags together, where they fold): a state carries whether the unit before was a word character and whether it is
-at the start of the text, and a boundary is passed when the next unit is known, so a pattern such as
-`\b\d{1,2}/\d{1,2}/\d{2,4}\b` is decided by the automaton rather than the backtracker, which halved its time. A
-lazy automaton over full Unicode is a later phase (section 10) if the benchmarks show it is needed.
-
-### 5.5 The source generator
-
-A Roslyn incremental generator with the shape of .NET's: `[GeneratedRegex(pattern, options, matchTimeoutMilliseconds)]`
-on a `static partial Regex Name();` method or `partial Regex Name { get; }` property. It ships inside the same
-package as an analyzer asset, so one `PackageReference` gives the library and the generator, as the .NET SDK does.
-
-It has two stages, each a gate of its own:
-
-1. **Baked program.** The generator parses and compiles the pattern at build time and emits the program's arrays,
-   the prefilter data and the automaton as `static readonly` data, plus the diagnostics (a pattern that is not valid
-   is a build error with the ECMA-262 message, as .NET reports one). No parse at run time, trimming and AOT safe.
-2. **Straight-line code.** For patterns in the linear class and for the simple backtracking shapes, the generator
-   emits C# that matches directly (loops over the span, no instruction dispatch), which is what makes .NET's own
-   generator fast. This is the stage the generated-against-generated comparison of section 2 is measured on.
-
-**Decision.** Generator inside the main package. The alternative, a separate `*.SourceGenerator` package as
-Corvus.Text.Json has, would make the swap two references instead of one.
-
-**Stage 1 as built (2026-10-19).** `Corvus.Regex.Ecma262.SourceGenerator` (netstandard2.0, Roslyn 4.12) compiles
-the library's parser and tables from the same source, so a pattern is checked at build time by the parser that
-will run it: CRE0001 is the ECMA-262 message and offset, CRE0002 the member's shape, CRE0003 the flags, CRE0004 a
-containing type that is not partial, CRE0005 a pattern over a limit. It takes a `static partial` method or
-property returning `Regex`, with the flags as `RegexFlags` or as letters and an optional timeout, and emits the
-member returning one instance held in a nested static class. The generator and the `System.Memory` its host may
-lack ship in the package at `analyzers/dotnet/cs`. The AOT sample publishes with no trimming warning and runs.
-
-The instance is made by the `Regex` constructor the first time it is used rather than from baked arrays, which the
-design above asked for: the program's shape changed in every round of phase 3 and will again in stage 2, a
-serialised form would have frozen it, and what it saves is one construction of a few microseconds per process.
-Trimming and AOT are safe without it, since the parser and compiler are plain code. Stage 2 is where the generated
-code earns its place.
-
-**Stage 2 as built (2026-10-19).** The generator emits each program as structured code from its tree
-(`TreeEmitter`), in the shape .NET's own generator uses: every construct that can be retried keeps its state in
-locals and owns a label, and whatever follows it jumps to the innermost such label when it fails. An alternation
-keeps the branch it took and dispatches a retry to that branch's own backtracking; a loop over one character or
-class keeps the end and the floor of its run, takes the run whole (by vector where the class allows) and gives
-back a character at a time, or by vector to the last character from which what follows could go on, or not at
-all when what follows cannot start with a member; an optional group keeps whether it was taken; a capturing
-group keeps the slots it replaced and restores them when it is exhausted; a lookahead is a scope whose body
-jumps to the lookahead's own failure. Nothing is pushed for these. The memo marks that keep the interpreter
-linear on patterns that would otherwise be exponential are kept at the same points (the compiler records each
-construct's point, `Program.PointOf`): checked where a construct is entered or gives back, set where it is
-exhausted. A pattern with a loop over a group other than an optional one, or a lookbehind, is left to the
-instruction emitter (`RunEmitter`: a labelled block per instruction, the backtracking the interpreter shares),
-and the whole data set is run with every pattern as generated code (19,715,231 answers, 0 wrong). The test
-project builds every scan test's pattern as generated code too and asserts both engines.
-
-What the structured code bought was the attempt: an IP address candidate went from 37 to 21 ns, which took that
-row from 1.55 to about 1.1 of .NET's generated code, and the rows that try the matcher at every occurrence of a
-literal moved with it. What it did not buy was the search and the re-entry around it: on the rows that remain
-above 1.0 the search is one vectorised scan at its floor and the gap is the ten to fifteen nanoseconds from the
-enumerator through the search's block to the runner and back for each match, which .NET's generated scan loop
-does not pay, plus what ECMA-262 asks for that .NET does not do: `.` excludes four characters, not one, and a
-case-insensitive search must find the long s and the Kelvin sign.
-
-**What an enumeration carries (2026-10-19).** An enumeration holds the thread's match state across its matches
-(`MatchState.Current`, `Matcher.MatchWith`) and a cursor (`ScanCursor`): the range of the text it knows to hold no
-rare line terminator, so that a run of `.` is one search for LF and CR with the U+2028 and U+2029 scan done once a
-chunk ahead (`Matcher.EndOfLine`); and the range known to hold no form the program's search leaves out, so that
-the pass for the long s and the Kelvin sign is one over the text rather than one per match. A match on its own
-starts with nothing.
-
-**The search as code (2026-10-19).** Reading .NET's generated source showed what it does that the structured
-match alone did not: it emits the search for starts as pattern-specific code over the span primitives, with the
-search object in a `static readonly` field whose exact type the JIT then knows, and it checks a match's least
-length once. The generator now does the same (`TreeEmitter.Finder`, under `NET8_0_OR_GREATER`): an exact
-alternation of ASCII literals is one `IndexOfAny` for the characters at its rarest shared position, a check or two
-of the other positions, and `StartsWith` of each literal, or the runtime's needle where no position is rare; an
-alternation in its forms is the runtime's search, which holds the string search ignoring case where no form is
-apart and the packed fingerprint search where one is, and its pass for the forms apart only under the u flag; a
-fixed literal is the needle's rarest unit then `StartsWith`, or the string search where the literal's ends are
-common letters, or the runtime's needle where neither applies; a leading literal the same; a literal in its forms
-is the string search ignoring case where every form is ASCII and the runtime's needle where one is apart (HOLME by
-the string search measured 44 us against the needle's 41, which sees the three forms of s in one pass); a run of
-ASCII sets then a literal is `IndexOf` of the literal and a walk back over the sets in code; and an ASCII first
-set is `IndexOfAny` or a range search. Inside the match, a run of one-unit terms checks the units it needs once, a
-short run of a set is walked in code before the vector search is called, and a run followed by one character
-gives back to the last such character by one `LastIndexOf`.
-
-Two faults the gates had not seen came out when the test project's and the data set runner's Roslyn
-compilations were made to define the symbols the net10.0 build has: until then every `#if NET8_0_OR_GREATER`
-block in the generated code was compiled only by the benchmark project. Both now define them, and the data set
-runs the emitted search.
-
-**The resume (2026-10-19).** The ten to fifteen nanoseconds a match paid between the enumerator and the generated
-loop were the general match entry: a prepared state, a copy of the captures, two calls more. For a program that
-tracks no group and whose generated code finds the starts, an enumeration's later matches go from the enumerator
-to the runner's loop (`Matcher.ResumeEmitted`): the state is prepared again only when something else used it since
-the last match (`MatchState.PreparedFor`, and the text's width), else what a match changes is reset; the cursor
-is loaded and saved around the call. That is 2.5 ns a match over the loop alone (`the` under the i flag: 178 us
-against .NET's 204, from 234).
-
-The benchmark runs every Corvus row under the u flag, which .NET has no mode for: classes decode surrogate pairs
-and the i flag folds s to the long s and k to the Kelvin sign, which .NET's own tables do not. Counts agree on 53
-of the 57 rows; the four apart are `$` and `.` at CRLF, where ECMA-262 counts CR as a line terminator, and `\w`,
-which .NET takes as Unicode letters and digits.
-
-**The fingerprint search's loop (2026-10-20).** With the two `/i` alternations still at 1.33 and 1.61, a copy of
-the packed fingerprint search in the probe measured its loop against .NET's with no start in the text: level (47
-us against 45 for three positions over Sherlock), both bound by the shuffle port at twelve shuffles a vector. The
-difference was in the vectors with a start: the loop that also handled them reloaded the six tables from the stack
-at every vector, because a call (the verification) was live across it. The loop over the vectors with no start is
-now its own method for each number of positions, with no call in it, and the starts are handled outside it; a start
-is compared against a literal's forms by one vector compare per form where every character is one unit in every
-form (three names under iu: 85 us to 61, below .NET's string search at 70). The search that verified the
-alternative gives its length, and for a pattern that is the alternation (or one literal) the generated loop
-returns the match without running its body. The packed search is taken for two literals too where a form is
-apart, since the runtime's string search then needs its pass for the long s (Sher|Hol under iu: 70 us against 65
-and 14).
-
-**The needle's third anchor (2026-10-20).** .NET's single-string search compares its third character only where
-the first two agree somewhere in the vector; ours compared all three at every vector, and took a third only where
-the first two were common letters. The third is now lazy in every three-anchor finder and taken wherever there
-is one a mask joins (Holmes under iu: 44 us to 36); a literal whose rarest third position has a form no mask joins
-(the s of sherlock, with the long s) takes the rarest position a mask does join instead of keeping two anchors
-(sherlock under iu: 36 us to 27, against .NET's 32).
-
-## 6. Target frameworks
-
-`net10.0; netstandard2.0`. net8.0 leaves support in November 2026 and net9.0 left it in May 2026, so neither is a
-target. netstandard2.0 is needed twice: the generator is a netstandard2.0 Roslyn component that compiles the same
-parser and compiler source, and Corvus.Text.Json targets netstandard2.0 and tests on net481. The SDK is pinned to
-10.0 with `rollForward: latestFeature`; a net11.0 target is added when that SDK is generally available.
-
-**The modern target never pays for netstandard2.0** (owner, 2026-10-18: "Do not sacrifice .NET 11 performance for
-netstandard2.0 compatibility. Consider conditional compilation."). Wherever the current runtime has a faster way,
-the code takes it under `#if NET` and netstandard2.0 gets a plain fallback, never the other way round:
-`SearchValues` and `IndexOfAny` for first sets, the anchored `Vector256` / `Vector128` searches for literals, `Vector128` scans for
-ASCII class loops, static abstract interface members and `allows ref struct` where they remove a cost, `Unsafe`
-reads where bounds checks show in a profile. The benchmarks of section 9 run on the modern target; the
-netstandard2.0 build is held to correctness (the same data set) and not to the same speed.
-
-**Decision.** As above.
-
-## 7. Repository layout
-
-The layout of `corvus-dotnet/Corvus.Globbing`, the closest sibling (a single high-performance library benchmarked
-against .NET Regex):
-
-```
-Corvus.Regex.Ecma262/
-  .github/workflows/build.yml          scripted-build-matrix-pipeline (Endjin.RecommendedPractices.GitHubActions)
-  .github/workflows/auto_release.yml   from pr-autoflow
-  .github/workflows/dataset.yml        the full ECMA-262 test data run (section 8), nightly and on demand
-  GitVersion.yml, LICENSE (Apache-2.0), README.md, build.ps1, global.json
-  docs/design/design.md                this document
-  docs/benchmarks/                     committed result tables with the host and the date
-  Solutions/
-    Corvus.Regex.Ecma262.sln
-    Corvus.Regex.Ecma262/              the library; the generator's shared source is linked from here
-    Corvus.Regex.Ecma262.SourceGenerator/   netstandard2.0, packed into the library package as an analyzer
-    Corvus.Regex.Ecma262.Tests/        MSTest, Microsoft.Testing.Platform, as Corvus.JsonSchema
-    Corvus.Regex.Ecma262.SourceGenerator.Tests/
-    Corvus.Regex.Ecma262.Benchmarks/   BenchmarkDotNet (section 9)
-    Corvus.Regex.Ecma262.DatasetRunner/  console: the test data run, V8 differential fuzzer harness
-  tools/unicode/gen-ecma-unicode-data.ps1   regenerates the tables from UCD
-```
-
-Default branch `main`. The owner adds the repository to endjin-codeops pr-autoflow, which generates GitVersion.yml
-and auto_release.yml; until then a hand-written GitVersion.yml in the same shape is used.
-
-**Decision.** The repository `corvus-dotnet/Corvus.Regex.Ecma262` was created on 2026-10-18 (public, Apache-2.0).
-pr-autoflow is not a concern of the owner's for now; `GitVersion.yml` is hand-written in the same shape.
-
-## 8. Testing and the ECMA-262 test data
-
-### 8.1 What the data already gives
-
-`corvus-dotnet/ecma262-regex-test-data` holds V8's verdicts for 98,839 patterns (validity under both grammars) and
-`RegExp.prototype.test` answers for 4,322,391 texts, with the `i`, `m` and `s` flags in `flags.jsonl` and
-`case-folding.jsonl`. That is the gate for `IsMatch` under `None`, `Unicode`, `IgnoreCase`, `Multiline` and
-`Singleline`, and for validity, as it is today for every port. The `lone-surrogates.jsonl` family, which no JSON
-Schema port is held to, is a gate for this library on UTF-16 input, because ECMA-262 defines those answers.
-
-### 8.2 What the library needs that the data lacks
-
-The drop-in surface answers more than "does it match anywhere". The data set is extended, in its own repository and
-by its own generator, with records for:
-
-| Extension | Record | For |
-|---|---|---|
-| Captures | `exec`: the match's `[start, end]` and each group's `[start, end]` or `null`, under each valid mode | `Match`, `Groups`, `EnumerateMatches`, indices in both units |
-| Global search | the sequence of `exec` results of a `g` loop with the ECMA-262 `lastIndex` advance (an empty match advances by one code unit, or one code point with `u`) | `Matches`, `Count`, `EnumerateMatches` |
-| Sticky | `exec` with `y` at a set of start positions | `Sticky` |
-| Replace | the result of `replace` and `replaceAll` for a small set of replacement strings exercising every `$` form | `Replace` |
-| Split | the result of `split` with and without a limit | `Split`, `EnumerateSplits` |
-| v flag | a new family of set-notation and string-property patterns: validity and `test` | `UnicodeSets` |
-| Named groups | `groups` of the `exec` result, duplicates in separate alternatives included | `Groups[name]` |
-
-The first five are one new file, `captures.jsonl` (each test holds `exec`, `all`, `sticky`, `replace`, `replaceAll`,
-`split` and `split3`), and the v flag is a file of its own, so the existing files and their consumers are untouched.
-A test on which V8 departs from ECMA-262 (a match that starts inside a surrogate pair) or answers unstably is marked
-on the test, as the other files mark records. Positions are given in UTF-16 code units, as V8 gives them; the
-runner derives the UTF-8 byte positions from the text. The generator scripts (`generate.js`, `families.js`) grow
-the record kinds; `verify.js` checks them; `manifest.json` lists the counts. The size of the data is kept in view:
-the capture file samples texts rather than repeating all 4.3 million.
-
-### 8.3 How the tests read the data
-
-The data set is 230 MB and grows. It is not vendored. The data repository gets release tags; the engine repository's
-`dataset.yml` job downloads the tagged archive into a cached directory and runs the `DatasetRunner` over it, both
-encodings, both engine classes, with 0 wrong as the pass. A checked-in sample (one record in a hundred, fixed seed,
-about 2 MB) runs in the ordinary `dotnet test` so that a developer gets a signal in seconds. The sample is
-regenerated by a script from the tagged data, never edited by hand.
-
-### 8.4 The other tests
-
-- Unit tests ported from the Go `ecmaregex_test.go`, `size_limit_test.go`, `match_limit_test.go` and `memo_test.go`,
-  and from the C# translator's parser tests.
-- Allocation tests that count the measuring thread only, with a `[MemoryDiagnoser]` benchmark at 0 B as the proof.
-- A V8 differential fuzzer (Node is on the development machine) as an outerloop test; a class it finds goes into the
-  data set, never left in scratch.
-- Source generator tests on the Roslyn test harness: generated code compiles, equals the interpreter's answers on the
-  sample, and diagnostics match .NET's for the same faults.
-- A swap test: a small project that compiles against `System.Text.RegularExpressions` and against this library by
-  changing one `using`, to hold the drop-in promise.
-
-**Decision.** The data set is the oracle; it is extended in its own repository with new files, and consumed by tag.
-
-## 9. Benchmarks
-
-The benchmarks compare this library with `System.Text.RegularExpressions` on the workloads the .NET team itself
-measures and publishes, so the numbers can be read beside theirs. The JSON Schema corpora are not a benchmark set.
-
-One BenchmarkDotNet project, `[MemoryDiagnoser]` on everything, with a job for each engine class on each side:
-
-| Side | Classes |
-|---|---|
-| .NET | interpreter, `RegexOptions.Compiled`, `RegexOptions.NonBacktracking` where the pattern allows, `[GeneratedRegex]` |
-| This library | interpreter, generated (baked program), generated (straight-line code), each over `string` and over UTF-8 |
-
-Pattern sets, each a file in the benchmark project with its provenance:
-
-1. **Industry.** The sets of `dotnet/performance`'s `Perf.Regex.Industry`: the Mariomka set (email, URI, IPv4 over
-   its text), regex-redux, the Rust `sherlock` patterns over the Sherlock Holmes text, the Boost documentation set,
-   the Leipzig corpus searches, and `slice-slice`. These are the sets behind .NET's own "regex performance
-   improvements in .NET N" tables. This is the set the adoption gate of section 2 is measured on.
-2. **Common.** `Perf.Regex.Common` and `Perf.Regex.Cache` from the same repository: construction, the `IsMatch`,
-   `Match`, `Matches`, `Replace` and `Split` members, `Count`, `EnumerateMatches`, on their patterns.
-3. **Pathological.** Nested quantifiers, overlapping alternatives under a repetition, backreferences in loops, on
-   texts made for them: the set where .NET reaches its timeout and the engine of the ports does not.
-4. **Micro.** One construct at a time (a class loop, a literal search, a lookbehind, a bounded loop, a UTF-8 text
-   against a UTF-16 one) to find where a loss comes from.
-
-Where an industry pattern uses syntax ECMA-262 lacks (an atomic group, a possessive quantifier, `\A` and `\z`,
-a `(?i)` prefix), the benchmark holds the ECMA-262 form of the same expression and says so beside it; a pattern
-with no ECMA-262 form is left out and listed.
-
-Runs follow the pinned-host procedure Corvus.JsonSchema uses (cores pinned, health probe first, interleaved A/B
-rounds); result tables are committed under `docs/benchmarks/` with the host, the date and the commit. The benchmarks
-never share a solution with the tests, because BenchmarkDotNet and worktrees do not mix.
-
-**Decision.** The .NET engine is the comparison, on .NET's own published workloads, every engine class on both
-sides, 0 B as a hard requirement.
-
-## 10. Phases
-
-Each phase is its own run of pull requests in the new repository, each with its gates green, one branch in CI at a
-time.
-
-| Phase | Delivers | Gate |
-|---|---|---|
-| 0 | Repository, build, package skeleton, this document, the Unicode tables and their generator | Builds warning-free on both OSes, packs |
-| 1 | Parser, compiler, matcher, both cursors, limits, `IsMatch` only, `None`/`Unicode`/`IgnoreCase`/`Multiline`/`DotAll`/`Sticky` | Existing data set 0 wrong on UTF-8 and UTF-16; lone surrogates right on UTF-16; allocation test 0 B. **Met 2026-10-18**: 15,954,941 right, 0 wrong, 0 refused, 0 at the limit, in 4.4 s; 8 allocation cases at 0 B |
-| 2 | The whole drop-in surface of section 4, `Sticky`, `Replace`, `Split`, enumerators, timeout, exceptions | Data set extensions of 8.2 written and green; swap test green. **Met 2026-10-18** apart from the swap test: `captures.jsonl` (exec, global, sticky, replace, split; 5,188 patterns, 207,485 texts) in the data repository at 95a64f0, 3,760,290 answers right, 0 wrong, over UTF-16 and UTF-8 |
-| 3 | Prefilters, `SearchValues`, literal search, automaton on UTF-16, benchmarks of section 9, first tables | Interpreter-against-interpreter at or below 1.0 on the industry set; set 3 finishes |
-| 4 | Source generator, stage 1 then stage 2, generator tests, diagnostics | Generated-against-generated at or below 1.0 on the industry set; AOT sample publishes. Stage 1 met 2026-10-19 (the attribute, build-time diagnostics, the analyzer in the package, the AOT sample). Stage 2 emits each program as straight-line code (see 5.5); the whole data set is its gate too, run with every pattern as generated code. **Met 2026-10-20** at 2a56933 ([the run](../benchmarks/2026-10-20.md)): median 0.86 over UTF-16, 46 of 57 at or below 1.0, 0.58 and 51 of 57 over UTF-8; the data set at 0 wrong as generated code; the rows left above 1.0 are the cost of the u flag, see below |
-| 5 | `UnicodeSets` (v flag) | The new family of 8.2 green. **Met 2026-10-20**: `unicode-sets.jsonl` (5,520 patterns, each answered with `v`, with `u` and with neither; 795,150 tests) at 0 wrong, 0 refused, 0 accepted-invalid over both encodings, interpreted and generated |
-| 6 | Adoption in Corvus.JsonSchema: the translator and shape matchers go, the evaluator and the V5 generator call this library, V4 keeps .NET `Regex` | Corvus.JsonSchema's data set run 0 wrong, the 37 corpora give the same answers and the evaluator is not slower, #1025 closed |
-
-**The v flag (2026-10-20).** The grammar of the v flag changes a class and nothing outside it, so it is parser work
-that lands on the nodes the engine has. A class is read as a value of two parts, its code points and its strings
+**The v flag.** The grammar of the v flag changes a class and nothing outside it, so it is parser work that lands
+on the nodes the engine already has. A class is read as a value of two parts, its code points and its strings
 (each of a length other than one, the empty string among them), with a flag for whether its syntax may hold a
 string, which ECMA-262's MayContainStrings decides from the syntax and not from what the strings turn out to be.
 A string of one character is a character of the class. The union, the intersection (`&&`) and the difference
@@ -541,45 +98,428 @@ A string of one character is a character of the class. The union, the intersecti
 that the complement of a class, and of `\P{...}`, `\W`, `\D` and `\S`, is of the folded set (with the u flag the
 fold comes after the complement, which is why `\P{Lu}` with `i` matches `A` under `u` and not under `v`); the
 sets hold every form of a character where ECMA-262's hold the folded form, and the two agree under union,
-intersection, difference and complement because a set of ours is a union of whole case classes. A class with
-strings compiles to a non-capturing group of an alternation: the strings longest first, each a sequence of
-characters (each the set of its forms under `i`), then the set; the matcher, the start searches and the generator
-see nothing new. The seven properties of strings are a generated file of their own (`EcmaRegexUnicodeStrings.cs`,
-from the two emoji sequence files of Unicode 17), read the first time a pattern names one. A program with more than
-2,048 instructions (`\p{RGI_Emoji}` alone is 2,760 alternatives) is too large for straight-line code: the
-generator writes a runner that hands it to the interpreter, as the tree emitter already leaves a tree of more
-than 1,500 nodes to the instruction emitter. The data set's generated pass found this by being killed for memory
-on a 12 MB source file. A strings instruction (a trie over the sequences) is the better shape for both engines,
-and is left for when a workload asks for it.
+intersection, difference and complement because a set here is a union of whole case classes. A class with strings
+compiles to a non-capturing group of an alternation: the strings longest first, each a sequence of characters
+(each the set of its forms under `i`), then the set; the matcher, the start searches and the generator see
+nothing new. The seven properties of strings are a generated file of their own (`EcmaRegexUnicodeStrings.cs`,
+from the two emoji sequence files of Unicode 17, by `tools/unicode/gen-ecma-unicode-strings.ps1`), read the first
+time a pattern names one.
 
-Testing it against V8 found two faults of V8's (13.6) that the family marks and the runner skips: with `i` and
-`v` a string of one character in `\q{...}` is not canonicalized against the text (`[\q{k}]` misses `K` where
-`[k]` finds it), and `\p{ASCII}` is folded without the long s and the Kelvin sign where the same range written out
-is folded with them. Both are found by rewriting the pattern to the form V8 gets right and asking it again. The
-phase cost the optimizations of phase 4 nothing: the hot paths run on the same nodes, and the Industry rows have
-no `v` pattern.
+### 3.3 Errors, and the members whose algorithm is ECMA-262's
 
-**Phase 4 closed above 1.0 on three rows (2026-10-20).** The gate asked for every industry row at or below .NET's
-generated code, and the run that closed the phase has three rows above it that no further search work will
-bring down, because each is the price of matching by ECMA-262's rules under the u flag, which the benchmark gives
-every Corvus row and .NET has no mode for. `.*` (1.21): ECMA-262's `.` excludes CR, the text has CRLF endings, so
-there are 36,491 matches to .NET's 26,105 at parity per match. `Sher[a-z]+|Hol[a-z]+` under i (1.15): the search
-must find the long s and the Kelvin sign, so it is the packed fingerprint search with every form in its tables
-(70 us alone) against .NET's string search that ignores them (65 us), and .NET's row reads 66 to 78 across runs.
-`[a-q][^u-z]{13}x` (1.12): a supplementary character among the thirteen is two units, so the distance from a
-start to the `x` is not fixed and the walk-back search stands in for a fixed-offset one. Four more rows (`The`,
-`[a-z]shing`, `Twain` under i, the exact three names) read either side of 1.0 from run to run with the two engines
-at parity in-process. The decision to tag was taken on that reading rather than on giving up the flag's semantics
-in the benchmark.
+A pattern that is not valid in the grammar of its flags throws `RegexParseException` with the ECMA-262 message and
+the offset. A pattern over a limit of size throws a distinct `RegexPatternTooLargeException` (an
+`ArgumentException`), never a parse error: a caller must be able to tell "not valid" from "too large".
 
-Phase 6 is a separate decision at its time, taken on the tables of phases 3 and 4.
+`Regex.Replace` substitutes as ECMA-262's `GetSubstitution` does: `$$`, `$&`, `` $` ``, `$'`, `$n`, `$nn`,
+`$<name>`. .NET's `$_`, `$+` and `${name}` are not recognised and are left as they are, as ECMA-262 leaves them.
+`Regex.Split` follows `RegExp.prototype[Symbol.split]`: captures are spliced into the result, an empty match at
+the start or the end of the text splits nothing, and `count` is ECMA-262's `limit`. `Regex.Escape` escapes the
+ECMA-262 syntax characters and `Regex.Unescape` reverses it. Nothing of .NET's that has no ECMA-262 meaning
+(right-to-left matching, pattern whitespace, explicit capture, the culture) exists in the surface, so nothing has
+to be refused at run time.
 
-## 11. What is kept in view
+### 3.4 Input and positions
+
+Every matching member has an overload for `string`, `ReadOnlySpan<char>` and `ReadOnlySpan<byte>` (UTF-8). A
+`Match` from a string input holds the input and gives `Value` as a substring, as .NET does. A `Match` from a span
+is not possible in .NET's shape (a class cannot hold a span), so the span overloads are the ones .NET itself gives
+spans and a few more, every one of them allocation-free:
+
+- `IsMatch`, `Count`, and `EnumerateMatches` (`ValueMatch` with `Index` and `Length`), as .NET has them.
+- `EnumerateMatches(input, Span<ValueCapture> captures)`: after each `MoveNext` the caller's span holds the match
+  as element 0 and what each group captured (`Index`, `Length`, `Success`), so a loop over the matches reads the
+  groups without a `Match`. `TryMatch` does the same for one match.
+- `TryReplace(input, replacement, Span<T> destination, out int written)` and `Replace(input, replacement,
+  IBufferWriter<T> destination)`, with the template expanded as `GetSubstitution` expands it, and
+  `Replace(input, evaluator, IBufferWriter<T>)` where the evaluator writes its replacement rather than returning
+  a string. `Replace(string, string)` runs the same loop over pooled memory, so the result string is its only
+  allocation.
+- `EnumerateSplits(input[, count])`: the pieces of `Split` as positions, without the captures `Split` puts
+  between them (as .NET's `EnumerateSplits` leaves them out).
+
+`Index` and `Length` are in the unit of the input: chars for UTF-16, bytes for UTF-8.
+
+A UTF-8 input that is not valid UTF-8 is read a byte at a time as U+FFFD, as the Go engine reads it. A UTF-16
+input can hold a lone surrogate, and it is matched as ECMA-262 matches it (a code unit without `u`, a code point
+of its own with `u`). Nothing is transcoded: there is no UTF-16 copy of a UTF-8 text and no UTF-8 copy of a
+string.
+
+### 3.5 Limits and timeouts
+
+A `matchTimeout` as in .NET, default `Regex.InfiniteMatchTimeout`, settable per instance. A pattern without a
+backreference is matched in linear time by the memo of section 4.2, and takes no timeout: the clock is never read
+for it. A pattern with a backreference can take exponential time, so the timeout applies to it, and a match that
+passes the timeout throws `RegexMatchTimeoutException`. A match whose backtracking stack reaches its cap (a
+million entries) throws `RegexMatchTimeoutException` too, with a message that says memory, because .NET has no
+exception for that and a consumer's `catch` must already hold the case. Limits of size on the pattern (nesting
+of two hundred, program size, construction cost) are deterministic, never a clock, and throw
+`RegexPatternTooLargeException`.
+
+## 4. Engine design
+
+### 4.1 One matcher, two encodings, no copy
+
+The matcher's methods are generic over the unit of the text and an empty struct that reads it:
+`Run<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, ...) where TEncoding : struct, ITextEncoding<TUnit>`, with
+`Utf8Encoding : ITextEncoding<byte>` and `Utf16Encoding : ITextEncoding<char>`. Each encoding gives `Decode`,
+`DecodeBefore`, `UnitAt` and `UnitBefore` (the UTF-16 code unit at a position, for Annex B matching), the line
+terminator tests, and the literal and prefix searches. The JIT specialises every generic method for the struct,
+so there is no virtual call and no branch on the encoding in the loop. (A `ref struct` cursor that holds the span
+and implements the interface would read the same, but ref-struct interfaces need a .NET 9 or later runtime, and
+the netstandard2.0 build compiles the same source.) The Go engine's `units` trick, which places the position
+between the halves of a supplementary character at its third byte, is the UTF-8 cursor's code-unit mode. The
+UTF-16 cursor's code-unit mode is the natural one.
+
+Literal runs are stored in both encodings at compile time (a few bytes each), so a literal instruction is a span
+comparison and, for a literal prefix, an anchored search (section 4.3).
+
+### 4.2 Program and working memory
+
+The program is flat arrays (instruction kind, operands, set tables) in a sealed class the `Regex` holds. The
+per-thread working memory (backtracking stack, capture slots, loop counters, memo bitset) is a `[ThreadStatic]`
+state, grown to what a match needs and retained up to a cap, as the Rust port does. A small match stackallocs its
+capture slots. No closures, no boxing, no LINQ, no iterator blocks on the match path.
+
+The memo of failed places is what keeps a pattern without backreferences linear: a (position, construct) pair
+that has failed once is never retried. The bitset costs one bit per position per memoised construct, so it is
+taken into use only once a match has made enough steps to pay for it (sixty-four steps per position of the
+text), and a match that ends before then never clears it. The clock is read every 4,096 steps, so a match that
+ends before the first check never reads it.
+
+### 4.3 Finding where to start
+
+Before the matcher runs, the `Regex` applies what it learned at compile time, in this order: an anchored pattern
+starts only at 0; a literal every match starts with, or holds at a fixed distance from its start, or holds after
+a leading loop, is found by an anchored search; a first set is found by `SearchValues<byte>` /
+`SearchValues<char>` (a table on netstandard2.0); a minimum length rules out short rests. This is the part of
+.NET's `RegexFindOptimizations` that applies to ECMA-262 patterns, and it is where most of the time of a search on
+a long text goes.
+
+**The anchored search** (`Needle<T>`, one class for `byte` and `ushort`). The span search finds a literal by its
+first and last units, and in UTF-8 those are often the units every character of a script shares: every Cyrillic
+letter starts with D0 or D1, every common CJK character with E4 to E9, so it compares at nearly every character.
+The needle instead picks the two or three positions of the literal that text makes rarest, by a table of how
+common each unit is (English letter frequencies for ASCII, and what UTF-8 makes of other scripts: lead bytes
+common, continuation bytes spread over sixty-four values), compares those positions over a vector of starts, and
+compares the literal in full only where every anchor agrees. The third anchor is lazy: it is looked at only in a
+vector where the first two agree somewhere, as .NET's own single-string search does. A unit rare enough on its own
+(q, z, a digit, punctuation) is searched for alone by the span search for one value, which is the fastest search
+there is. Over UTF-16 a literal matched exactly keeps the span search, which is as fast as any for that, except
+where both ends of the literal are common letters: there the span search's first-and-last comparison lets too
+many starts through, and the runtime's fingerprint search (`SearchValues<string>`) is used instead (`aei` over
+the Sherlock Holmes text: 23 us against 28). The loop that compares the anchors is a static method whose
+constants are its arguments and which makes no call, so everything stays in registers; the full comparison is
+made outside it.
+
+The same search is case-insensitive. Under the i flag the parser reads a letter as the class of its forms, and a
+run of such classes (or characters, or any small class of single characters: `[ab][cd]`) at the start of the
+pattern is one needle whose positions each allow up to three values; two forms that differ in the bits of a mask
+(a letter's cases differ in 0x20, in ASCII, in UTF-16 for Latin, Greek and Cyrillic, and in the last byte of
+UTF-8) are one comparison of the unit with those bits set, and ASCII anchors over UTF-16 are packed thirty-two to
+a vector. An anchor is taken wherever a mask joins its forms; a position whose forms no mask joins (the s of
+`sherlock`, whose third form is the long s) gives way to the rarest position a mask does join. A form whose
+encoding is longer than the character's own (the long s and the Kelvin sign over UTF-8, which are two and three
+bytes where s and k are one) cannot be at a fixed position: it is looked for apart, and every start from which the
+literal could reach it is tried. This is what makes a Cyrillic literal under the i flag run at a third of .NET's
+time over UTF-16 rather than fourteen times it, which is where an `OrdinalIgnoreCase` span search had left it.
+
+**Several literals at once** (`MultiNeedle<T>`): an alternation of literals, the pairs of first characters of a
+sequence of classes, and the forms a case-insensitive search leaves out. One position that every literal has is
+chosen, or two, by a cost model (the comparisons at every vector against the full comparisons at the starts the
+units let through); one position is the span search for any of several values, two are a straight-line loop over
+up to six distinct units at each, and over UTF-8 two adjacent positions are compared as one sixteen-bit value,
+which admits only the literals' own pairs of bytes rather than every pairing of a unit of one position with a
+unit of the other.
+
+**Fingerprints** (`Teddy`). Where no position is rare enough for the needle (the cost model puts it at 0.35 or
+more: three or more literals, or any case-insensitive alternation, where a letter's two cases are common
+together), the literals go into up to eight buckets, and for each of up to three positions two tables of sixteen
+entries map a byte's nibbles to the buckets with that byte there in any of its forms. A vector of starts is looked
+up by two shuffles per position, and only the starts whose bytes agree with a bucket at every position are
+compared. The positions are the rarest the literals share, so that beyond ASCII the bytes that tell the literals
+apart are looked at and not a script's lead bytes; as many of the three as pay, each costing its shuffles at every
+vector against the starts it turns away. The loop over the vectors with no start is its own method for each number
+of positions, with no call in it, so the six tables stay in registers; a start is handled outside it and compared
+against a literal's forms by one vector compare per form where every character is one unit in every form. Over
+UTF-16 the same search looks at the low byte of each unit, so it has twice the lanes to look at; the runtime's
+own string search (`SearchValues<string>`, which is Teddy too) keeps ASCII literals there, with the forms its
+comparison does not know (the long s, the Kelvin sign) looked for apart, and the fingerprint search takes the
+rest. Measured on the search alone over UTF-8, three names under the i flag went from 0.26 to 0.06 ms, seven from
+0.95 to 0.08, four over sixteen million characters from 12.2 to 1.8, and five Russian names from 1.12 to 0.15.
+Below the cost of 0.35 the needle's one anchor position wins by half: two or three literals that start with
+capitals (`Sher|Hol`, `Sherlock|Street`, `Holmes|Watson`) search at 0.53 to 0.65 of the runtime's time.
+
+**The literal every alternative holds.** A pattern that is an alternation, or starts with one, whose
+alternatives each start with a literal or hold one at a fixed or bounded distance from their start
+(`([A-Za-z]awyer|[A-Za-z]inn)\s`, `Tom.{10,25}river|river.{10,25}Tom`, `Sher[a-z]+|Hol[a-z]+`, with or without
+the i flag) is searched for by all those literals at once; each occurrence opens the window of starts from which
+some alternative could reach it, tried in order and never twice, and where every alternative starts with its
+literal the matcher runs at the occurrence alone. Without this, such a pattern is tried at every letter.
+
+**What an enumeration carries.** An enumeration holds the thread's match state across its matches and a cursor
+(`ScanCursor`): the range of the text it knows to hold no rare line terminator, so that a run of `.` is one
+search for LF and CR with the U+2028 and U+2029 scan done once a chunk ahead; and the range known to hold no form
+the program's search leaves out, so that the pass for the long s and the Kelvin sign is one over the text rather
+than one per match. A match on its own starts with nothing.
+
+**What this cannot do.** A CJK literal over UTF-8 in a text that fits the cache runs at about 1.2 to 1.5 times
+.NET over UTF-16: every character is three bytes and no byte of it is rare, where UTF-16 has one rare unit per
+character for the span search to find alone. Over a text larger than the cache the smaller encoding wins back.
+
+### 4.4 The ASCII automaton
+
+For a pattern that needs no backtracking, every state set an ASCII text can lead to is worked out once, lazily,
+into a table of at most 256 states, and a match is then one table read per unit, for both encodings alike: an
+ASCII text is one table read per unit either way, and any other unit hands the text to the matcher from the start.
+The automaton takes `\b` and `\B` (not under the i and u flags together, where they fold): a state carries whether
+the unit before was a word character and whether it is at the start of the text, and a boundary is passed when
+the next unit is known, so a pattern such as `\b\d{1,2}/\d{1,2}/\d{2,4}\b` is decided by the automaton rather
+than the backtracker, which halved its time. The automaton is built on the first match, not when the pattern is
+compiled, so a program pays nothing for the patterns it never matches, and the steps of building it are bounded
+so that a pattern too large for one costs little before that is known. An automaton over full Unicode is not
+built; the benchmarks have not asked for it.
+
+## 5. The source generator
+
+A Roslyn incremental generator with the shape of .NET's: `[GeneratedRegex(pattern, options,
+matchTimeoutMilliseconds)]` on a `static partial Regex Name();` method or `partial Regex Name { get; }` property,
+with the flags as `RegexFlags` or as letters. It ships inside the same package as an analyzer asset, so one
+`PackageReference` gives the library and the generator, as the .NET SDK does; a separate `*.SourceGenerator`
+package would make the swap two references instead of one. The generator (`Corvus.Regex.Ecma262.SourceGenerator`,
+netstandard2.0, Roslyn 4.12) compiles the library's parser and tables from the same source, so a pattern is
+checked at build time by the parser that will run it, and a pattern that is not valid is a build error with the
+ECMA-262 message and offset, as .NET reports one: CRE0001 is the message and offset, CRE0002 the member's shape,
+CRE0003 the flags, CRE0004 a containing type that is not partial, CRE0005 a pattern over a limit. The generator
+and the `System.Memory` its host may lack ship in the package at `analyzers/dotnet/cs`. The AOT sample project
+publishes with no trimming warning and runs.
+
+**The instance.** The generated member returns one instance held in a nested static class, made by the `Regex`
+constructor the first time it is used rather than from baked arrays. A serialised program would freeze the
+program's shape into every consumer's build, and what it saves is one construction of a few microseconds per
+process; trimming and AOT are safe without it, since the parser and compiler are plain code. What the generated
+code adds is the match and the search as code, below.
+
+**The match as code.** The generator emits each program as structured code from its tree (`TreeEmitter`), in the
+shape .NET's own generator uses: every construct that can be retried keeps its state in locals and owns a label,
+and whatever follows it jumps to the innermost such label when it fails. An alternation keeps the branch it took
+and dispatches a retry to that branch's own backtracking; a loop over one character or class keeps the end and
+the floor of its run, takes the run whole (by vector where the class allows) and gives back a character at a
+time, or by vector to the last character from which what follows could go on, or not at all when what follows
+cannot start with a member; an optional group keeps whether it was taken; a capturing group keeps the slots it
+replaced and restores them when it is exhausted; a lookahead is a scope whose body jumps to the lookahead's own
+failure. Nothing is pushed for these. The memo marks that keep the interpreter linear are kept at the same points
+(the compiler records each construct's point): checked where a construct is entered or gives back, set where it
+is exhausted. Inside the match, a run of one-unit terms checks the units it needs once, a short run of a set is
+walked in code before the vector search is called, and a run followed by one character gives back to the last
+such character by one `LastIndexOf`. What the structured code bought was the attempt: an IP address candidate
+went from 37 to 21 ns.
+
+A pattern with a loop over a group other than an optional one, or a lookbehind, or a tree of more than 1,500
+nodes, is emitted by the instruction emitter instead (`RunEmitter`: a labelled block per instruction, the
+backtracking the interpreter shares). A program of more than 2,048 instructions (`\p{RGI_Emoji}` alone is 2,760
+alternatives) is too large for straight-line code at all: the generator writes a runner that hands it to the
+interpreter. A strings instruction (a trie over the sequences) would be the better shape for both engines, and
+is left for a workload that asks for it.
+
+**The search as code.** .NET's generated source emits the search for starts as pattern-specific code over the
+span primitives, with the search object in a `static readonly` field whose exact type the JIT then knows, and
+checks a match's least length once. The generator does the same (`TreeEmitter.Finder`): an exact alternation of
+ASCII literals is one `IndexOfAny` for the characters at its rarest shared position, a check or two of the other
+positions, and `StartsWith` of each literal, or the runtime's needle where no position is rare; an alternation in
+its forms is the runtime's search, which holds the string search ignoring case where no form is apart and the
+packed fingerprint search where one is, and its pass for the forms apart only under the u flag; a fixed literal
+is the needle's rarest unit then `StartsWith`, or the string search where the literal's ends are common letters,
+or the runtime's needle where neither applies; a leading literal the same; a literal in its forms is the string
+search ignoring case where every form is ASCII and the runtime's needle where one is apart (the needle sees the
+three forms of s in one pass); a run of ASCII sets then a literal is `IndexOf` of the literal and a walk back over
+the sets in code; and an ASCII first set is `IndexOfAny` or a range search. A search that verified the alternative
+(or found the literal that is the whole pattern) gives the match's end, and the generated loop returns the match
+without running its body.
+
+Every `SearchValues<string>` the generated code holds is called from a small non-inlined method of its own, never
+from the generic find directly. Called from the generic method, the JIT gave the runtime's string search nearly
+twice its time (`aei` over Sherlock: 57 us from the find, 30 from the method, 26 by the interpreter); moved to a
+method of its own, it runs at the interpreter's time.
+
+**The resume.** For a program that tracks no group and whose generated code finds the starts, an enumeration's
+later matches go from the enumerator straight to the runner's loop: the state is prepared again only when
+something else used it since the last match, else what a match changes is reset; the cursor is loaded and saved
+around the call. The general match entry (a prepared state, a copy of the captures, two calls more) had cost ten
+to fifteen nanoseconds a match; this is 2.5.
+
+**The guard.** The emitted search and the resume call members the library has only in its `net10.0` build, so
+they are emitted under `#if NET10_0_OR_GREATER`; a consumer on an earlier runtime takes the `netstandard2.0`
+build of the library and the plain paths of the generated code, and gives the same answers. The test project and
+the data set runner compile generated code with the `net10.0` symbols defined, so the emitted search is what they
+exercise.
+
+## 6. Target frameworks
+
+`net10.0` and `netstandard2.0`. .NET 8 leaves support in November 2026 and .NET 9 left it in May 2026, so neither
+is a target; a project on either, or on .NET Framework, takes the `netstandard2.0` build. netstandard2.0 is needed
+twice: the generator is a netstandard2.0 Roslyn component that compiles the same parser and compiler source, and
+Corvus.JsonSchema targets netstandard2.0 and tests on net481. The SDK is pinned to 10.0 with `rollForward:
+latestFeature`.
+
+The `netstandard2.0` build is tested as a .NET Framework consumer sees it: the test projects and the data set
+runner target `net481` beside `net10.0`, the compile phase builds that target on Linux from the reference
+assemblies, and the Windows legs of the build and of `dataset.yml` run the same tests and the same data over it.
+The generated code those tests compile is compiled with the .NET Framework symbols, so the plain paths of the
+generated code are asserted too.
+
+**The modern target never pays for netstandard2.0.** Wherever the current runtime has a faster way, the code
+takes it under `#if NET` and netstandard2.0 gets a plain fallback, never the other way round: `SearchValues` and
+`IndexOfAny` for first sets, the anchored `Vector256` / `Vector128` searches for literals, `Vector128` scans for
+ASCII class loops, static abstract interface members where they remove a cost, `Unsafe` reads where bounds checks
+show in a profile. The benchmarks of section 9 run on the modern target; the netstandard2.0 build is held to
+correctness (the same data set) and not to the same speed.
+
+## 7. Repository layout
+
+```
+Corvus.Regex.Ecma262/
+  .github/workflows/build.yml          build, test, package, the documentation site (scripted-build-matrix-pipeline)
+  .github/workflows/auto_release.yml   release on merge (pr-autoflow)
+  .github/workflows/dataset.yml        the full ECMA-262 test data run (section 8), nightly and on demand
+  GitVersion.yml, LICENSE (Apache-2.0), README.md, build.ps1, global.json, nuget.config
+  docs/design/design.md                this document
+  docs/benchmarks/                     the measured run: industry.md and industry.json (section 9)
+  docs/website/                        the documentation site (Vellum), built and deployed by build.yml
+  Solutions/
+    Corvus.Regex.Ecma262.slnx
+    Corvus.Regex.Ecma262/              the library (Syntax/, Unicode/, Engine/, the public surface)
+    Corvus.Regex.Ecma262.SourceGenerator/   netstandard2.0, packed into the library package as an analyzer
+    Corvus.Regex.Ecma262.Tests/        MSTest on Microsoft.Testing.Platform
+    Corvus.Regex.Ecma262.SourceGenerator.Tests/
+    Corvus.Regex.Ecma262.Benchmarks/   BenchmarkDotNet (section 9)
+    Corvus.Regex.Ecma262.DatasetRunner/  console: the test data run, interpreted and generated, both encodings
+    Corvus.Regex.Ecma262.AotSample/    a native AOT publish of a generated pattern
+  tools/unicode/                       gen-ecma-unicode-data.ps1 and gen-ecma-unicode-strings.ps1 (from UCD)
+  tools/benchmarks/                    industry-results.py (the record of a run) and the results page generator
+```
+
+The build is the endjin ZeroFailed pipeline shared with the other Corvus libraries: warning-free on Linux and
+Windows, tests on both, a package on every build and a release on merge to `main`. The default branch is `main`,
+protected by a ruleset in the same shape as Corvus.JsonSchema's.
+
+## 8. Testing and the ECMA-262 test data
+
+### 8.1 The data set
+
+`corvus-dotnet/ecma262-regex-test-data` holds V8's verdicts (Node 24, V8 13.6) for every pattern of its families
+(validity under both grammars) and `RegExp.prototype.test` answers for the texts of each, with the `i`, `m` and
+`s` flags where a family exercises them. It is the oracle for every Corvus port, and this library is held to all
+of it, over both encodings, interpreted and as generated code:
+
+| File | Patterns | Tests | For |
+|---|---|---|---|
+| `hand-written.jsonl` | 783 | 194,649 | The grammar by hand |
+| `flags.jsonl` | 600 | 163,800 | `i`, `m`, `s` |
+| `generated.jsonl` | 60,000 | 182,000 | Validity and matching, generated from the grammar |
+| `anchored-lists.jsonl` | 6,000 | 342,200 | Anchored alternations |
+| `empty-loops.jsonl` | 6,838 | 341,900 | Loops over empty bodies |
+| `line-terminators.jsonl` | 3,000 | 300,000 | `^`, `$`, `.` at every terminator |
+| `word-boundaries.jsonl` | 2,000 | 542,000 | `\b`, `\B` |
+| `backreferences.jsonl` | 3,871 | 514,843 | Every form of backreference |
+| `lookarounds.jsonl` | 4,499 | 590,167 | Lookahead and lookbehind |
+| `case-folding.jsonl` | 2,863 | 407,080 | The two case rules |
+| `code-units.jsonl` | 3,000 | 296,940 | Matching by code unit without `u` |
+| `lone-surrogates.jsonl` | 1,500 | 69,000 | Lone surrogates on UTF-16 input |
+| `engine-faults.jsonl` | 3,885 | 377,812 | Families built around faults found in the engines |
+| `unicode-sets.jsonl` | 5,520 | 795,150 | The v flag: each pattern with `v`, with `u` and with neither |
+| `captures.jsonl` | 5,188 | 207,485 | `exec`, the global search, `y`, `replace`, `replaceAll`, `split` |
+
+`captures.jsonl` is what the drop-in surface needs beyond "does it match anywhere": the match's `[start, end]` and
+each group's, the sequence of `exec` results of a `g` loop with the ECMA-262 `lastIndex` advance, `exec` with `y`
+at a set of start positions, the result of `replace` and `replaceAll` for replacement strings exercising every `$`
+form, and `split` with and without a limit. Positions are given in UTF-16 code units, as V8 gives them; the
+runner derives the UTF-8 byte positions from the text. A test on which V8 departs from ECMA-262 (a match that
+starts inside a surrogate pair; with `i` and `v` a string of one character in `\q{...}` not canonicalized; `\p{ASCII}`
+folded without the long s and the Kelvin sign) is marked on the record, by rewriting the pattern to the form V8
+gets right and asking it again, and the runner skips it.
+
+### 8.2 How the tests read the data
+
+The data set is not vendored. The engine repository's `dataset.yml` checks out the data repository at a pinned
+commit and runs the `DatasetRunner` over it nightly and on demand, both encodings, with 0 wrong, 0 refused-valid,
+0 accepted-invalid and 0 at a limit as the pass; a second job runs the same data on Windows under .NET Framework
+4.8.1, over the `netstandard2.0` build. The same runner is run locally before a change is pushed, in
+Debug and Release and with every pattern as generated code (the generated pass compiles each pattern's emitted
+source with Roslyn and takes about six minutes). The current count is 22,895,231 answers right and 0 wrong in each
+mode.
+
+### 8.3 The other tests
+
+- Unit tests over the matching members, the captures, the span members, the prefilters, the Unicode tables, the
+  validity of patterns in each of the three grammars, and the v flag's grammar by name.
+- An allocation test that counts the measuring thread only, with the `[MemoryDiagnoser]` benchmarks at 0 B as
+  the proof.
+- Every scan test's pattern is built as generated code too, by compiling the generator's output with Roslyn with
+  the `net10.0` symbols defined, and both engines are asserted.
+- Source generator tests on the Roslyn test harness: generated code compiles, equals the interpreter's answers,
+  and the diagnostics match .NET's for the same faults.
+
+## 9. Benchmarks
+
+The benchmarks compare this library with `System.Text.RegularExpressions` on the workloads the .NET team itself
+measures and publishes, so the numbers can be read beside theirs. One BenchmarkDotNet project, `[MemoryDiagnoser]`
+on everything, three sets:
+
+1. **Industry** (`Industry.cs`, `GeneratedIndustry.cs`). The sets of `dotnet/performance`'s `Perf.Regex.Industry`:
+   the Sherlock Holmes text and the Rust `sherlock` patterns, the Leipzig corpus searches, the Mariomka set
+   (email, URI, IPv4 over its text) and the rebar names in Russian and Chinese. These are the sets behind .NET's
+   own "regex performance improvements in .NET N" tables. Each row is run five ways: .NET's interpreter, .NET's
+   source generator, this library's interpreter over UTF-16, and this library's source generator over UTF-16 and
+   over UTF-8; `Count` over the text, one call per operation.
+2. **Common** (`Common.cs`). `Perf.Regex.Common` from the same repository: `IsMatch`, `Matches` and the other
+   members on its patterns.
+3. **Pathological** (`Pathological.cs`). Nested quantifiers, overlapping alternatives under a repetition,
+   backreferences in loops, on texts made for them: the set where .NET reaches its timeout and the memo of
+   section 4.2 does not.
+
+Where an industry pattern uses syntax ECMA-262 lacks (an atomic group, a possessive quantifier, `\A` and `\z`, a
+`(?i)` prefix), the benchmark holds the ECMA-262 form of the same expression. Every Corvus row runs under the u
+flag, which .NET has no mode for: classes decode surrogate pairs and the i flag folds s to the long s and k to
+the Kelvin sign. Counts agree with .NET on 53 of the 57 Industry rows; the four apart are `$` and `.` at CRLF,
+where ECMA-262 counts CR as a line terminator, and `\w`, which .NET takes as Unicode letters and digits.
+
+Runs follow a pinned-host procedure: the virtual machine pinned to the performance cores, the run under
+`taskset`, a health probe before and after whose reading must fall in an accepted band, nothing else on the host.
+The record of the current run is `docs/benchmarks/industry.md` with its data in `industry.json`, both written by
+`tools/benchmarks/industry-results.py` from the BenchmarkDotNet CSV, and the same run is an
+[interactive page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/) on the documentation site. The
+benchmarks never share a solution with the tests, because BenchmarkDotNet and worktrees do not mix.
+
+**Where the comparison is not like for like.** Three Industry rows stay above .NET's generated code however the
+search is built, because each is the price of matching by ECMA-262's rules under the u flag. `.*`: ECMA-262's
+`.` excludes CR, the text has CRLF endings, so there are 36,491 matches to .NET's 26,105 at parity per match.
+`Sher[a-z]+|Hol[a-z]+` under i: the search must find the long s and the Kelvin sign, so it is the packed
+fingerprint search with every form in its tables against .NET's string search that ignores them.
+`[a-q][^u-z]{13}x`: a supplementary character among the thirteen is two units, so the distance from a start to
+the `x` is not fixed and the walk-back search stands in for a fixed-offset one. A few more rows read either side
+of 1.0 from run to run with the two engines at parity.
+
+## 10. Differences a .NET user will meet
 
 - A pattern read without `u` and matched by code unit, over UTF-8, is the only place the two cursors differ in
   meaning. The data set's `code-units.jsonl` holds it on both.
-- .NET's `Match` is a class graph (`Match`, `GroupCollection`, `Group`, `CaptureCollection`, `Capture`). The string
-  overloads allocate it, as .NET's do; that is the drop-in shape and not a target of the zero-allocation claim. The
-  span overloads and the enumerators are where nothing is allocated.
+- .NET's `Match` is a class graph (`Match`, `GroupCollection`, `Group`, `CaptureCollection`, `Capture`). The
+  string overloads allocate it, as .NET's do; that is the drop-in shape and not a target of the zero-allocation
+  claim. The span overloads and the enumerators are where nothing is allocated.
 - ECMA-262 has no `Captures` history for a group under a quantifier (only the last iteration's value), so
-  `Group.Captures` has one entry. Documented, since it is a difference a user coming from .NET will meet.
+  `Group.Captures` has one entry.
+- The grammar is ECMA-262's: no `(?i)` inline option (ECMA-262 has `(?i:...)` groups), no atomic groups, no
+  possessive quantifiers, no `\A` and `\z`, no conditionals, no balancing groups. `\d` is `[0-9]`, `\w` the 63
+  ASCII word characters, `\s` ECMAScript's white space and line terminators, and `.` excludes LF, CR, U+2028 and
+  U+2029.
+
+## 11. History
+
+The library was built in five phases, each tagged `phase-N` in the repository when its gate was met: the matcher
+and both cursors against the data set (phase 1); the whole drop-in surface against `captures.jsonl` (phase 2);
+the start searches, with the interpreter at or below .NET's interpreter on the Industry set (phase 3); the source
+generator, with generated code at or below .NET's generated code on the Industry set apart from the rows of
+section 9 (phase 4); and the v flag against `unicode-sets.jsonl` (phase 5). Adoption in Corvus.JsonSchema, where
+the ECMA-262 to .NET translator and the shape matchers that keep patterns away from .NET's engine would go, is
+the intended next step and a decision of its own.

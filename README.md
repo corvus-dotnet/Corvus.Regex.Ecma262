@@ -48,7 +48,8 @@ dotnet add package Corvus.Regex.Ecma262
 ```
 
 The package targets `net10.0` and `netstandard2.0` and carries the source generator. The vectorised searches and the
-generated search code need the .NET 8 or later runtime; on `netstandard2.0` the same patterns give the same answers.
+generated search code need the .NET 10 or later runtime; a project on an earlier runtime, or on .NET Framework, takes
+the `netstandard2.0` build, where the same patterns give the same answers by the plain paths.
 
 ## Getting started
 
@@ -188,10 +189,12 @@ safe to share between threads.
 
 - [The site](https://corvus-oss.org/Corvus.Regex.Ecma262/): getting started, the design and the API reference.
 - [docs/design/design.md](docs/design/design.md): what is ported and from where, the public surface, one matcher over
-  two encodings, the searches for where a match can start, the source generator, the test data, the benchmarks, and
-  the phases with their gates.
-- [docs/benchmarks](docs/benchmarks): the measured runs against `System.Text.RegularExpressions`, each with the host,
-  the commit and every row.
+  two encodings, the searches for where a match can start, the source generator, the test data and the benchmarks.
+- [docs/contributing/contributing.md](docs/contributing/contributing.md): the tools on each platform, the build and
+  the gates step by step, and what a pull request needs.
+- [docs/benchmarks/industry.md](docs/benchmarks/industry.md): the measured run against `System.Text.RegularExpressions`
+  on the Industry workloads, with the host, the commit and every row; the same run as an
+  [interactive page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/).
 
 ## Repository layout
 
@@ -209,46 +212,26 @@ safe to share between threads.
 
 ## Building and testing
 
-The build needs the .NET 10 SDK. The repository build, on ZeroFailed, compiles, tests, analyses and packs:
-
-```bash
-pwsh ./build.ps1
-```
-
-With the .NET SDK alone:
+The build needs the .NET 10 SDK; the repository build script needs PowerShell 7 as well.
 
 ```bash
 dotnet build Solutions/Corvus.Regex.Ecma262.slnx
-dotnet test --solution Solutions/Corvus.Regex.Ecma262.slnx
+dotnet test --solution Solutions/Corvus.Regex.Ecma262.slnx --framework net10.0
+pwsh ./build.ps1                       # the CI build: compile, test, analyse, pack
 ```
 
 The ECMA-262 test data is the gate for every change to the engine. Clone
-[ecma262-regex-test-data](https://github.com/corvus-dotnet/ecma262-regex-test-data) beside this repository and run:
-
-```bash
-dotnet build Solutions/Corvus.Regex.Ecma262.DatasetRunner -c Release
-dotnet Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll ../ecma262-regex-test-data/data wrong.tsv
-dotnet Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll ../ecma262-regex-test-data/data wrong-generated.tsv '*.jsonl' both --generated
-```
-
-The pass is 0 wrong, 0 refused-valid, 0 accepted-invalid and 0 at the limit, for the interpreter and for the generated
-code. `dataset.yml` runs it in CI on every push, pull request and night; the data is pinned to a commit there, moved
-when the data grows.
-
-The documentation site is built with `pwsh ./build.ps1 -Website` (see [docs/website/DEVELOPMENT.md](docs/website/DEVELOPMENT.md)).
+[ecma262-regex-test-data](https://github.com/corvus-dotnet/ecma262-regex-test-data) beside this repository and run
+the `DatasetRunner` over it, interpreted and as generated code; the pass is 0 wrong, 0 refused-valid, 0
+accepted-invalid and 0 at the limit. [The contributor guide](docs/contributing/contributing.md) has the tools for
+Windows, Linux and macOS and every step: the build, the tests, the data set, the benchmarks and the site.
 
 ## Contributing
 
-Pull requests are welcome. Before opening one:
-
-- Build warning-free: every project treats warnings as errors, and the analyzers run on the generator's output too.
-- Run the unit tests and the data set, interpreted and generated, and say in the pull request what they reported.
-- A change to the engine's semantics needs its case in the test data first: the data repository's families are
-  built around the faults found, with V8 as the oracle, and a fault V8 itself has is marked there rather than copied.
-- A change made for speed needs a measured run, pinned to the performance cores as [docs/benchmarks](docs/benchmarks)
-  describes, with the table in the pull request. The structured code of the generator and the interpreter share the
-  engine, so an optimisation of one is considered for the other.
-- The design document is kept current: a decision taken while working is written into it, not into a separate file.
+Pull requests are welcome. [docs/contributing/contributing.md](docs/contributing/contributing.md) says what one
+needs: a warning-free build, the unit tests and the data set green (interpreted and generated) with the result
+lines in the pull request, the case in the test data first for a change of semantics, a measured run for a change
+made for speed, a failing test first for a bug, and the design document kept current.
 
 Releases are tagged from `main` by the release automation when a pull request is merged; a pull request that should
 not make a release carries the `no_release` label.

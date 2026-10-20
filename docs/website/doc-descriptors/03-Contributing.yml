@@ -1,0 +1,3 @@
+source: contributing/contributing.md
+navTitle: "Contributing"
+description: "The tools on Windows, Linux and macOS, the build and the tests step by step, the test data and benchmark gates, and what a pull request needs."

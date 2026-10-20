@@ -386,6 +386,11 @@ $spurious = Join-Path $outputDir "site.yml"
 if (Test-Path $spurious) { Remove-Item $spurious -Force }
 Write-StepDuration "Vellum site generation" $sw
 
+# -- Step 5b: The benchmark results page, from the committed data of the run ----------------------------------------
+Write-Host "`n[5b/10] Writing the benchmark results page..." -ForegroundColor Cyan
+& python3 (Join-Path $repoRoot "tools" "benchmarks" "results-page" "generate_site.py") --data (Join-Path $repoRoot "docs" "benchmarks" "industry.json") --out (Join-Path $outputDir "benchmarks" "index.html")
+if ($LASTEXITCODE -ne 0) { throw "The benchmark results page failed" }
+
 # -- Step 6: Compile SCSS ------------------------------------------------------------------------------------------
 Write-Host "`n[6/10] Compiling SCSS..." -ForegroundColor Cyan
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
