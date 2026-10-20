@@ -383,7 +383,7 @@ Corvus.Regex.Ecma262/
   .github/workflows/dataset.yml        the full ECMA-262 test data run (section 8), nightly and on demand
   GitVersion.yml, LICENSE (Apache-2.0), README.md, build.ps1, global.json, nuget.config
   docs/design/design.md                this document
-  docs/benchmarks/                     the measured run: industry.md and industry.json (section 9)
+  docs/benchmarks/                     what the benchmarks measure and where the daily run publishes them (section 9)
   docs/website/                        the documentation site (Vellum), built and deployed by build.yml
   Solutions/
     Corvus.Regex.Ecma262.slnx
@@ -487,16 +487,15 @@ where ECMA-262 counts CR as a line terminator, and `\w`, which .NET takes as Uni
 
 Runs follow a pinned-host procedure: the virtual machine pinned to the performance cores, the run under
 `taskset`, a health probe before and after whose reading must fall in an accepted band, nothing else on the host.
-The record of the current run is `docs/benchmarks/industry.md` with its data in `industry.json`, both written by
-`tools/benchmarks/industry-results.py` from the BenchmarkDotNet CSV, and the same run is an
-[interactive page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/) on the documentation site.
+A pinned run is the procedure for development, read against the run before it; `tools/benchmarks/industry-results.py`
+writes a page's data and table from a run's artifacts, and nothing it writes is committed.
 
-The benchmarks also run daily in CI (`.github/workflows/benchmarks.yml`): every engine in one job on one
-GitHub-hosted runner, BenchmarkDotNet's default job then V8, so that the figures of a run are comparable with each
-other; the record and the page of the day are published at
-[benchmarks/ci/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) with each day's data kept beside it.
-A runner is not pinned, so a CI run is read against itself and its neighbours, never against the pinned record to
-the last few percent. The benchmarks never share a solution with the tests, because BenchmarkDotNet and worktrees
+The published figures are the daily run (`.github/workflows/benchmarks.yml`): every engine in one job on one
+GitHub-hosted runner each night, BenchmarkDotNet's default job then V8, so that the figures of a run are comparable
+with each other; the page of the day is at
+[benchmarks/ci/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) with each day's data kept beside it,
+so a change is read against the days before it. `docs/benchmarks/industry.md` says what is measured and where the
+library is slower and why, and repeats no figure. The benchmarks never share a solution with the tests, because BenchmarkDotNet and worktrees
 do not mix.
 
 **Where the comparison is not like for like.** Three Industry rows stay above .NET's generated code however the

@@ -17,4 +17,4 @@ https://www\.nuget\.org/packages/Corvus\.Regex\.Ecma262
 # The site's own absolute URLs (canonical links, the sitemap): not there until the site is deployed, and checked as root-relative links anyway
 https://corvus-oss\.org/Corvus\.Regex\.Ecma262
 # The daily benchmark run is written to gh-pages by the benchmarks workflow and is never in the site build output.
-benchmarks/ci/
+benchmarks/ci

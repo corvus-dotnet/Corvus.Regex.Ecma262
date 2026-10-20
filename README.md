@@ -192,10 +192,10 @@ safe to share between threads.
   two encodings, the searches for where a match can start, the source generator, the test data and the benchmarks.
 - [docs/contributing/contributing.md](docs/contributing/contributing.md): the tools on each platform, the build and
   the gates step by step, and what a pull request needs.
-- [docs/benchmarks/industry.md](docs/benchmarks/industry.md): the measured run against `System.Text.RegularExpressions`
-  and against V8 on the Industry workloads, with the host, the commit and every row; the same run as an
-  [interactive page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/), and the
-  [daily CI run](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) of every engine on one runner.
+- [docs/benchmarks/industry.md](docs/benchmarks/industry.md): what the Industry benchmarks measure against
+  `System.Text.RegularExpressions` and V8, and where the library is slower and why; the figures are the
+  [daily run](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/ci/) of every engine on one runner, with every
+  day's data kept.
 
 ## Repository layout
 

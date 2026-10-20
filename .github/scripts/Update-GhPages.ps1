@@ -117,6 +117,18 @@ for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
                 Copy-Item -Path (Join-Path $Source '*') -Destination $ci -Recurse -Force
                 $data = Join-Path $Source 'industry.json'
                 if (Test-Path $data) { Copy-Item $data (Join-Path $runs "$RunName.json") -Force }
+                # Pages lists no directory, so the runs get an index: newest first, one line each.
+                $items = Get-ChildItem $runs -Filter '*.json' | Sort-Object Name -Descending | ForEach-Object {
+                    "<li><a href=`"$($_.Name)`">$($_.BaseName)</a> <span>$([math]::Round($_.Length / 1024)) KB</span></li>"
+                }
+                $index = @(
+                    '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+                    '<title>Daily benchmark runs</title>'
+                    '<style>body{font:16px/1.5 system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a}li{margin:.25rem 0}span{color:#666;margin-left:.5rem;font-size:.9em}</style></head>'
+                    '<body><h1>Daily benchmark runs</h1><p>The data of each day''s run of the Industry benchmarks, every engine on one runner, newest first; each file is the results page''s data for that day (date and commit in the name). <a href="../">The latest run''s page</a>.</p>'
+                    "<ul>$($items -join '')</ul></body></html>"
+                ) -join "`n"
+                [IO.File]::WriteAllText((Join-Path $runs 'index.html'), $index)
             }
             'Preview' {
                 $target = Join-Path $previews "pr-$PullRequest"
