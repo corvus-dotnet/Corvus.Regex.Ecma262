@@ -7,6 +7,16 @@
   "icon": "/assets/images/favicon.svg",
   "date": "2026-10-20T08:36:47Z",
   "runUrl": "",
+  "links": [
+   {
+    "label": "The daily CI run",
+    "url": "ci/"
+   },
+   {
+    "label": "The record",
+    "url": "../docs/industry.html"
+   }
+  ],
   "runs": 0,
   "facts": [
    [
