@@ -2,7 +2,9 @@
 """Writes the Industry benchmark record from a GeneratedCount run: docs/benchmarks/industry.json (the data of the
 results page, see tools/benchmarks/results-page/generate_site.py) and docs/benchmarks/industry.md (the table).
 
-Usage: industry-results.py <BenchmarkDotNet artifacts dir> <commit> <probe before ns> <probe after ns> <date>
+Usage: industry-results.py <BenchmarkDotNet artifacts dir> <commit> <probe before ns> <probe after ns> <date> [V8 results json]
+
+The V8 results are those of tools/benchmarks/v8/industry.mjs over the same workloads, run under the same procedure.
 
 The run is the GeneratedCount benchmark of Solutions/Corvus.Regex.Ecma262.Benchmarks under the pinned-host procedure
 (docs/design/design.md, section 9): five engines over the 57 Industry workloads, one Count each.
@@ -10,6 +12,7 @@ The run is the GeneratedCount benchmark of Solutions/Corvus.Regex.Ecma262.Benchm
 import csv, string, glob, json, math, os, statistics, sys
 
 run, commit, before, after, date = sys.argv[1:6]
+v8_path = sys.argv[6] if len(sys.argv) > 6 else None
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 out_dir = os.path.join(root, "docs", "benchmarks")
 U = {"ns": 1, "us": 1e3, "μs": 1e3, "ms": 1e6, "s": 1e9}
@@ -49,7 +52,9 @@ for method, name, group in ENGINES:
         r = rows[w].get(method)
         if r is None:
             continue
-        mean, err = ns(r["Mean"]), ns(r["Error"])
+        # The spread is one standard deviation of the iterations, not BenchmarkDotNet's Error: that is half of a 99.9%
+        # confidence interval, which with the short job's three iterations is some eighteen standard deviations wide.
+        mean, err = ns(r["Mean"]), ns(r["StdDev"])
         if mean <= 0:
             results[name][w] = None
             continue
@@ -58,6 +63,18 @@ for method, name, group in ENGINES:
         if alloc is not None:
             entry["allocated"] = {"median": alloc, "min": alloc, "max": alloc}
         results[name][w] = entry
+
+# V8 as an engine beside the .NET ones: its own harness, the same texts and workloads, the same flags as the Corvus rows.
+V8 = None
+if v8_path:
+    v8 = json.load(open(v8_path, encoding="utf-8"))
+    node = v8["engine"].split("Node ")[-1].rstrip(")").split(".")[0]
+    V8 = ("V8 (Node " + node + ")", v8["engine"])
+    ENGINES.append((V8[0], V8[0], "V8"))
+    results[V8[0]] = {}
+    for w in workloads:
+        r = v8["results"].get(w)
+        results[V8[0]][w] = {"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if r else None
 
 def ratio_rows(a, b):
     out = []
@@ -78,8 +95,8 @@ n = len(workloads)
 method_html = (
     "<p><b>Each figure is one <code>Count</code></b> over the whole text: every match found, as the benchmark of dotnet/performance measures it. The Corvus rows run under the <code>u</code> flag, which .NET has no mode for; counts agree on 53 of the 57 rows, and the four apart are <code>$</code> and <code>.</code> at CRLF, where ECMA-262 counts CR as a line terminator, and <code>\\w</code>, which .NET takes as Unicode letters and digits.</p>"
     "<p><b>Where this library is slower, and why.</b> Four kinds of row read above 1.0, each the price of an ECMA-262 rule .NET does not apply: <code>.</code> and <code>$</code> at CRLF, where ECMA-262's <code>.</code> stops at CR as well as LF, so <code>.*</code> finds 36,491 matches to .NET's 26,105 at parity per match; case-insensitive patterns under the u flag, whose search must find the long s and the Kelvin sign as forms of <code>s</code> and <code>k</code>, which .NET's search ignores; a class that admits a supplementary character (two units) before a literal at a fixed distance, so the distance is not fixed (<code>[a-q][^u-z]{13}x</code>); and non-ASCII literals over UTF-8, where every Cyrillic or Chinese character is two or three bytes with no rare byte among them, against UTF-16's one rare unit per character. The other rows above 1.0 are within a few percent of parity and read either side of it from run to run.</p>"
-    "<p><b>The five engines</b> are .NET's interpreter (<code>RegexOptions.None</code>), .NET's source generator (<code>[GeneratedRegex]</code>), this library's interpreter over UTF-16, and this library's source generator over UTF-16 and over UTF-8. The UTF-8 rows match the same text as bytes, with nothing transcoded.</p>"
-    "<p><b>The bar is the mean</b> of BenchmarkDotNet's short job (three launches, three warm-ups, three iterations) and the whisker its half-width of the 99.9% confidence interval. Allocated is the bytes the benchmark allocated per operation; the library allocates nothing per match once its working memory has grown.</p>"
+    "<p><b>The engines</b> are .NET's interpreter (<code>RegexOptions.None</code>), .NET's source generator (<code>[GeneratedRegex]</code>), this library's interpreter over UTF-16, this library's source generator over UTF-16 and over UTF-8, and V8 (Node 24's <code>RegExp</code>, the oracle of the test data) over the same texts with the same flags as the Corvus rows, its matches counted by a <code>test</code> loop that advances <code>lastIndex</code> as <code>matchAll</code> does. The UTF-8 rows match the same text as bytes, with nothing transcoded.</p>"
+    "<p><b>The bar is the mean</b> of BenchmarkDotNet's short job (one launch, three warm-ups, three iterations) and the whisker one standard deviation of those iterations; with three iterations the spread is a rough guide, and a row's ratio is read against its neighbours' rather than to the last few percent. Allocated is the bytes the benchmark allocated per operation; the library allocates nothing per match once its working memory has grown.</p>"
     f"<p><b>The host</b> is WSL2 on Windows on an Intel Core i7-13800H, the VM pinned to the twelve performance cores (vmmemWSL affinity 0xFFF), the run under <code>taskset -c 0-11</code> after a settle of at least three minutes, with a host probe at {before} ns before and {after} ns after (12.5 to 16 is the accepted band). .NET 10. Commit {commit}, {date}. The procedure is section 9 of the design document.</p>"
 )
 
@@ -98,14 +115,14 @@ data = {
     "vocab": {
         "impl": "engine", "impls": "engines", "Impls": "Engines",
         "schema": "workload", "schemas": "workloads", "Schema": "Workload", "Schemas": "Workloads",
-        "failed": "did not run", "centre": "Mean", "spread": "Error",
-        "barLegend": "mean of the run", "whiskerLegend": "whisker: the error of the mean",
+        "failed": "did not run", "centre": "Mean", "spread": "StdDev",
+        "barLegend": "mean of the run", "whiskerLegend": "whisker: one standard deviation",
     },
     "measures": {
         "time": {"label": "Time", "long": "time per Count", "parts": ["time"]},
         "allocated": {"label": "Allocated", "long": "bytes allocated per Count", "parts": ["allocated"], "bytes": True},
     },
-    "impls": [{"id": name, "name": name, "group": group, "version": ""} for _, name, group in ENGINES],
+    "impls": [{"id": name, "name": name, "group": group, "version": V8[1] if V8 and name == V8[0] else ""} for _, name, group in ENGINES],
     "schemas": [{"name": w, "note": "", "meta": [["text", TEXTS.get(w.split(":")[0], w.split(":")[0])]]} for w in workloads],
     "results": results,
 }
@@ -126,11 +143,21 @@ for w in workloads:
     # An inline code element with every punctuation character escaped: the site's markdown would read {Sm} in \p{Sm}
     # as an attribute block, a pipe as a cell, and inside a code span it keeps the backslash of an escaped pipe.
     ww = "<code>" + "".join("\\" + ch if ch in string.punctuation else ch for ch in w) + "</code>"
-    lines.append(f"| {ww} | {us(ni)} | {us(ci)} | {ci/ni if ni else 0:.2f} | {us(ng)} | {us(cg)} | {us(c8)} | {cg/ng if ng else 0:.2f} | {c8/ng if ng else 0:.2f} |")
+    v8c = ""
+    if V8:
+        vv = cell(V8[0], w)
+        v8c = f" {us(vv)} | {cg/vv:.2f} |" if vv == vv and vv > 0 else " | |"
+    lines.append(f"| {ww} | {us(ni)} | {us(ci)} | {ci/ni if ni else 0:.2f} | {us(ng)} | {us(cg)} | {us(c8)} | {cg/ng if ng else 0:.2f} | {c8/ng if ng else 0:.2f} |" + v8c)
 
 summary = f"""- Interpreter against .NET's interpreter, over UTF-16: median {statistics.median(ri):.2f}, geometric mean {gm(ri):.2f}, at or below 1.0 on {sum(1 for x in ri if x <= 1.0)} of {len(ri)}.
 - Generated code against .NET's generated code, over UTF-16: median {statistics.median(rg):.2f}, geometric mean {gm(rg):.2f}, at or below 1.0 on {sum(1 for x in rg if x <= 1.0)} of {len(rg)}.
 - Generated code over UTF-8 against .NET's generated code: median {statistics.median(rg8):.2f}, geometric mean {gm(rg8):.2f}, at or below 1.0 on {sum(1 for x in rg8 if x <= 1.0)} of {len(rg8)}."""
+v8_head = v8_sep = ""
+if V8:
+    rv = ratio_rows("Corvus generated UTF-16", V8[0])
+    summary += f"\n- Generated code over UTF-16 against {V8[0]}: median {statistics.median(rv):.2f}, geometric mean {gm(rv):.2f}, at or below 1.0 on {sum(1 for x in rv if x <= 1.0)} of {len(rv)}."
+    v8_head = f" {V8[0]} | ratio to V8 |"
+    v8_sep = "---|---|"
 
 md = f"""# Benchmarks: the Industry workloads
 
@@ -142,6 +169,8 @@ md = f"""# Benchmarks: the Industry workloads
 The interactive page of this run is at [corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/); its data is `industry.json` beside this file, and `tools/benchmarks/industry-results.py` writes both from a run.
 
 The workloads are the Industry set of dotnet/performance (`Perf.Regex.Industry`: the Sherlock Holmes, Leipzig and mariomka texts and the rebar names), the set behind .NET's own "regex performance improvements in .NET N" tables. Each is run five ways: .NET's interpreter (`RegexOptions.None`), .NET's source generator (`[GeneratedRegex]`), this library's interpreter over UTF-16, and this library's source generator over UTF-16 and over UTF-8. `Count` over the text, one call per operation. A ratio below 1.0 is this library being faster.
+
+V8 is the sixth engine: Node 24's `RegExp`, the oracle of the test data, over the same texts with the same flags as the Corvus rows (`gu` added), the matches counted by a `test` loop that advances `lastIndex` as `matchAll` does, which is the cheapest count V8 offers; its harness is `tools/benchmarks/v8/industry.mjs`, run under the same procedure. V8 has no vectorised search for a literal, a set or an alternation beyond its first character, so the rows that such a search decides read tens to hundreds of times slower there; the rows it wins are short fixed literals over its one-byte strings.
 
 The Corvus rows run under the `u` flag, which .NET has no mode for, so the two engines answer by different rules on a few rows: counts agree on 53 of the 57, and the four apart are `$` and `.` at CRLF, where ECMA-262 counts CR as a line terminator, and `\\w`, which .NET takes as Unicode letters and digits. The UTF-8 rows match the same text as bytes, with nothing transcoded.
 
@@ -164,8 +193,8 @@ The other rows above 1.0 are within a few percent of parity and read either side
 
 Times are microseconds for one `Count` over the text.
 
-| Workload | .NET interpreter | Corvus interpreter | ratio | .NET generated | Corvus generated UTF-16 | Corvus generated UTF-8 | ratio UTF-16 | ratio UTF-8 |
-|---|---|---|---|---|---|---|---|---|
+| Workload | .NET interpreter | Corvus interpreter | ratio | .NET generated | Corvus generated UTF-16 | Corvus generated UTF-8 | ratio UTF-16 | ratio UTF-8 |{v8_head}
+|---|---|---|---|---|---|---|---|---|{v8_sep}
 """ + "\n".join(lines) + "\n"
 with open(os.path.join(out_dir, "industry.md"), "w", encoding="utf-8") as fo:
     fo.write(md)

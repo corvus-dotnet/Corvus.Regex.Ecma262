@@ -470,7 +470,9 @@ on everything, three sets:
    (email, URI, IPv4 over its text) and the rebar names in Russian and Chinese. These are the sets behind .NET's
    own "regex performance improvements in .NET N" tables. Each row is run five ways: .NET's interpreter, .NET's
    source generator, this library's interpreter over UTF-16, and this library's source generator over UTF-16 and
-   over UTF-8; `Count` over the text, one call per operation.
+   over UTF-8; `Count` over the text, one call per operation. V8 (Node 24's `RegExp`, the oracle of the test
+   data) is a sixth engine over the same texts, by its own harness (`tools/benchmarks/v8/industry.mjs`) under
+   the same procedure, counting by a `test` loop; as the engine is ported, each port joins the same page.
 2. **Common** (`Common.cs`). `Perf.Regex.Common` from the same repository: `IsMatch`, `Matches` and the other
    members on its patterns.
 3. **Pathological** (`Pathological.cs`). Nested quantifiers, overlapping alternatives under a repetition,

@@ -22,7 +22,7 @@
     ".NET 10"
    ]
   ],
-  "method": "<p><b>Each figure is one <code>Count</code></b> over the whole text: every match found, as the benchmark of dotnet/performance measures it. The Corvus rows run under the <code>u</code> flag, which .NET has no mode for; counts agree on 53 of the 57 rows, and the four apart are <code>$</code> and <code>.</code> at CRLF, where ECMA-262 counts CR as a line terminator, and <code>\\w</code>, which .NET takes as Unicode letters and digits.</p><p><b>Where this library is slower, and why.</b> Four kinds of row read above 1.0, each the price of an ECMA-262 rule .NET does not apply: <code>.</code> and <code>$</code> at CRLF, where ECMA-262's <code>.</code> stops at CR as well as LF, so <code>.*</code> finds 36,491 matches to .NET's 26,105 at parity per match; case-insensitive patterns under the u flag, whose search must find the long s and the Kelvin sign as forms of <code>s</code> and <code>k</code>, which .NET's search ignores; a class that admits a supplementary character (two units) before a literal at a fixed distance, so the distance is not fixed (<code>[a-q][^u-z]{13}x</code>); and non-ASCII literals over UTF-8, where every Cyrillic or Chinese character is two or three bytes with no rare byte among them, against UTF-16's one rare unit per character. The other rows above 1.0 are within a few percent of parity and read either side of it from run to run.</p><p><b>The five engines</b> are .NET's interpreter (<code>RegexOptions.None</code>), .NET's source generator (<code>[GeneratedRegex]</code>), this library's interpreter over UTF-16, and this library's source generator over UTF-16 and over UTF-8. The UTF-8 rows match the same text as bytes, with nothing transcoded.</p><p><b>The bar is the mean</b> of BenchmarkDotNet's short job (three launches, three warm-ups, three iterations) and the whisker its half-width of the 99.9% confidence interval. Allocated is the bytes the benchmark allocated per operation; the library allocates nothing per match once its working memory has grown.</p><p><b>The host</b> is WSL2 on Windows on an Intel Core i7-13800H, the VM pinned to the twelve performance cores (vmmemWSL affinity 0xFFF), the run under <code>taskset -c 0-11</code> after a settle of at least three minutes, with a host probe at 13.6 to 14.2 ns before and 13.2 to 14.2 ns after (12.5 to 16 is the accepted band). .NET 10. Commit 535de98, 2026-10-20. The procedure is section 9 of the design document.</p>"
+  "method": "<p><b>Each figure is one <code>Count</code></b> over the whole text: every match found, as the benchmark of dotnet/performance measures it. The Corvus rows run under the <code>u</code> flag, which .NET has no mode for; counts agree on 53 of the 57 rows, and the four apart are <code>$</code> and <code>.</code> at CRLF, where ECMA-262 counts CR as a line terminator, and <code>\\w</code>, which .NET takes as Unicode letters and digits.</p><p><b>Where this library is slower, and why.</b> Four kinds of row read above 1.0, each the price of an ECMA-262 rule .NET does not apply: <code>.</code> and <code>$</code> at CRLF, where ECMA-262's <code>.</code> stops at CR as well as LF, so <code>.*</code> finds 36,491 matches to .NET's 26,105 at parity per match; case-insensitive patterns under the u flag, whose search must find the long s and the Kelvin sign as forms of <code>s</code> and <code>k</code>, which .NET's search ignores; a class that admits a supplementary character (two units) before a literal at a fixed distance, so the distance is not fixed (<code>[a-q][^u-z]{13}x</code>); and non-ASCII literals over UTF-8, where every Cyrillic or Chinese character is two or three bytes with no rare byte among them, against UTF-16's one rare unit per character. The other rows above 1.0 are within a few percent of parity and read either side of it from run to run.</p><p><b>The engines</b> are .NET's interpreter (<code>RegexOptions.None</code>), .NET's source generator (<code>[GeneratedRegex]</code>), this library's interpreter over UTF-16, this library's source generator over UTF-16 and over UTF-8, and V8 (Node 24's <code>RegExp</code>, the oracle of the test data) over the same texts with the same flags as the Corvus rows, its matches counted by a <code>test</code> loop that advances <code>lastIndex</code> as <code>matchAll</code> does. The UTF-8 rows match the same text as bytes, with nothing transcoded.</p><p><b>The bar is the mean</b> of BenchmarkDotNet's short job (one launch, three warm-ups, three iterations) and the whisker one standard deviation of those iterations; with three iterations the spread is a rough guide, and a row's ratio is read against its neighbours' rather than to the last few percent. Allocated is the bytes the benchmark allocated per operation; the library allocates nothing per match once its working memory has grown.</p><p><b>The host</b> is WSL2 on Windows on an Intel Core i7-13800H, the VM pinned to the twelve performance cores (vmmemWSL affinity 0xFFF), the run under <code>taskset -c 0-11</code> after a settle of at least three minutes, with a host probe at 13.6 to 14.2 ns before and 13.2 to 14.2 ns after (12.5 to 16 is the accepted band). .NET 10. Commit 535de98, 2026-10-20. The procedure is section 9 of the design document.</p>"
  },
  "vocab": {
   "impl": "engine",
@@ -34,9 +34,9 @@
   "Schemas": "Workloads",
   "failed": "did not run",
   "centre": "Mean",
-  "spread": "Error",
+  "spread": "StdDev",
   "barLegend": "mean of the run",
-  "whiskerLegend": "whisker: the error of the mean"
+  "whiskerLegend": "whisker: one standard deviation"
  },
  "measures": {
   "time": {
@@ -85,6 +85,12 @@
    "name": "Corvus generated UTF-8",
    "group": "Corvus",
    "version": ""
+  },
+  {
+   "id": "V8 (Node 24)",
+   "name": "V8 (Node 24)",
+   "group": "V8",
+   "version": "V8 13.6.233.10-node.28 (Node 24.11.0)"
   }
  ],
  "schemas": [
@@ -664,8 +670,8 @@
    "leipzig: ([A-Za-z]awyer|[A-Za-z]inn)\\s": {
     "time": {
      "median": 422717752.0,
-     "min": 211523096.104,
-     "max": 633912407.896
+     "min": 411141460.219,
+     "max": 434294043.781
     },
     "allocated": {
      "median": 0.0,
@@ -676,8 +682,8 @@
    "leipzig: .{0,2}(Tom|Sawyer|Huckleberry|Finn)": {
     "time": {
      "median": 1959716986.33,
-     "min": 1705671842.5279999,
-     "max": 2213762130.132
+     "min": 1945791914.705,
+     "max": 1973642057.955
     },
     "allocated": {
      "median": 0.0,
@@ -688,8 +694,8 @@
    "leipzig: .{2,4}(Tom|Sawyer|Huckleberry|Finn)": {
     "time": {
      "median": 1940677902.67,
-     "min": 1788669648.339,
-     "max": 2092686157.0010002
+     "min": 1932345817.288,
+     "max": 1949009988.052
     },
     "allocated": {
      "median": 0.0,
@@ -700,8 +706,8 @@
    "leipzig: Huck[a-zA-Z]+|Saw[a-zA-Z]+": {
     "time": {
      "median": 3966929.04,
-     "min": 1787532.7310000001,
-     "max": 6146325.348999999
+     "min": 3847468.974,
+     "max": 4086389.106
     },
     "allocated": {
      "median": 0.0,
@@ -712,8 +718,8 @@
    "leipzig: Tom.{10,25}river|river.{10,25}Tom": {
     "time": {
      "median": 25324878.7,
-     "min": 17934371.827,
-     "max": 32715385.573
+     "min": 24919780.079,
+     "max": 25729977.321
     },
     "allocated": {
      "median": 0.0,
@@ -724,8 +730,8 @@
    "leipzig: Tom|Sawyer|Huckleberry|Finn": {
     "time": {
      "median": 7578265.19,
-     "min": 6391274.2020000005,
-     "max": 8765256.178
+     "min": 7513202.208000001,
+     "max": 7643328.172
     },
     "allocated": {
      "median": 0.0,
@@ -736,8 +742,8 @@
    "leipzig: Tom|Sawyer|Huckleberry|Finn /i": {
     "time": {
      "median": 193990238.44,
-     "min": 136798391.355,
-     "max": 251182085.525
+     "min": 190855360.303,
+     "max": 197125116.577
     },
     "allocated": {
      "median": 0.0,
@@ -748,8 +754,8 @@
    "leipzig: Twain": {
     "time": {
      "median": 2347412.56,
-     "min": 0.0,
-     "max": 6144645.966
+     "min": 2139273.383,
+     "max": 2555551.737
     },
     "allocated": {
      "median": 0.0,
@@ -760,8 +766,8 @@
    "leipzig: Twain /i": {
     "time": {
      "median": 2842566.99,
-     "min": 2367460.199,
-     "max": 3317673.7810000004
+     "min": 2816524.7830000003,
+     "max": 2868609.197
     },
     "allocated": {
      "median": 0.0,
@@ -772,8 +778,8 @@
    "leipzig: [a-z]shing": {
     "time": {
      "median": 2463890.58,
-     "min": 0.0,
-     "max": 7325646.268
+     "min": 2197401.344,
+     "max": 2730379.816
     },
     "allocated": {
      "median": 0.0,
@@ -784,8 +790,8 @@
    "leipzig: \\p{Sm}": {
     "time": {
      "median": 12842253.97,
-     "min": 6564701.113000001,
-     "max": 19119806.827
+     "min": 12498160.114,
+     "max": 13186347.826000001
     },
     "allocated": {
      "median": 0.0,
@@ -796,8 +802,8 @@
    "mariomka: (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][...": {
     "time": {
      "median": 5974208.52,
-     "min": 3375516.9449999994,
-     "max": 8572900.094999999
+     "min": 5831765.465,
+     "max": 6116651.574999999
     },
     "allocated": {
      "median": 0.0,
@@ -808,8 +814,8 @@
    "mariomka: [\\w\\.+-]+@[\\w\\.-]+\\.[\\w\\.-]+": {
     "time": {
      "median": 352578.77,
-     "min": 0.0,
-     "max": 997444.0750000001
+     "min": 317231.526,
+     "max": 387926.014
     },
     "allocated": {
      "median": 0.0,
@@ -820,8 +826,8 @@
    "mariomka: [\\w]+://[^/\\s?#]+[^\\s?#]+(?:\\?[^\\s#]*...": {
     "time": {
      "median": 1402863.76,
-     "min": 759631.11,
-     "max": 2046096.4100000001
+     "min": 1367606.008,
+     "max": 1438121.512
     },
     "allocated": {
      "median": 0.0,
@@ -832,8 +838,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441": {
     "time": {
      "median": 67215.59,
-     "min": 63927.793,
-     "max": 70503.387
+     "min": 67035.375,
+     "max": 67395.805
     },
     "allocated": {
      "median": 0.0,
@@ -844,8 +850,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441 /i": {
     "time": {
      "median": 246468.22,
-     "min": 136354.869,
-     "max": 356581.571
+     "min": 240432.536,
+     "max": 252503.904
     },
     "allocated": {
      "median": 0.0,
@@ -856,8 +862,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438...": {
     "time": {
      "median": 3562638.86,
-     "min": 3363331.013,
-     "max": 3761946.707
+     "min": 3551714.124,
+     "max": 3573563.596
     },
     "allocated": {
      "median": 0.0,
@@ -868,8 +874,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438... /i": {
     "time": {
      "median": 16380570.48,
-     "min": 14670753.393000001,
-     "max": 18090387.567
+     "min": 16286849.636,
+     "max": 16474291.324000001
     },
     "allocated": {
      "median": 0.0,
@@ -880,8 +886,8 @@
    "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af": {
     "time": {
      "median": 17377.47,
-     "min": 15409.461000000001,
-     "max": 19345.479
+     "min": 17269.597,
+     "max": 17485.343
     },
     "allocated": {
      "median": 0.0,
@@ -892,8 +898,8 @@
    "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af|\u7ea6\u7ff0\u534e\u751f|\u963f\u5fb7\u52d2|\u96f7\u65af\u5782\u5fb7|\u83ab\u91cc\u4e9a\u8482\u6559\u6388": {
     "time": {
      "median": 50596.43,
-     "min": 44312.116,
-     "max": 56880.744
+     "min": 50251.966,
+     "max": 50940.894
     },
     "allocated": {
      "median": 0.0,
@@ -904,8 +910,8 @@
    "sherlock: .*": {
     "time": {
      "median": 641429.69,
-     "min": 604399.0029999999,
-     "max": 678460.377
+     "min": 639399.913,
+     "max": 643459.467
     },
     "allocated": {
      "median": 0.0,
@@ -916,8 +922,8 @@
    "sherlock: .* /s": {
     "time": {
      "median": 584400.12,
-     "min": 429637.914,
-     "max": 739162.326
+     "min": 575917.081,
+     "max": 592883.159
     },
     "allocated": {
      "median": 0.0,
@@ -928,8 +934,8 @@
    "sherlock: Holmes": {
     "time": {
      "median": 46612.34,
-     "min": 35713.19499999999,
-     "max": 57511.485
+     "min": 46014.920999999995,
+     "max": 47209.759
     },
     "allocated": {
      "median": 0.0,
@@ -940,8 +946,8 @@
    "sherlock: Holmes /i": {
     "time": {
      "median": 77921.04,
-     "min": 45256.76899999999,
-     "max": 110585.31099999999
+     "min": 76130.601,
+     "max": 79711.47899999999
     },
     "allocated": {
      "median": 0.0,
@@ -952,8 +958,8 @@
    "sherlock: Holmes.{0,25}Watson|Watson.{0,25}Holmes": {
     "time": {
      "median": 176145.83,
-     "min": 61900.10299999999,
-     "max": 290391.557
+     "min": 169883.636,
+     "max": 182408.02399999998
     },
     "allocated": {
      "median": 0.0,
@@ -964,8 +970,8 @@
    "sherlock: Sher[a-z]+|Hol[a-z]+": {
     "time": {
      "median": 112600.86,
-     "min": 11836.214000000007,
-     "max": 213365.506
+     "min": 107077.61,
+     "max": 118124.11
     },
     "allocated": {
      "median": 0.0,
@@ -976,8 +982,8 @@
    "sherlock: Sher[a-z]+|Hol[a-z]+ /i": {
     "time": {
      "median": 2633841.7,
-     "min": 2299179.4060000004,
-     "max": 2968503.994
+     "min": 2615497.73,
+     "max": 2652185.6700000004
     },
     "allocated": {
      "median": 0.0,
@@ -988,8 +994,8 @@
    "sherlock: Sherlock": {
     "time": {
      "median": 35354.36,
-     "min": 34353.119,
-     "max": 36355.601
+     "min": 35299.479,
+     "max": 35409.241
     },
     "allocated": {
      "median": 0.0,
@@ -1000,8 +1006,8 @@
    "sherlock: Sherlock /i": {
     "time": {
      "median": 57272.59,
-     "min": 22647.585,
-     "max": 91897.595
+     "min": 55374.676999999996,
+     "max": 59170.503
     },
     "allocated": {
      "median": 0.0,
@@ -1012,8 +1018,8 @@
    "sherlock: Sherlock Holmes": {
     "time": {
      "median": 31358.52,
-     "min": 19520.256999999998,
-     "max": 43196.783
+     "min": 30709.625,
+     "max": 32007.415
     },
     "allocated": {
      "median": 0.0,
@@ -1024,8 +1030,8 @@
    "sherlock: Sherlock Holmes /i": {
     "time": {
      "median": 59690.8,
-     "min": 41398.192,
-     "max": 77983.408
+     "min": 58688.12,
+     "max": 60693.48
     },
     "allocated": {
      "median": 0.0,
@@ -1036,8 +1042,8 @@
    "sherlock: Sherlock\\s+Holmes": {
     "time": {
      "median": 33416.65,
-     "min": 19207.78,
-     "max": 47625.520000000004
+     "min": 32637.814000000002,
+     "max": 34195.486000000004
     },
     "allocated": {
      "median": 0.0,
@@ -1048,8 +1054,8 @@
    "sherlock: Sherlock|Holmes": {
     "time": {
      "median": 104412.93,
-     "min": 70643.98,
-     "max": 138181.88
+     "min": 102561.93999999999,
+     "max": 106263.92
     },
     "allocated": {
      "median": 0.0,
@@ -1060,8 +1066,8 @@
    "sherlock: Sherlock|Holmes|Watson": {
     "time": {
      "median": 157469.73,
-     "min": 98208.82900000001,
-     "max": 216730.631
+     "min": 154221.44,
+     "max": 160718.02000000002
     },
     "allocated": {
      "median": 0.0,
@@ -1072,8 +1078,8 @@
    "sherlock: Sherlock|Holmes|Watson /i": {
     "time": {
      "median": 4331840.22,
-     "min": 4262683.677999999,
-     "max": 4400996.762
+     "min": 4328049.517,
+     "max": 4335630.9229999995
     },
     "allocated": {
      "median": 0.0,
@@ -1084,8 +1090,8 @@
    "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo...": {
     "time": {
      "median": 1244011.68,
-     "min": 1154374.142,
-     "max": 1333649.2179999999
+     "min": 1239098.344,
+     "max": 1248925.0159999998
     },
     "allocated": {
      "median": 0.0,
@@ -1096,8 +1102,8 @@
    "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo... /i": {
     "time": {
      "median": 14226024.65,
-     "min": 12132890.488,
-     "max": 16319158.812
+     "min": 14111292.903,
+     "max": 14340756.397
     },
     "allocated": {
      "median": 0.0,
@@ -1108,8 +1114,8 @@
    "sherlock: Sherlock|Street": {
     "time": {
      "median": 44688.19,
-     "min": 43229.665,
-     "max": 46146.715000000004
+     "min": 44608.243,
+     "max": 44768.137
     },
     "allocated": {
      "median": 0.0,
@@ -1120,8 +1126,8 @@
    "sherlock: The": {
     "time": {
      "median": 52153.47,
-     "min": 49786.819,
-     "max": 54520.121
+     "min": 52023.746,
+     "max": 52283.194
     },
     "allocated": {
      "median": 0.0,
@@ -1132,8 +1138,8 @@
    "sherlock: [^\\n]*": {
     "time": {
      "median": 626499.85,
-     "min": 396582.90099999995,
-     "max": 856416.799
+     "min": 613897.326,
+     "max": 639102.374
     },
     "allocated": {
      "median": 0.0,
@@ -1144,8 +1150,8 @@
    "sherlock: [a-q][^u-z]{13}x": {
     "time": {
      "median": 31319.29,
-     "min": 29128.566,
-     "max": 33510.014
+     "min": 31199.209000000003,
+     "max": 31439.371
     },
     "allocated": {
      "median": 0.0,
@@ -1156,8 +1162,8 @@
    "sherlock: [a-zA-Z]+ing": {
     "time": {
      "median": 7086129.2,
-     "min": 6664555.21,
-     "max": 7507703.19
+     "min": 7063021.307,
+     "max": 7109237.093
     },
     "allocated": {
      "median": 0.0,
@@ -1168,8 +1174,8 @@
    "sherlock: \\b\\w+n\\b": {
     "time": {
      "median": 11854648.41,
-     "min": 10399685.129,
-     "max": 13309611.691
+     "min": 11774896.963,
+     "max": 11934399.857
     },
     "allocated": {
      "median": 0.0,
@@ -1180,8 +1186,8 @@
    "sherlock: \\p{Ll}": {
     "time": {
      "median": 11359117.9,
-     "min": 10104384.724,
-     "max": 12613851.076000001
+     "min": 11290341.74,
+     "max": 11427894.06
     },
     "allocated": {
      "median": 0.0,
@@ -1192,8 +1198,8 @@
    "sherlock: \\p{Lu}": {
     "time": {
      "median": 880909.9,
-     "min": 540591.0560000001,
-     "max": 1221228.744
+     "min": 862255.876,
+     "max": 899563.924
     },
     "allocated": {
      "median": 0.0,
@@ -1204,8 +1210,8 @@
    "sherlock: \\p{L}": {
     "time": {
      "median": 12358785.47,
-     "min": 11218583.544,
-     "max": 13498987.396000002
+     "min": 12296287.155000001,
+     "max": 12421283.785
     },
     "allocated": {
      "median": 0.0,
@@ -1216,8 +1222,8 @@
    "sherlock: \\s[a-zA-Z]{0,12}ing\\s": {
     "time": {
      "median": 8036774.21,
-     "min": 7372750.476,
-     "max": 8700797.944
+     "min": 8000376.828,
+     "max": 8073171.592
     },
     "allocated": {
      "median": 0.0,
@@ -1228,8 +1234,8 @@
    "sherlock: \\w+": {
     "time": {
      "median": 4925461.76,
-     "min": 4840003.240999999,
-     "max": 5010920.279
+     "min": 4920777.49,
+     "max": 4930146.029999999
     },
     "allocated": {
      "median": 0.0,
@@ -1240,8 +1246,8 @@
    "sherlock: \\w+\\s+Holmes": {
     "time": {
      "median": 5082713.27,
-     "min": 3267631.1759999995,
-     "max": 6897795.364
+     "min": 4983222.494999999,
+     "max": 5182204.045
     },
     "allocated": {
      "median": 0.0,
@@ -1252,8 +1258,8 @@
    "sherlock: \\w+\\s+Holmes\\s+\\w+": {
     "time": {
      "median": 5189551.57,
-     "min": 5081170.798,
-     "max": 5297932.342
+     "min": 5183610.854,
+     "max": 5195492.286
     },
     "allocated": {
      "median": 0.0,
@@ -1264,8 +1270,8 @@
    "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
     "time": {
      "median": 33017.47,
-     "min": 21835.044,
-     "max": 44199.896
+     "min": 32404.524,
+     "max": 33630.416000000005
     },
     "allocated": {
      "median": 0.0,
@@ -1276,8 +1282,8 @@
    "sherlock: aei": {
     "time": {
      "median": 30468.73,
-     "min": 23217.904,
-     "max": 37719.556
+     "min": 30071.288,
+     "max": 30866.172
     },
     "allocated": {
      "median": 0.0,
@@ -1288,8 +1294,8 @@
    "sherlock: aqj": {
     "time": {
      "median": 30582.16,
-     "min": 27620.407,
-     "max": 33543.913
+     "min": 30419.816,
+     "max": 30744.504
     },
     "allocated": {
      "median": 0.0,
@@ -1300,8 +1306,8 @@
    "sherlock: the": {
     "time": {
      "median": 309765.46,
-     "min": 276648.28500000003,
-     "max": 342882.635
+     "min": 307950.196,
+     "max": 311580.72400000005
     },
     "allocated": {
      "median": 0.0,
@@ -1312,8 +1318,8 @@
    "sherlock: the /i": {
     "time": {
      "median": 406389.8,
-     "min": 174401.19199999998,
-     "max": 638378.408
+     "min": 393673.722,
+     "max": 419105.87799999997
     },
     "allocated": {
      "median": 0.0,
@@ -1324,8 +1330,8 @@
    "sherlock: the\\s+\\w+": {
     "time": {
      "median": 509775.94,
-     "min": 502141.288,
-     "max": 517410.592
+     "min": 509357.459,
+     "max": 510194.42100000003
     },
     "allocated": {
      "median": 0.0,
@@ -1336,8 +1342,8 @@
    "sherlock: zqj": {
     "time": {
      "median": 30840.41,
-     "min": 27781.948,
-     "max": 33898.872
+     "min": 30672.765,
+     "max": 31008.055
     },
     "allocated": {
      "median": 0.0,
@@ -1350,8 +1356,8 @@
    "leipzig: ([A-Za-z]awyer|[A-Za-z]inn)\\s": {
     "time": {
      "median": 10412350.97,
-     "min": 7440794.733000001,
-     "max": 13383907.207
+     "min": 10249469.945,
+     "max": 10575231.995000001
     },
     "allocated": {
      "median": 0.0,
@@ -1362,8 +1368,8 @@
    "leipzig: .{0,2}(Tom|Sawyer|Huckleberry|Finn)": {
     "time": {
      "median": 116695224.13,
-     "min": 106469619.77399999,
-     "max": 126920828.486
+     "min": 116134724.248,
+     "max": 117255724.012
     },
     "allocated": {
      "median": 0.0,
@@ -1374,8 +1380,8 @@
    "leipzig: .{2,4}(Tom|Sawyer|Huckleberry|Finn)": {
     "time": {
      "median": 134095338.83,
-     "min": 88891481.89,
-     "max": 179299195.76999998
+     "min": 131617562.887,
+     "max": 136573114.773
     },
     "allocated": {
      "median": 0.0,
@@ -1386,8 +1392,8 @@
    "leipzig: Huck[a-zA-Z]+|Saw[a-zA-Z]+": {
     "time": {
      "median": 2755116.53,
-     "min": 2050150.15,
-     "max": 3460082.9099999997
+     "min": 2716474.9439999997,
+     "max": 2793758.116
     },
     "allocated": {
      "median": 0.0,
@@ -1398,8 +1404,8 @@
    "leipzig: Tom.{10,25}river|river.{10,25}Tom": {
     "time": {
      "median": 7661537.22,
-     "min": 6905172.5649999995,
-     "max": 8417901.875
+     "min": 7620078.3209999995,
+     "max": 7702996.119
     },
     "allocated": {
      "median": 0.0,
@@ -1410,8 +1416,8 @@
    "leipzig: Tom|Sawyer|Huckleberry|Finn": {
     "time": {
      "median": 3147721.77,
-     "min": 1935926.6940000001,
-     "max": 4359516.846
+     "min": 3081299.193,
+     "max": 3214144.347
     },
     "allocated": {
      "median": 0.0,
@@ -1422,8 +1428,8 @@
    "leipzig: Tom|Sawyer|Huckleberry|Finn /i": {
     "time": {
      "median": 2756062.04,
-     "min": 2034689.1,
-     "max": 3477434.98
+     "min": 2716521.1550000003,
+     "max": 2795602.925
     },
     "allocated": {
      "median": 0.0,
@@ -1434,8 +1440,8 @@
    "leipzig: Twain": {
     "time": {
      "median": 2218217.4,
-     "min": 806390.5429999998,
-     "max": 3630044.257
+     "min": 2140830.406,
+     "max": 2295604.394
     },
     "allocated": {
      "median": 0.0,
@@ -1446,8 +1452,8 @@
    "leipzig: Twain /i": {
     "time": {
      "median": 2293779.24,
-     "min": 2048274.1120000002,
-     "max": 2539284.3680000002
+     "min": 2280322.2750000004,
+     "max": 2307236.205
     },
     "allocated": {
      "median": 0.0,
@@ -1458,8 +1464,8 @@
    "leipzig: [a-z]shing": {
     "time": {
      "median": 2079867.14,
-     "min": 1361378.026,
-     "max": 2798356.2539999997
+     "min": 2040484.3269999998,
+     "max": 2119249.9529999997
     },
     "allocated": {
      "median": 0.0,
@@ -1470,8 +1476,8 @@
    "leipzig: \\p{Sm}": {
     "time": {
      "median": 2028232.18,
-     "min": 1575601.971,
-     "max": 2480862.389
+     "min": 2003421.991,
+     "max": 2053042.369
     },
     "allocated": {
      "median": 0.0,
@@ -1482,8 +1488,8 @@
    "mariomka: (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][...": {
     "time": {
      "median": 2647527.14,
-     "min": 2144474.526,
-     "max": 3150579.754
+     "min": 2619953.129,
+     "max": 2675101.151
     },
     "allocated": {
      "median": 0.0,
@@ -1494,8 +1500,8 @@
    "mariomka: [\\w\\.+-]+@[\\w\\.-]+\\.[\\w\\.-]+": {
     "time": {
      "median": 303445.69,
-     "min": 0.0,
-     "max": 714102.925
+     "min": 280936.181,
+     "max": 325955.199
     },
     "allocated": {
      "median": 0.0,
@@ -1506,8 +1512,8 @@
    "mariomka: [\\w]+://[^/\\s?#]+[^\\s?#]+(?:\\?[^\\s#]*...": {
     "time": {
      "median": 830377.27,
-     "min": 654549.616,
-     "max": 1006204.924
+     "min": 820739.563,
+     "max": 840014.9770000001
     },
     "allocated": {
      "median": 0.0,
@@ -1518,8 +1524,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441": {
     "time": {
      "median": 57474.12,
-     "min": 49525.638000000006,
-     "max": 65422.602
+     "min": 57038.437000000005,
+     "max": 57909.803
     },
     "allocated": {
      "median": 0.0,
@@ -1530,8 +1536,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441 /i": {
     "time": {
      "median": 114694.01,
-     "min": 81470.663,
-     "max": 147917.357
+     "min": 112872.92599999999,
+     "max": 116515.094
     },
     "allocated": {
      "median": 0.0,
@@ -1542,8 +1548,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438...": {
     "time": {
      "median": 1358207.98,
-     "min": 1260787.896,
-     "max": 1455628.064
+     "min": 1352868.0559999999,
+     "max": 1363547.904
     },
     "allocated": {
      "median": 0.0,
@@ -1554,8 +1560,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438... /i": {
     "time": {
      "median": 1216548.56,
-     "min": 1030884.775,
-     "max": 1402212.345
+     "min": 1206371.7010000001,
+     "max": 1226725.419
     },
     "allocated": {
      "median": 0.0,
@@ -1566,8 +1572,8 @@
    "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af": {
     "time": {
      "median": 17129.26,
-     "min": 15031.393999999998,
-     "max": 19227.125999999997
+     "min": 17014.268999999997,
+     "max": 17244.251
     },
     "allocated": {
      "median": 0.0,
@@ -1578,8 +1584,8 @@
    "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af|\u7ea6\u7ff0\u534e\u751f|\u963f\u5fb7\u52d2|\u96f7\u65af\u5782\u5fb7|\u83ab\u91cc\u4e9a\u8482\u6559\u6388": {
     "time": {
      "median": 24601.17,
-     "min": 5752.810999999998,
-     "max": 43449.528999999995
+     "min": 23568.028,
+     "max": 25634.311999999998
     },
     "allocated": {
      "median": 0.0,
@@ -1590,8 +1596,8 @@
    "sherlock: .*": {
     "time": {
      "median": 311224.07,
-     "min": 295927.578,
-     "max": 326520.56200000003
+     "min": 310385.618,
+     "max": 312062.522
     },
     "allocated": {
      "median": 0.0,
@@ -1602,8 +1608,8 @@
    "sherlock: .* /s": {
     "time": {
      "median": 24.51,
-     "min": 14.511000000000001,
-     "max": 34.509
+     "min": 23.962000000000003,
+     "max": 25.058
     },
     "allocated": {
      "median": 0.0,
@@ -1614,8 +1620,8 @@
    "sherlock: Holmes": {
     "time": {
      "median": 36353.49,
-     "min": 32503.007999999998,
-     "max": 40203.971999999994
+     "min": 36142.432,
+     "max": 36564.547999999995
     },
     "allocated": {
      "median": 0.0,
@@ -1626,8 +1632,8 @@
    "sherlock: Holmes /i": {
     "time": {
      "median": 39475.96,
-     "min": 34292.388999999996,
-     "max": 44659.531
+     "min": 39191.831,
+     "max": 39760.089
     },
     "allocated": {
      "median": 0.0,
@@ -1638,8 +1644,8 @@
    "sherlock: Holmes.{0,25}Watson|Watson.{0,25}Holmes": {
     "time": {
      "median": 38845.94,
-     "min": 29552.851000000002,
-     "max": 48139.029
+     "min": 38336.554000000004,
+     "max": 39355.326
     },
     "allocated": {
      "median": 0.0,
@@ -1650,8 +1656,8 @@
    "sherlock: Sher[a-z]+|Hol[a-z]+": {
     "time": {
      "median": 45926.25,
-     "min": 8269.040999999997,
-     "max": 83583.459
+     "min": 43862.131,
+     "max": 47990.369
     },
     "allocated": {
      "median": 0.0,
@@ -1662,8 +1668,8 @@
    "sherlock: Sher[a-z]+|Hol[a-z]+ /i": {
     "time": {
      "median": 65436.93,
-     "min": 59502.222,
-     "max": 71371.638
+     "min": 65111.629,
+     "max": 65762.231
     },
     "allocated": {
      "median": 0.0,
@@ -1674,8 +1680,8 @@
    "sherlock: Sherlock": {
     "time": {
      "median": 30657.99,
-     "min": 26931.583000000002,
-     "max": 34384.397000000004
+     "min": 30453.733,
+     "max": 30862.247000000003
     },
     "allocated": {
      "median": 0.0,
@@ -1686,8 +1692,8 @@
    "sherlock: Sherlock /i": {
     "time": {
      "median": 31920.16,
-     "min": 24538.832,
-     "max": 39301.488
+     "min": 31515.565,
+     "max": 32324.755
     },
     "allocated": {
      "median": 0.0,
@@ -1698,8 +1704,8 @@
    "sherlock: Sherlock Holmes": {
     "time": {
      "median": 28174.43,
-     "min": 11367.315999999999,
-     "max": 44981.544
+     "min": 27253.175,
+     "max": 29095.685
     },
     "allocated": {
      "median": 0.0,
@@ -1710,8 +1716,8 @@
    "sherlock: Sherlock Holmes /i": {
     "time": {
      "median": 29928.6,
-     "min": 26216.906,
-     "max": 33640.294
+     "min": 29725.149999999998,
+     "max": 30132.05
     },
     "allocated": {
      "median": 0.0,
@@ -1722,8 +1728,8 @@
    "sherlock: Sherlock\\s+Holmes": {
     "time": {
      "median": 29414.38,
-     "min": 17478.47,
-     "max": 41350.29
+     "min": 28760.132,
+     "max": 30068.628
     },
     "allocated": {
      "median": 0.0,
@@ -1734,8 +1740,8 @@
    "sherlock: Sherlock|Holmes": {
     "time": {
      "median": 35332.3,
-     "min": 15389.713000000003,
-     "max": 55274.887
+     "min": 34239.18,
+     "max": 36425.420000000006
     },
     "allocated": {
      "median": 0.0,
@@ -1746,8 +1752,8 @@
    "sherlock: Sherlock|Holmes|Watson": {
     "time": {
      "median": 46138.95,
-     "min": 40352.91499999999,
-     "max": 51924.985
+     "min": 45821.797999999995,
+     "max": 46456.102
     },
     "allocated": {
      "median": 0.0,
@@ -1758,8 +1764,8 @@
    "sherlock: Sherlock|Holmes|Watson /i": {
     "time": {
      "median": 74282.49,
-     "min": 71487.68400000001,
-     "max": 77077.296
+     "min": 74129.297,
+     "max": 74435.683
     },
     "allocated": {
      "median": 0.0,
@@ -1770,8 +1776,8 @@
    "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo...": {
     "time": {
      "median": 118951.04,
-     "min": 112779.31899999999,
-     "max": 125122.761
+     "min": 118612.74699999999,
+     "max": 119289.333
     },
     "allocated": {
      "median": 0.0,
@@ -1782,8 +1788,8 @@
    "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo... /i": {
     "time": {
      "median": 216031.03,
-     "min": 171382.14299999998,
-     "max": 260679.91700000002
+     "min": 213583.674,
+     "max": 218478.386
     },
     "allocated": {
      "median": 0.0,
@@ -1794,8 +1800,8 @@
    "sherlock: Sherlock|Street": {
     "time": {
      "median": 22722.22,
-     "min": 20788.278000000002,
-     "max": 24656.162
+     "min": 22616.214,
+     "max": 22828.226000000002
     },
     "allocated": {
      "median": 0.0,
@@ -1806,8 +1812,8 @@
    "sherlock: The": {
     "time": {
      "median": 40204.47,
-     "min": 31681.492000000002,
-     "max": 48727.448000000004
+     "min": 39737.297,
+     "max": 40671.643000000004
     },
     "allocated": {
      "median": 0.0,
@@ -1818,8 +1824,8 @@
    "sherlock: [^\\n]*": {
     "time": {
      "median": 349191.94,
-     "min": 283583.091,
-     "max": 414800.789
+     "min": 345595.698,
+     "max": 352788.18200000003
     },
     "allocated": {
      "median": 0.0,
@@ -1830,8 +1836,8 @@
    "sherlock: [a-q][^u-z]{13}x": {
     "time": {
      "median": 21382.09,
-     "min": 17344.377,
-     "max": 25419.803
+     "min": 21160.769,
+     "max": 21603.411
     },
     "allocated": {
      "median": 0.0,
@@ -1842,8 +1848,8 @@
    "sherlock: [a-zA-Z]+ing": {
     "time": {
      "median": 2788622.96,
-     "min": 2721320.83,
-     "max": 2855925.09
+     "min": 2784933.903,
+     "max": 2792312.017
     },
     "allocated": {
      "median": 0.0,
@@ -1854,8 +1860,8 @@
    "sherlock: \\b\\w+n\\b": {
     "time": {
      "median": 5313629.79,
-     "min": 5164674.649,
-     "max": 5462584.931
+     "min": 5305465.056,
+     "max": 5321794.524
     },
     "allocated": {
      "median": 0.0,
@@ -1866,8 +1872,8 @@
    "sherlock: \\p{Ll}": {
     "time": {
      "median": 4192744.42,
-     "min": 3146958.351,
-     "max": 5238530.489
+     "min": 4135421.356,
+     "max": 4250067.484
     },
     "allocated": {
      "median": 0.0,
@@ -1878,8 +1884,8 @@
    "sherlock: \\p{Lu}": {
     "time": {
      "median": 300419.85,
-     "min": 273278.855,
-     "max": 327560.845
+     "min": 298932.16,
+     "max": 301907.54
     },
     "allocated": {
      "median": 0.0,
@@ -1890,8 +1896,8 @@
    "sherlock: \\p{L}": {
     "time": {
      "median": 4495206.24,
-     "min": 4297293.782000001,
-     "max": 4693118.698
+     "min": 4484357.99,
+     "max": 4506054.49
     },
     "allocated": {
      "median": 0.0,
@@ -1902,8 +1908,8 @@
    "sherlock: \\s[a-zA-Z]{0,12}ing\\s": {
     "time": {
      "median": 2901480.66,
-     "min": 2855744.6810000003,
-     "max": 2947216.639
+     "min": 2898973.717,
+     "max": 2903987.603
     },
     "allocated": {
      "median": 0.0,
@@ -1914,8 +1920,8 @@
    "sherlock: \\w+": {
     "time": {
      "median": 2842247.34,
-     "min": 2725414.681,
-     "max": 2959079.999
+     "min": 2835843.3479999998,
+     "max": 2848651.332
     },
     "allocated": {
      "median": 0.0,
@@ -1926,8 +1932,8 @@
    "sherlock: \\w+\\s+Holmes": {
     "time": {
      "median": 2275362.71,
-     "min": 906771.254,
-     "max": 3643954.166
+     "min": 2200345.594,
+     "max": 2350379.826
     },
     "allocated": {
      "median": 0.0,
@@ -1938,8 +1944,8 @@
    "sherlock: \\w+\\s+Holmes\\s+\\w+": {
     "time": {
      "median": 2393965.66,
-     "min": 2355984.5,
-     "max": 2431946.8200000003
+     "min": 2391883.784,
+     "max": 2396047.5360000003
     },
     "allocated": {
      "median": 0.0,
@@ -1950,8 +1956,8 @@
    "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
     "time": {
      "median": 28354.11,
-     "min": 24152.015,
-     "max": 32556.205
+     "min": 28123.779000000002,
+     "max": 28584.441
     },
     "allocated": {
      "median": 0.0,
@@ -1962,8 +1968,8 @@
    "sherlock: aei": {
     "time": {
      "median": 26904.6,
-     "min": 16206.312999999998,
-     "max": 37602.887
+     "min": 26318.191,
+     "max": 27491.009
     },
     "allocated": {
      "median": 0.0,
@@ -1974,8 +1980,8 @@
    "sherlock: aqj": {
     "time": {
      "median": 26090.13,
-     "min": 21991.042,
-     "max": 30189.218
+     "min": 25865.445,
+     "max": 26314.815000000002
     },
     "allocated": {
      "median": 0.0,
@@ -1986,8 +1992,8 @@
    "sherlock: the": {
     "time": {
      "median": 182141.67,
-     "min": 101285.456,
-     "max": 262997.884
+     "min": 177709.668,
+     "max": 186573.67200000002
     },
     "allocated": {
      "median": 0.0,
@@ -1998,8 +2004,8 @@
    "sherlock: the /i": {
     "time": {
      "median": 198155.36,
-     "min": 127166.86699999998,
-     "max": 269143.853
+     "min": 194264.24099999998,
+     "max": 202046.479
     },
     "allocated": {
      "median": 0.0,
@@ -2010,8 +2016,8 @@
    "sherlock: the\\s+\\w+": {
     "time": {
      "median": 322427.71,
-     "min": 263801.271,
-     "max": 381054.14900000003
+     "min": 319214.19700000004,
+     "max": 325641.223
     },
     "allocated": {
      "median": 0.0,
@@ -2022,8 +2028,8 @@
    "sherlock: zqj": {
     "time": {
      "median": 26714.78,
-     "min": 26240.952999999998,
-     "max": 27188.607
+     "min": 26688.807999999997,
+     "max": 26740.752
     },
     "allocated": {
      "median": 0.0,
@@ -2036,8 +2042,8 @@
    "leipzig: ([A-Za-z]awyer|[A-Za-z]inn)\\s": {
     "time": {
      "median": 2902294.09,
-     "min": 2553950.346,
-     "max": 3250637.834
+     "min": 2883200.1939999997,
+     "max": 2921387.986
     },
     "allocated": {
      "median": 0.0,
@@ -2048,8 +2054,8 @@
    "leipzig: .{0,2}(Tom|Sawyer|Huckleberry|Finn)": {
     "time": {
      "median": 2828812.91,
-     "min": 2555069.265,
-     "max": 3102556.555
+     "min": 2813808.097,
+     "max": 2843817.723
     },
     "allocated": {
      "median": 0.0,
@@ -2060,8 +2066,8 @@
    "leipzig: .{2,4}(Tom|Sawyer|Huckleberry|Finn)": {
     "time": {
      "median": 2898362.23,
-     "min": 2591215.975,
-     "max": 3205508.485
+     "min": 2881526.5069999998,
+     "max": 2915197.953
     },
     "allocated": {
      "median": 0.0,
@@ -2072,8 +2078,8 @@
    "leipzig: Huck[a-zA-Z]+|Saw[a-zA-Z]+": {
     "time": {
      "median": 2690103.82,
-     "min": 1520160.322,
-     "max": 3860047.318
+     "min": 2625975.269,
+     "max": 2754232.371
     },
     "allocated": {
      "median": 0.0,
@@ -2084,8 +2090,8 @@
    "leipzig: Tom.{10,25}river|river.{10,25}Tom": {
     "time": {
      "median": 3283647.38,
-     "min": 2195323.5149999997,
-     "max": 4371971.245
+     "min": 3223992.676,
+     "max": 3343302.084
     },
     "allocated": {
      "median": 0.0,
@@ -2096,8 +2102,8 @@
    "leipzig: Tom|Sawyer|Huckleberry|Finn": {
     "time": {
      "median": 2635433.63,
-     "min": 2488756.442,
-     "max": 2782110.818
+     "min": 2627393.758,
+     "max": 2643473.502
     },
     "allocated": {
      "median": 0.0,
@@ -2108,8 +2114,8 @@
    "leipzig: Tom|Sawyer|Huckleberry|Finn /i": {
     "time": {
      "median": 2846818.81,
-     "min": 1840848.746,
-     "max": 3852788.874
+     "min": 2791678.196,
+     "max": 2901959.424
     },
     "allocated": {
      "median": 0.0,
@@ -2120,8 +2126,8 @@
    "leipzig: Twain": {
     "time": {
      "median": 2493934.46,
-     "min": 0.0,
-     "max": 6159269.666999999
+     "min": 2293025.068,
+     "max": 2694843.852
     },
     "allocated": {
      "median": 0.0,
@@ -2132,8 +2138,8 @@
    "leipzig: Twain /i": {
     "time": {
      "median": 2263474.79,
-     "min": 1333010.8220000002,
-     "max": 3193938.758
+     "min": 2212472.92,
+     "max": 2314476.66
     },
     "allocated": {
      "median": 0.0,
@@ -2144,8 +2150,8 @@
    "leipzig: [a-z]shing": {
     "time": {
      "median": 2125686.1,
-     "min": 1316470.9900000002,
-     "max": 2934901.21
+     "min": 2081330.289,
+     "max": 2170041.9110000003
     },
     "allocated": {
      "median": 0.0,
@@ -2156,8 +2162,8 @@
    "leipzig: \\p{Sm}": {
     "time": {
      "median": 1974306.46,
-     "min": 922420.571,
-     "max": 3026192.349
+     "min": 1916649.045,
+     "max": 2031963.875
     },
     "allocated": {
      "median": 0.0,
@@ -2168,8 +2174,8 @@
    "mariomka: (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][...": {
     "time": {
      "median": 4886413.67,
-     "min": 1456001.9139999999,
-     "max": 8316825.426
+     "min": 4698381.225,
+     "max": 5074446.115
     },
     "allocated": {
      "median": 0.0,
@@ -2180,8 +2186,8 @@
    "mariomka: [\\w\\.+-]+@[\\w\\.-]+\\.[\\w\\.-]+": {
     "time": {
      "median": 330155.87,
-     "min": 321537.674,
-     "max": 338774.066
+     "min": 329683.478,
+     "max": 330628.262
     },
     "allocated": {
      "median": 0.0,
@@ -2192,8 +2198,8 @@
    "mariomka: [\\w]+://[^/\\s?#]+[^\\s?#]+(?:\\?[^\\s#]*...": {
     "time": {
      "median": 1106730.57,
-     "min": 0.0,
-     "max": 2669725.748
+     "min": 1021057.53,
+     "max": 1192403.61
     },
     "allocated": {
      "median": 0.0,
@@ -2204,8 +2210,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441": {
     "time": {
      "median": 51540.28,
-     "min": 46636.171,
-     "max": 56444.388999999996
+     "min": 51271.469,
+     "max": 51809.091
     },
     "allocated": {
      "median": 0.0,
@@ -2216,8 +2222,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441 /i": {
     "time": {
      "median": 63959.34,
-     "min": 34078.551999999996,
-     "max": 93840.128
+     "min": 62321.473,
+     "max": 65597.207
     },
     "allocated": {
      "median": 0.0,
@@ -2228,8 +2234,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438...": {
     "time": {
      "median": 126173.71,
-     "min": 105503.75400000002,
-     "max": 146843.666
+     "min": 125040.72,
+     "max": 127306.70000000001
     },
     "allocated": {
      "median": 0.0,
@@ -2240,8 +2246,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438... /i": {
     "time": {
      "median": 189747.35,
-     "min": 155319.457,
-     "max": 224175.24300000002
+     "min": 187860.241,
+     "max": 191634.459
     },
     "allocated": {
      "median": 0.0,
@@ -2252,8 +2258,8 @@
    "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af": {
     "time": {
      "median": 16726.51,
-     "min": 15148.295999999998,
-     "max": 18304.724
+     "min": 16640.002999999997,
+     "max": 16813.017
     },
     "allocated": {
      "median": 0.0,
@@ -2264,8 +2270,8 @@
    "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af|\u7ea6\u7ff0\u534e\u751f|\u963f\u5fb7\u52d2|\u96f7\u65af\u5782\u5fb7|\u83ab\u91cc\u4e9a\u8482\u6559\u6388": {
     "time": {
      "median": 25385.68,
-     "min": 23396.202,
-     "max": 27375.158
+     "min": 25276.63,
+     "max": 25494.73
     },
     "allocated": {
      "median": 0.0,
@@ -2276,8 +2282,8 @@
    "sherlock: .*": {
     "time": {
      "median": 426692.49,
-     "min": 308393.211,
-     "max": 544991.769
+     "min": 420208.107,
+     "max": 433176.87299999996
     },
     "allocated": {
      "median": 0.0,
@@ -2288,8 +2294,8 @@
    "sherlock: .* /s": {
     "time": {
      "median": 20.03,
-     "min": 18.929000000000002,
-     "max": 21.131
+     "min": 19.970000000000002,
+     "max": 20.09
     },
     "allocated": {
      "median": 0.0,
@@ -2300,8 +2306,8 @@
    "sherlock: Holmes": {
     "time": {
      "median": 27350.83,
-     "min": 26647.763000000003,
-     "max": 28053.897
+     "min": 27312.293,
+     "max": 27389.367000000002
     },
     "allocated": {
      "median": 0.0,
@@ -2312,8 +2318,8 @@
    "sherlock: Holmes /i": {
     "time": {
      "median": 33480.72,
-     "min": 28299.491,
-     "max": 38661.949
+     "min": 33196.719000000005,
+     "max": 33764.721
     },
     "allocated": {
      "median": 0.0,
@@ -2324,8 +2330,8 @@
    "sherlock: Holmes.{0,25}Watson|Watson.{0,25}Holmes": {
     "time": {
      "median": 53675.2,
-     "min": 47369.439,
-     "max": 59980.960999999996
+     "min": 53329.56,
+     "max": 54020.84
     },
     "allocated": {
      "median": 0.0,
@@ -2336,8 +2342,8 @@
    "sherlock: Sher[a-z]+|Hol[a-z]+": {
     "time": {
      "median": 56422.88,
-     "min": 32627.335,
-     "max": 80218.42499999999
+     "min": 55118.566,
+     "max": 57727.193999999996
     },
     "allocated": {
      "median": 0.0,
@@ -2348,8 +2354,8 @@
    "sherlock: Sher[a-z]+|Hol[a-z]+ /i": {
     "time": {
      "median": 91622.37,
-     "min": 56127.59299999999,
-     "max": 127117.147
+     "min": 89676.78099999999,
+     "max": 93567.959
     },
     "allocated": {
      "median": 0.0,
@@ -2360,8 +2366,8 @@
    "sherlock: Sherlock": {
     "time": {
      "median": 21289.64,
-     "min": 17973.85,
-     "max": 24605.43
+     "min": 21107.89,
+     "max": 21471.39
     },
     "allocated": {
      "median": 0.0,
@@ -2372,8 +2378,8 @@
    "sherlock: Sherlock /i": {
     "time": {
      "median": 26248.95,
-     "min": 15543.829000000002,
-     "max": 36954.070999999996
+     "min": 25662.166,
+     "max": 26835.734
     },
     "allocated": {
      "median": 0.0,
@@ -2384,8 +2390,8 @@
    "sherlock: Sherlock Holmes": {
     "time": {
      "median": 21501.26,
-     "min": 15964.005999999998,
-     "max": 27038.514
+     "min": 21197.744,
+     "max": 21804.775999999998
     },
     "allocated": {
      "median": 0.0,
@@ -2396,8 +2402,8 @@
    "sherlock: Sherlock Holmes /i": {
     "time": {
      "median": 27052.64,
-     "min": 25329.226,
-     "max": 28776.054
+     "min": 26958.174,
+     "max": 27147.106
     },
     "allocated": {
      "median": 0.0,
@@ -2408,8 +2414,8 @@
    "sherlock: Sherlock\\s+Holmes": {
     "time": {
      "median": 24914.94,
-     "min": 19771.928999999996,
-     "max": 30057.951
+     "min": 24633.034,
+     "max": 25196.845999999998
     },
     "allocated": {
      "median": 0.0,
@@ -2420,8 +2426,8 @@
    "sherlock: Sherlock|Holmes": {
     "time": {
      "median": 48546.03,
-     "min": 44015.431,
-     "max": 53076.629
+     "min": 48297.693,
+     "max": 48794.367
     },
     "allocated": {
      "median": 0.0,
@@ -2432,8 +2438,8 @@
    "sherlock: Sherlock|Holmes|Watson": {
     "time": {
      "median": 47989.53,
-     "min": 39753.943,
-     "max": 56225.117
+     "min": 47538.11,
+     "max": 48440.95
     },
     "allocated": {
      "median": 0.0,
@@ -2444,8 +2450,8 @@
    "sherlock: Sherlock|Holmes|Watson /i": {
     "time": {
      "median": 65174.52,
-     "min": 61907.986999999994,
-     "max": 68441.053
+     "min": 64995.469999999994,
+     "max": 65353.57
     },
     "allocated": {
      "median": 0.0,
@@ -2456,8 +2462,8 @@
    "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo...": {
     "time": {
      "median": 50973.45,
-     "min": 47351.555,
-     "max": 54595.344999999994
+     "min": 50774.922,
+     "max": 51171.977999999996
     },
     "allocated": {
      "median": 0.0,
@@ -2468,8 +2474,8 @@
    "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo... /i": {
     "time": {
      "median": 83685.68,
-     "min": 82321.699,
-     "max": 85049.661
+     "min": 83610.916,
+     "max": 83760.44399999999
     },
     "allocated": {
      "median": 0.0,
@@ -2480,8 +2486,8 @@
    "sherlock: Sherlock|Street": {
     "time": {
      "median": 24111.76,
-     "min": 20404.154,
-     "max": 27819.365999999998
+     "min": 23908.534,
+     "max": 24314.985999999997
     },
     "allocated": {
      "median": 0.0,
@@ -2492,8 +2498,8 @@
    "sherlock: The": {
     "time": {
      "median": 41086.54,
-     "min": 36375.786,
-     "max": 45797.294
+     "min": 40828.328,
+     "max": 41344.752
     },
     "allocated": {
      "median": 0.0,
@@ -2504,8 +2510,8 @@
    "sherlock: [^\\n]*": {
     "time": {
      "median": 294745.23,
-     "min": 189967.718,
-     "max": 399522.74199999997
+     "min": 289002.021,
+     "max": 300488.43899999995
     },
     "allocated": {
      "median": 0.0,
@@ -2516,8 +2522,8 @@
    "sherlock: [a-q][^u-z]{13}x": {
     "time": {
      "median": 32039.76,
-     "min": 30821.839999999997,
-     "max": 33257.68
+     "min": 31973.001999999997,
+     "max": 32106.518
     },
     "allocated": {
      "median": 0.0,
@@ -2528,8 +2534,8 @@
    "sherlock: [a-zA-Z]+ing": {
     "time": {
      "median": 228242.51,
-     "min": 219154.242,
-     "max": 237330.77800000002
+     "min": 227744.351,
+     "max": 228740.66900000002
     },
     "allocated": {
      "median": 0.0,
@@ -2540,8 +2546,8 @@
    "sherlock: \\b\\w+n\\b": {
     "time": {
      "median": 1806820.99,
-     "min": 1108686.048,
-     "max": 2504955.932
+     "min": 1768553.858,
+     "max": 1845088.122
     },
     "allocated": {
      "median": 0.0,
@@ -2552,8 +2558,8 @@
    "sherlock: \\p{Ll}": {
     "time": {
      "median": 4103783.22,
-     "min": 3484916.265,
-     "max": 4722650.175
+     "min": 4069861.034,
+     "max": 4137705.4060000004
     },
     "allocated": {
      "median": 0.0,
@@ -2564,8 +2570,8 @@
    "sherlock: \\p{Lu}": {
     "time": {
      "median": 279116.16,
-     "min": 270206.87399999995,
-     "max": 288025.446
+     "min": 278627.812,
+     "max": 279604.508
     },
     "allocated": {
      "median": 0.0,
@@ -2576,8 +2582,8 @@
    "sherlock: \\p{L}": {
     "time": {
      "median": 4347389.23,
-     "min": 3702885.1140000005,
-     "max": 4991893.346000001
+     "min": 4312061.784,
+     "max": 4382716.676000001
     },
     "allocated": {
      "median": 0.0,
@@ -2588,8 +2594,8 @@
    "sherlock: \\s[a-zA-Z]{0,12}ing\\s": {
     "time": {
      "median": 680487.0,
-     "min": 531218.286,
-     "max": 829755.714
+     "min": 672305.078,
+     "max": 688668.922
     },
     "allocated": {
      "median": 0.0,
@@ -2600,8 +2606,8 @@
    "sherlock: \\w+": {
     "time": {
      "median": 1791586.7,
-     "min": 1715321.6979999999,
-     "max": 1867851.702
+     "min": 1787406.358,
+     "max": 1795767.042
     },
     "allocated": {
      "median": 0.0,
@@ -2612,8 +2618,8 @@
    "sherlock: \\w+\\s+Holmes": {
     "time": {
      "median": 41151.14,
-     "min": 39178.022,
-     "max": 43124.258
+     "min": 41042.987,
+     "max": 41259.293
     },
     "allocated": {
      "median": 0.0,
@@ -2624,8 +2630,8 @@
    "sherlock: \\w+\\s+Holmes\\s+\\w+": {
     "time": {
      "median": 39924.72,
-     "min": 37857.868,
-     "max": 41991.572
+     "min": 39811.429000000004,
+     "max": 40038.011
     },
     "allocated": {
      "median": 0.0,
@@ -2636,8 +2642,8 @@
    "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
     "time": {
      "median": 22834.61,
-     "min": 18761.773,
-     "max": 26907.447
+     "min": 22611.364,
+     "max": 23057.856
     },
     "allocated": {
      "median": 0.0,
@@ -2648,8 +2654,8 @@
    "sherlock: aei": {
     "time": {
      "median": 25713.67,
-     "min": 22754.352,
-     "max": 28672.987999999998
+     "min": 25551.46,
+     "max": 25875.879999999997
     },
     "allocated": {
      "median": 0.0,
@@ -2660,8 +2666,8 @@
    "sherlock: aqj": {
     "time": {
      "median": 17792.0,
-     "min": 17366.453,
-     "max": 18217.547
+     "min": 17768.674,
+     "max": 17815.326
     },
     "allocated": {
      "median": 0.0,
@@ -2672,8 +2678,8 @@
    "sherlock: the": {
     "time": {
      "median": 157056.22,
-     "min": 79669.963,
-     "max": 234442.477
+     "min": 152814.418,
+     "max": 161298.022
     },
     "allocated": {
      "median": 0.0,
@@ -2684,8 +2690,8 @@
    "sherlock: the /i": {
     "time": {
      "median": 233286.29,
-     "min": 154855.94300000003,
-     "max": 311716.637
+     "min": 228987.258,
+     "max": 237585.32200000001
     },
     "allocated": {
      "median": 0.0,
@@ -2696,8 +2702,8 @@
    "sherlock: the\\s+\\w+": {
     "time": {
      "median": 352968.53,
-     "min": 343970.01,
-     "max": 361967.05000000005
+     "min": 352475.291,
+     "max": 353461.76900000003
     },
     "allocated": {
      "median": 0.0,
@@ -2708,8 +2714,8 @@
    "sherlock: zqj": {
     "time": {
      "median": 16116.61,
-     "min": 13812.835000000001,
-     "max": 18420.385000000002
+     "min": 15990.332,
+     "max": 16242.888
     },
     "allocated": {
      "median": 0.0,
@@ -2722,8 +2728,8 @@
    "leipzig: ([A-Za-z]awyer|[A-Za-z]inn)\\s": {
     "time": {
      "median": 2972249.82,
-     "min": 1883330.3339999998,
-     "max": 4061169.306
+     "min": 2912562.468,
+     "max": 3031937.172
     },
     "allocated": {
      "median": 0.0,
@@ -2734,8 +2740,8 @@
    "leipzig: .{0,2}(Tom|Sawyer|Huckleberry|Finn)": {
     "time": {
      "median": 2887148.41,
-     "min": 2709568.592,
-     "max": 3064728.228
+     "min": 2877414.6610000003,
+     "max": 2896882.159
     },
     "allocated": {
      "median": 0.0,
@@ -2746,8 +2752,8 @@
    "leipzig: .{2,4}(Tom|Sawyer|Huckleberry|Finn)": {
     "time": {
      "median": 3169746.26,
-     "min": 0.0,
-     "max": 6495933.209
+     "min": 2987426.729,
+     "max": 3352065.7909999997
     },
     "allocated": {
      "median": 0.0,
@@ -2758,8 +2764,8 @@
    "leipzig: Huck[a-zA-Z]+|Saw[a-zA-Z]+": {
     "time": {
      "median": 2485172.33,
-     "min": 1965267.246,
-     "max": 3005077.414
+     "min": 2456674.578,
+     "max": 2513670.082
     },
     "allocated": {
      "median": 0.0,
@@ -2770,8 +2776,8 @@
    "leipzig: Tom.{10,25}river|river.{10,25}Tom": {
     "time": {
      "median": 3021054.94,
-     "min": 410943.6499999999,
-     "max": 5631166.23
+     "min": 2877985.932,
+     "max": 3164123.948
     },
     "allocated": {
      "median": 0.0,
@@ -2782,8 +2788,8 @@
    "leipzig: Tom|Sawyer|Huckleberry|Finn": {
     "time": {
      "median": 2608480.41,
-     "min": 1627844.4360000002,
-     "max": 3589116.384
+     "min": 2554728.443,
+     "max": 2662232.3770000003
     },
     "allocated": {
      "median": 0.0,
@@ -2794,8 +2800,8 @@
    "leipzig: Tom|Sawyer|Huckleberry|Finn /i": {
     "time": {
      "median": 2885541.99,
-     "min": 2606635.6580000003,
-     "max": 3164448.322
+     "min": 2870254.1930000004,
+     "max": 2900829.787
     },
     "allocated": {
      "median": 0.0,
@@ -2806,8 +2812,8 @@
    "leipzig: Twain": {
     "time": {
      "median": 2262590.89,
-     "min": 0.0,
-     "max": 5631622.209000001
+     "min": 2077922.914,
+     "max": 2447258.866
     },
     "allocated": {
      "median": 0.0,
@@ -2818,8 +2824,8 @@
    "leipzig: Twain /i": {
     "time": {
      "median": 2326227.29,
-     "min": 1795935.777,
-     "max": 2856518.8030000003
+     "min": 2297160.223,
+     "max": 2355294.357
     },
     "allocated": {
      "median": 0.0,
@@ -2830,8 +2836,8 @@
    "leipzig: [a-z]shing": {
     "time": {
      "median": 2100174.12,
-     "min": 1193177.0380000002,
-     "max": 3007171.202
+     "min": 2050458.549,
+     "max": 2149889.691
     },
     "allocated": {
      "median": 0.0,
@@ -2842,8 +2848,8 @@
    "leipzig: \\p{Sm}": {
     "time": {
      "median": 2164245.33,
-     "min": 1882880.168,
-     "max": 2445610.492
+     "min": 2148822.756,
+     "max": 2179667.904
     },
     "allocated": {
      "median": 0.0,
@@ -2854,8 +2860,8 @@
    "mariomka: (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][...": {
     "time": {
      "median": 2372307.56,
-     "min": 51910.18000000017,
-     "max": 4692704.9399999995
+     "min": 2245118.749,
+     "max": 2499496.3710000003
     },
     "allocated": {
      "median": 0.0,
@@ -2866,8 +2872,8 @@
    "mariomka: [\\w\\.+-]+@[\\w\\.-]+\\.[\\w\\.-]+": {
     "time": {
      "median": 327002.77,
-     "min": 0.0,
-     "max": 803564.772
+     "min": 300880.798,
+     "max": 353124.742
     },
     "allocated": {
      "median": 0.0,
@@ -2878,8 +2884,8 @@
    "mariomka: [\\w]+://[^/\\s?#]+[^\\s?#]+(?:\\?[^\\s#]*...": {
     "time": {
      "median": 665493.77,
-     "min": 107783.20400000003,
-     "max": 1223204.3360000001
+     "min": 634923.772,
+     "max": 696063.768
     },
     "allocated": {
      "median": 0.0,
@@ -2890,8 +2896,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441": {
     "time": {
      "median": 51943.55,
-     "min": 43113.187000000005,
-     "max": 60773.913
+     "min": 51459.528000000006,
+     "max": 52427.572
     },
     "allocated": {
      "median": 0.0,
@@ -2902,8 +2908,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441 /i": {
     "time": {
      "median": 67935.74,
-     "min": 15510.061000000009,
-     "max": 120361.419
+     "min": 65062.11200000001,
+     "max": 70809.368
     },
     "allocated": {
      "median": 0.0,
@@ -2914,8 +2920,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438...": {
     "time": {
      "median": 127636.94,
-     "min": 96300.55900000001,
-     "max": 158973.321
+     "min": 125919.287,
+     "max": 129354.59300000001
     },
     "allocated": {
      "median": 0.0,
@@ -2926,8 +2932,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438... /i": {
     "time": {
      "median": 165553.13,
-     "min": 159773.117,
-     "max": 171333.143
+     "min": 165236.30800000002,
+     "max": 165869.952
     },
     "allocated": {
      "median": 0.0,
@@ -2938,8 +2944,8 @@
    "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af": {
     "time": {
      "median": 17328.86,
-     "min": 15421.79,
-     "max": 19235.93
+     "min": 17224.327,
+     "max": 17433.393
     },
     "allocated": {
      "median": 0.0,
@@ -2950,8 +2956,8 @@
    "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af|\u7ea6\u7ff0\u534e\u751f|\u963f\u5fb7\u52d2|\u96f7\u65af\u5782\u5fb7|\u83ab\u91cc\u4e9a\u8482\u6559\u6388": {
     "time": {
      "median": 24433.69,
-     "min": 17173.693,
-     "max": 31693.686999999998
+     "min": 24035.745,
+     "max": 24831.635
     },
     "allocated": {
      "median": 0.0,
@@ -2962,8 +2968,8 @@
    "sherlock: .*": {
     "time": {
      "median": 444963.72,
-     "min": 428266.447,
-     "max": 461660.99299999996
+     "min": 444048.486,
+     "max": 445878.95399999997
     },
     "allocated": {
      "median": 0.0,
@@ -2974,8 +2980,8 @@
    "sherlock: .* /s": {
     "time": {
      "median": 36.82,
-     "min": 34.035,
-     "max": 39.605000000000004
+     "min": 36.667,
+     "max": 36.973
     },
     "allocated": {
      "median": 0.0,
@@ -2986,8 +2992,8 @@
    "sherlock: Holmes": {
     "time": {
      "median": 25100.59,
-     "min": 21553.37,
-     "max": 28647.81
+     "min": 24906.155,
+     "max": 25295.025
     },
     "allocated": {
      "median": 0.0,
@@ -2998,8 +3004,8 @@
    "sherlock: Holmes /i": {
     "time": {
      "median": 32832.95,
-     "min": 30685.417999999998,
-     "max": 34980.481999999996
+     "min": 32715.236999999997,
+     "max": 32950.663
     },
     "allocated": {
      "median": 0.0,
@@ -3010,8 +3016,8 @@
    "sherlock: Holmes.{0,25}Watson|Watson.{0,25}Holmes": {
     "time": {
      "median": 36470.78,
-     "min": 8798.863999999998,
-     "max": 64142.695999999996
+     "min": 34953.989,
+     "max": 37987.570999999996
     },
     "allocated": {
      "median": 0.0,
@@ -3022,8 +3028,8 @@
    "sherlock: Sher[a-z]+|Hol[a-z]+": {
     "time": {
      "median": 32950.15,
-     "min": 24557.033000000003,
-     "max": 41343.267
+     "min": 32490.095,
+     "max": 33410.205
     },
     "allocated": {
      "median": 0.0,
@@ -3034,8 +3040,8 @@
    "sherlock: Sher[a-z]+|Hol[a-z]+ /i": {
     "time": {
      "median": 69962.35,
-     "min": 43234.93800000001,
-     "max": 96689.762
+     "min": 68497.33,
+     "max": 71427.37000000001
     },
     "allocated": {
      "median": 0.0,
@@ -3046,8 +3052,8 @@
    "sherlock: Sherlock": {
     "time": {
      "median": 21628.33,
-     "min": 16360.033000000003,
-     "max": 26896.627
+     "min": 21339.557,
+     "max": 21917.103000000003
     },
     "allocated": {
      "median": 0.0,
@@ -3058,8 +3064,8 @@
    "sherlock: Sherlock /i": {
     "time": {
      "median": 27456.25,
-     "min": 23235.118000000002,
-     "max": 31677.381999999998
+     "min": 27224.875,
+     "max": 27687.625
     },
     "allocated": {
      "median": 0.0,
@@ -3070,8 +3076,8 @@
    "sherlock: Sherlock Holmes": {
     "time": {
      "median": 20829.27,
-     "min": 19630.193,
-     "max": 22028.347
+     "min": 20763.545000000002,
+     "max": 20894.995
     },
     "allocated": {
      "median": 0.0,
@@ -3082,8 +3088,8 @@
    "sherlock: Sherlock Holmes /i": {
     "time": {
      "median": 27246.45,
-     "min": 17437.561,
-     "max": 37055.339
+     "min": 26708.792,
+     "max": 27784.108
     },
     "allocated": {
      "median": 0.0,
@@ -3094,8 +3100,8 @@
    "sherlock: Sherlock\\s+Holmes": {
     "time": {
      "median": 21267.69,
-     "min": 20004.521999999997,
-     "max": 22530.858
+     "min": 21198.450999999997,
+     "max": 21336.929
     },
     "allocated": {
      "median": 0.0,
@@ -3106,8 +3112,8 @@
    "sherlock: Sherlock|Holmes": {
     "time": {
      "median": 35218.95,
-     "min": 31515.547,
-     "max": 38922.352999999996
+     "min": 35015.954,
+     "max": 35421.945999999996
     },
     "allocated": {
      "median": 0.0,
@@ -3118,8 +3124,8 @@
    "sherlock: Sherlock|Holmes|Watson": {
     "time": {
      "median": 44320.22,
-     "min": 42826.707,
-     "max": 45813.733
+     "min": 44238.356,
+     "max": 44402.084
     },
     "allocated": {
      "median": 0.0,
@@ -3130,8 +3136,8 @@
    "sherlock: Sherlock|Holmes|Watson /i": {
     "time": {
      "median": 63953.38,
-     "min": 61318.977999999996,
-     "max": 66587.78199999999
+     "min": 63808.979999999996,
+     "max": 64097.78
     },
     "allocated": {
      "median": 0.0,
@@ -3142,8 +3148,8 @@
    "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo...": {
     "time": {
      "median": 62337.79,
-     "min": 51546.092000000004,
-     "max": 73129.488
+     "min": 61746.261,
+     "max": 62929.319
     },
     "allocated": {
      "median": 0.0,
@@ -3154,8 +3160,8 @@
    "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo... /i": {
     "time": {
      "median": 80359.73,
-     "min": 77718.65,
-     "max": 83000.81
+     "min": 80214.96299999999,
+     "max": 80504.497
     },
     "allocated": {
      "median": 0.0,
@@ -3166,8 +3172,8 @@
    "sherlock: Sherlock|Street": {
     "time": {
      "median": 22484.83,
-     "min": 4708.802000000003,
-     "max": 40260.858
+     "min": 21510.466,
+     "max": 23459.194000000003
     },
     "allocated": {
      "median": 0.0,
@@ -3178,8 +3184,8 @@
    "sherlock: The": {
     "time": {
      "median": 36935.23,
-     "min": 30667.557000000004,
-     "max": 43202.903000000006
+     "min": 36591.678,
+     "max": 37278.78200000001
     },
     "allocated": {
      "median": 0.0,
@@ -3190,8 +3196,8 @@
    "sherlock: [^\\n]*": {
     "time": {
      "median": 297522.46,
-     "min": 203692.05800000002,
-     "max": 391352.862
+     "min": 292379.299,
+     "max": 302665.62100000004
     },
     "allocated": {
      "median": 0.0,
@@ -3202,8 +3208,8 @@
    "sherlock: [a-q][^u-z]{13}x": {
     "time": {
      "median": 24431.28,
-     "min": 23176.252,
-     "max": 25686.307999999997
+     "min": 24362.487999999998,
+     "max": 24500.072
     },
     "allocated": {
      "median": 0.0,
@@ -3214,8 +3220,8 @@
    "sherlock: [a-zA-Z]+ing": {
     "time": {
      "median": 103682.16,
-     "min": 95785.047,
-     "max": 111579.273
+     "min": 103249.293,
+     "max": 104115.027
     },
     "allocated": {
      "median": 0.0,
@@ -3226,8 +3232,8 @@
    "sherlock: \\b\\w+n\\b": {
     "time": {
      "median": 983099.04,
-     "min": 791243.649,
-     "max": 1174954.431
+     "min": 972582.799,
+     "max": 993615.2810000001
     },
     "allocated": {
      "median": 0.0,
@@ -3238,8 +3244,8 @@
    "sherlock: \\p{Ll}": {
     "time": {
      "median": 4110868.97,
-     "min": 3454637.2690000003,
-     "max": 4767100.671
+     "min": 4074898.696,
+     "max": 4146839.2440000004
     },
     "allocated": {
      "median": 0.0,
@@ -3250,8 +3256,8 @@
    "sherlock: \\p{Lu}": {
     "time": {
      "median": 281884.38,
-     "min": 226831.233,
-     "max": 336937.527
+     "min": 278866.731,
+     "max": 284902.029
     },
     "allocated": {
      "median": 0.0,
@@ -3262,8 +3268,8 @@
    "sherlock: \\p{L}": {
     "time": {
      "median": 4467078.54,
-     "min": 4270482.782,
-     "max": 4663674.298
+     "min": 4456302.463,
+     "max": 4477854.617
     },
     "allocated": {
      "median": 0.0,
@@ -3274,8 +3280,8 @@
    "sherlock: \\s[a-zA-Z]{0,12}ing\\s": {
     "time": {
      "median": 455813.77,
-     "min": 452953.777,
-     "max": 458673.76300000004
+     "min": 455657.004,
+     "max": 455970.536
     },
     "allocated": {
      "median": 0.0,
@@ -3286,8 +3292,8 @@
    "sherlock: \\w+": {
     "time": {
      "median": 1781546.01,
-     "min": 1733804.317,
-     "max": 1829287.703
+     "min": 1778929.127,
+     "max": 1784162.893
     },
     "allocated": {
      "median": 0.0,
@@ -3298,8 +3304,8 @@
    "sherlock: \\w+\\s+Holmes": {
     "time": {
      "median": 34881.82,
-     "min": 28364.77,
-     "max": 41398.87
+     "min": 34524.598,
+     "max": 35239.042
     },
     "allocated": {
      "median": 0.0,
@@ -3310,8 +3316,8 @@
    "sherlock: \\w+\\s+Holmes\\s+\\w+": {
     "time": {
      "median": 33592.95,
-     "min": 30978.327999999998,
-     "max": 36207.572
+     "min": 33449.634,
+     "max": 33736.265999999996
     },
     "allocated": {
      "median": 0.0,
@@ -3322,8 +3328,8 @@
    "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
     "time": {
      "median": 20187.94,
-     "min": 19500.220999999998,
-     "max": 20875.659
+     "min": 20150.244,
+     "max": 20225.636
     },
     "allocated": {
      "median": 0.0,
@@ -3334,8 +3340,8 @@
    "sherlock: aei": {
     "time": {
      "median": 25772.38,
-     "min": 24628.184,
-     "max": 26916.576
+     "min": 25709.663,
+     "max": 25835.097
     },
     "allocated": {
      "median": 0.0,
@@ -3346,8 +3352,8 @@
    "sherlock: aqj": {
     "time": {
      "median": 18728.42,
-     "min": 18219.655,
-     "max": 19237.184999999998
+     "min": 18700.533,
+     "max": 18756.306999999997
     },
     "allocated": {
      "median": 0.0,
@@ -3358,8 +3364,8 @@
    "sherlock: the": {
     "time": {
      "median": 140984.95,
-     "min": 67226.38100000001,
-     "max": 214743.51900000003
+     "min": 136941.994,
+     "max": 145027.90600000002
     },
     "allocated": {
      "median": 0.0,
@@ -3370,8 +3376,8 @@
    "sherlock: the /i": {
     "time": {
      "median": 199012.84,
-     "min": 159886.006,
-     "max": 238139.674
+     "min": 196868.166,
+     "max": 201157.514
     },
     "allocated": {
      "median": 0.0,
@@ -3382,8 +3388,8 @@
    "sherlock: the\\s+\\w+": {
     "time": {
      "median": 248593.85,
-     "min": 227717.435,
-     "max": 269470.265
+     "min": 247449.543,
+     "max": 249738.157
     },
     "allocated": {
      "median": 0.0,
@@ -3394,8 +3400,8 @@
    "sherlock: zqj": {
     "time": {
      "median": 16495.13,
-     "min": 14265.010000000002,
-     "max": 18725.25
+     "min": 16372.890000000001,
+     "max": 16617.370000000003
     },
     "allocated": {
      "median": 0.0,
@@ -3408,8 +3414,8 @@
    "leipzig: ([A-Za-z]awyer|[A-Za-z]inn)\\s": {
     "time": {
      "median": 1574967.32,
-     "min": 0.0,
-     "max": 4395150.181
+     "min": 1420383.58,
+     "max": 1729551.06
     },
     "allocated": {
      "median": 0.0,
@@ -3420,8 +3426,8 @@
    "leipzig: .{0,2}(Tom|Sawyer|Huckleberry|Finn)": {
     "time": {
      "median": 1175918.85,
-     "min": 0.0,
-     "max": 2692428.265
+     "min": 1092793.851,
+     "max": 1259043.8490000002
     },
     "allocated": {
      "median": 0.0,
@@ -3432,8 +3438,8 @@
    "leipzig: .{2,4}(Tom|Sawyer|Huckleberry|Finn)": {
     "time": {
      "median": 1234201.56,
-     "min": 259296.71400000004,
-     "max": 2209106.406
+     "min": 1180763.736,
+     "max": 1287639.384
     },
     "allocated": {
      "median": 0.0,
@@ -3444,8 +3450,8 @@
    "leipzig: Huck[a-zA-Z]+|Saw[a-zA-Z]+": {
     "time": {
      "median": 1132867.72,
-     "min": 0.0,
-     "max": 2745553.128
+     "min": 1044470.9909999999,
+     "max": 1221264.449
     },
     "allocated": {
      "median": 0.0,
@@ -3456,8 +3462,8 @@
    "leipzig: Tom.{10,25}river|river.{10,25}Tom": {
     "time": {
      "median": 1358383.01,
-     "min": 848241.4739999999,
-     "max": 1868524.546
+     "min": 1330420.431,
+     "max": 1386345.589
     },
     "allocated": {
      "median": 0.0,
@@ -3468,8 +3474,8 @@
    "leipzig: Tom|Sawyer|Huckleberry|Finn": {
     "time": {
      "median": 967815.33,
-     "min": 433374.387,
-     "max": 1502256.273
+     "min": 938520.818,
+     "max": 997109.842
     },
     "allocated": {
      "median": 0.0,
@@ -3480,8 +3486,8 @@
    "leipzig: Tom|Sawyer|Huckleberry|Finn /i": {
     "time": {
      "median": 2059859.48,
-     "min": 0.0,
-     "max": 5742986.059
+     "min": 1857974.883,
+     "max": 2261744.077
     },
     "allocated": {
      "median": 0.0,
@@ -3492,8 +3498,8 @@
    "leipzig: Twain": {
     "time": {
      "median": 640638.35,
-     "min": 351060.799,
-     "max": 930215.901
+     "min": 624765.627,
+     "max": 656511.073
     },
     "allocated": {
      "median": 0.0,
@@ -3504,8 +3510,8 @@
    "leipzig: Twain /i": {
     "time": {
      "median": 896489.78,
-     "min": 359893.38100000005,
-     "max": 1433086.179
+     "min": 867077.121,
+     "max": 925902.439
     },
     "allocated": {
      "median": 0.0,
@@ -3516,8 +3522,8 @@
    "leipzig: [a-z]shing": {
     "time": {
      "median": 658275.47,
-     "min": 0.0,
-     "max": 1528745.7999999998
+     "min": 610562.054,
+     "max": 705988.8859999999
     },
     "allocated": {
      "median": 0.0,
@@ -3528,8 +3534,8 @@
    "leipzig: \\p{Sm}": {
     "time": {
      "median": 641155.1,
-     "min": 0.0,
-     "max": 3614902.88
+     "min": 478153.94899999996,
+     "max": 804156.2509999999
     },
     "allocated": {
      "median": 0.0,
@@ -3540,8 +3546,8 @@
    "mariomka: (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][...": {
     "time": {
      "median": 1891512.26,
-     "min": 755632.81,
-     "max": 3027391.71
+     "min": 1829250.874,
+     "max": 1953773.646
     },
     "allocated": {
      "median": 0.0,
@@ -3552,8 +3558,8 @@
    "mariomka: [\\w\\.+-]+@[\\w\\.-]+\\.[\\w\\.-]+": {
     "time": {
      "median": 153137.63,
-     "min": 82655.52200000001,
-     "max": 223619.738
+     "min": 149274.268,
+     "max": 157000.992
     },
     "allocated": {
      "median": 0.0,
@@ -3564,8 +3570,8 @@
    "mariomka: [\\w]+://[^/\\s?#]+[^\\s?#]+(?:\\?[^\\s#]*...": {
     "time": {
      "median": 372701.35,
-     "min": 354309.229,
-     "max": 391093.47099999996
+     "min": 371693.21599999996,
+     "max": 373709.484
     },
     "allocated": {
      "median": 0.0,
@@ -3576,8 +3582,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441": {
     "time": {
      "median": 50101.05,
-     "min": 42521.236000000004,
-     "max": 57680.864
+     "min": 49685.575000000004,
+     "max": 50516.525
     },
     "allocated": {
      "median": 0.0,
@@ -3588,8 +3594,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441 /i": {
     "time": {
      "median": 114880.29,
-     "min": 70321.56399999998,
-     "max": 159439.016
+     "min": 112437.87599999999,
+     "max": 117322.704
     },
     "allocated": {
      "median": 0.0,
@@ -3600,8 +3606,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438...": {
     "time": {
      "median": 125082.24,
-     "min": 85487.402,
-     "max": 164677.078
+     "min": 122911.913,
+     "max": 127252.56700000001
     },
     "allocated": {
      "median": 0.0,
@@ -3612,8 +3618,8 @@
    "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438... /i": {
     "time": {
      "median": 304279.84,
-     "min": 282985.537,
-     "max": 325574.14300000004
+     "min": 303112.62700000004,
+     "max": 305447.053
     },
     "allocated": {
      "median": 0.0,
@@ -3624,8 +3630,8 @@
    "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af": {
     "time": {
      "median": 22158.25,
-     "min": 12498.043,
-     "max": 31818.457000000002
+     "min": 21628.741,
+     "max": 22687.759
     },
     "allocated": {
      "median": 0.0,
@@ -3636,8 +3642,8 @@
    "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af|\u7ea6\u7ff0\u534e\u751f|\u963f\u5fb7\u52d2|\u96f7\u65af\u5782\u5fb7|\u83ab\u91cc\u4e9a\u8482\u6559\u6388": {
     "time": {
      "median": 46897.9,
-     "min": 46246.947,
-     "max": 47548.853
+     "min": 46862.219000000005,
+     "max": 46933.581
     },
     "allocated": {
      "median": 0.0,
@@ -3648,8 +3654,8 @@
    "sherlock: .*": {
     "time": {
      "median": 404101.12,
-     "min": 396902.289,
-     "max": 411299.951
+     "min": 403706.528,
+     "max": 404495.712
     },
     "allocated": {
      "median": 0.0,
@@ -3660,8 +3666,8 @@
    "sherlock: .* /s": {
     "time": {
      "median": 24.45,
-     "min": 23.543,
-     "max": 25.357
+     "min": 24.4,
+     "max": 24.5
     },
     "allocated": {
      "median": 0.0,
@@ -3672,8 +3678,8 @@
    "sherlock: Holmes": {
     "time": {
      "median": 18586.02,
-     "min": 18206.772,
-     "max": 18965.268
+     "min": 18565.232,
+     "max": 18606.808
     },
     "allocated": {
      "median": 0.0,
@@ -3684,8 +3690,8 @@
    "sherlock: Holmes /i": {
     "time": {
      "median": 32012.76,
-     "min": 26362.19,
-     "max": 37663.33
+     "min": 31703.033,
+     "max": 32322.486999999997
     },
     "allocated": {
      "median": 0.0,
@@ -3696,8 +3702,8 @@
    "sherlock: Holmes.{0,25}Watson|Watson.{0,25}Holmes": {
     "time": {
      "median": 25368.1,
-     "min": 16387.707,
-     "max": 34348.493
+     "min": 24875.854,
+     "max": 25860.345999999998
     },
     "allocated": {
      "median": 0.0,
@@ -3708,8 +3714,8 @@
    "sherlock: Sher[a-z]+|Hol[a-z]+": {
     "time": {
      "median": 24349.85,
-     "min": 22480.373,
-     "max": 26219.326999999997
+     "min": 24247.377999999997,
+     "max": 24452.322
     },
     "allocated": {
      "median": 0.0,
@@ -3720,8 +3726,8 @@
    "sherlock: Sher[a-z]+|Hol[a-z]+ /i": {
     "time": {
      "median": 62935.65,
-     "min": 43284.519,
-     "max": 82586.781
+     "min": 61858.505000000005,
+     "max": 64012.795
     },
     "allocated": {
      "median": 0.0,
@@ -3732,8 +3738,8 @@
    "sherlock: Sherlock": {
     "time": {
      "median": 15401.23,
-     "min": 6279.956,
-     "max": 24522.504
+     "min": 14901.261999999999,
+     "max": 15901.198
     },
     "allocated": {
      "median": 0.0,
@@ -3744,8 +3750,8 @@
    "sherlock: Sherlock /i": {
     "time": {
      "median": 28531.68,
-     "min": 24740.127,
-     "max": 32323.233
+     "min": 28323.852,
+     "max": 28739.508
     },
     "allocated": {
      "median": 0.0,
@@ -3756,8 +3762,8 @@
    "sherlock: Sherlock Holmes": {
     "time": {
      "median": 16846.31,
-     "min": 12329.127,
-     "max": 21363.493000000002
+     "min": 16598.708000000002,
+     "max": 17093.912
     },
     "allocated": {
      "median": 0.0,
@@ -3768,8 +3774,8 @@
    "sherlock: Sherlock Holmes /i": {
     "time": {
      "median": 27505.68,
-     "min": 25704.092,
-     "max": 29307.268
+     "min": 27406.929,
+     "max": 27604.431
     },
     "allocated": {
      "median": 0.0,
@@ -3780,8 +3786,8 @@
    "sherlock: Sherlock\\s+Holmes": {
     "time": {
      "median": 13504.01,
-     "min": 12720.828,
-     "max": 14287.192000000001
+     "min": 13461.081,
+     "max": 13546.939
     },
     "allocated": {
      "median": 0.0,
@@ -3792,8 +3798,8 @@
    "sherlock: Sherlock|Holmes": {
     "time": {
      "median": 22186.08,
-     "min": 13224.840000000002,
-     "max": 31147.32
+     "min": 21694.884000000002,
+     "max": 22677.276
     },
     "allocated": {
      "median": 0.0,
@@ -3804,8 +3810,8 @@
    "sherlock: Sherlock|Holmes|Watson": {
     "time": {
      "median": 38317.99,
-     "min": 34738.869,
-     "max": 41897.111
+     "min": 38121.806,
+     "max": 38514.174
     },
     "allocated": {
      "median": 0.0,
@@ -3816,8 +3822,8 @@
    "sherlock: Sherlock|Holmes|Watson /i": {
     "time": {
      "median": 58513.22,
-     "min": 48924.621,
-     "max": 68101.819
+     "min": 57987.637,
+     "max": 59038.803
     },
     "allocated": {
      "median": 0.0,
@@ -3828,8 +3834,8 @@
    "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo...": {
     "time": {
      "median": 49945.03,
-     "min": 37644.994999999995,
-     "max": 62245.065
+     "min": 49270.824,
+     "max": 50619.236
     },
     "allocated": {
      "median": 0.0,
@@ -3840,8 +3846,8 @@
    "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo... /i": {
     "time": {
      "median": 70134.37,
-     "min": 60808.77099999999,
-     "max": 79459.969
+     "min": 69623.20199999999,
+     "max": 70645.538
     },
     "allocated": {
      "median": 0.0,
@@ -3852,8 +3858,8 @@
    "sherlock: Sherlock|Street": {
     "time": {
      "median": 14118.85,
-     "min": 13592.15,
-     "max": 14645.550000000001
+     "min": 14089.98,
+     "max": 14147.720000000001
     },
     "allocated": {
      "median": 0.0,
@@ -3864,8 +3870,8 @@
    "sherlock: The": {
     "time": {
      "median": 20626.61,
-     "min": 19875.266,
-     "max": 21377.954
+     "min": 20585.426,
+     "max": 20667.794
     },
     "allocated": {
      "median": 0.0,
@@ -3876,8 +3882,8 @@
    "sherlock: [^\\n]*": {
     "time": {
      "median": 298599.93,
-     "min": 186236.271,
-     "max": 410963.589
+     "min": 292440.899,
+     "max": 304758.961
     },
     "allocated": {
      "median": 0.0,
@@ -3888,8 +3894,8 @@
    "sherlock: [a-q][^u-z]{13}x": {
     "time": {
      "median": 19170.15,
-     "min": 16912.094,
-     "max": 21428.206000000002
+     "min": 19046.378,
+     "max": 19293.922000000002
     },
     "allocated": {
      "median": 0.0,
@@ -3900,8 +3906,8 @@
    "sherlock: [a-zA-Z]+ing": {
     "time": {
      "median": 102739.52,
-     "min": 91367.043,
-     "max": 114111.997
+     "min": 102116.156,
+     "max": 103362.884
     },
     "allocated": {
      "median": 0.0,
@@ -3912,8 +3918,8 @@
    "sherlock: \\b\\w+n\\b": {
     "time": {
      "median": 996504.63,
-     "min": 783308.9180000001,
-     "max": 1209700.342
+     "min": 984818.654,
+     "max": 1008190.606
     },
     "allocated": {
      "median": 0.0,
@@ -3924,8 +3930,8 @@
    "sherlock: \\p{Ll}": {
     "time": {
      "median": 4210767.08,
-     "min": 3867307.793,
-     "max": 4554226.367000001
+     "min": 4191940.917,
+     "max": 4229593.243
     },
     "allocated": {
      "median": 0.0,
@@ -3936,8 +3942,8 @@
    "sherlock: \\p{Lu}": {
     "time": {
      "median": 257949.62,
-     "min": 251459.698,
-     "max": 264439.542
+     "min": 257593.885,
+     "max": 258305.35499999998
     },
     "allocated": {
      "median": 0.0,
@@ -3948,8 +3954,8 @@
    "sherlock: \\p{L}": {
     "time": {
      "median": 4468392.58,
-     "min": 4173863.881,
-     "max": 4762921.279
+     "min": 4452248.468,
+     "max": 4484536.692
     },
     "allocated": {
      "median": 0.0,
@@ -3960,8 +3966,8 @@
    "sherlock: \\s[a-zA-Z]{0,12}ing\\s": {
     "time": {
      "median": 455587.98,
-     "min": 412760.50899999996,
-     "max": 498415.451
+     "min": 453240.462,
+     "max": 457935.49799999996
     },
     "allocated": {
      "median": 0.0,
@@ -3972,8 +3978,8 @@
    "sherlock: \\w+": {
     "time": {
      "median": 2073554.19,
-     "min": 0.0,
-     "max": 4555398.543
+     "min": 1937515.926,
+     "max": 2209592.454
     },
     "allocated": {
      "median": 0.0,
@@ -3984,8 +3990,8 @@
    "sherlock: \\w+\\s+Holmes": {
     "time": {
      "median": 26265.42,
-     "min": 26091.191,
-     "max": 26439.648999999998
+     "min": 26255.87,
+     "max": 26274.969999999998
     },
     "allocated": {
      "median": 0.0,
@@ -3996,8 +4002,8 @@
    "sherlock: \\w+\\s+Holmes\\s+\\w+": {
     "time": {
      "median": 24039.99,
-     "min": 21025.446000000004,
-     "max": 27054.534
+     "min": 23874.753,
+     "max": 24205.227000000003
     },
     "allocated": {
      "median": 0.0,
@@ -4008,8 +4014,8 @@
    "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
     "time": {
      "median": 13119.52,
-     "min": 7410.072,
-     "max": 18828.968
+     "min": 12806.566,
+     "max": 13432.474
     },
     "allocated": {
      "median": 0.0,
@@ -4020,8 +4026,8 @@
    "sherlock: aei": {
     "time": {
      "median": 15502.02,
-     "min": 13127.954000000002,
-     "max": 17876.086
+     "min": 15371.889000000001,
+     "max": 15632.151
     },
     "allocated": {
      "median": 0.0,
@@ -4032,8 +4038,8 @@
    "sherlock: aqj": {
     "time": {
      "median": 11688.74,
-     "min": 11316.403,
-     "max": 12061.077
+     "min": 11668.331,
+     "max": 11709.149
     },
     "allocated": {
      "median": 0.0,
@@ -4044,8 +4050,8 @@
    "sherlock: the": {
     "time": {
      "median": 124410.1,
-     "min": 107545.905,
-     "max": 141274.295
+     "min": 123485.717,
+     "max": 125334.48300000001
     },
     "allocated": {
      "median": 0.0,
@@ -4056,8 +4062,8 @@
    "sherlock: the /i": {
     "time": {
      "median": 226700.95,
-     "min": 117989.87200000002,
-     "max": 335412.028
+     "min": 220742.12900000002,
+     "max": 232659.771
     },
     "allocated": {
      "median": 0.0,
@@ -4068,8 +4074,8 @@
    "sherlock: the\\s+\\w+": {
     "time": {
      "median": 231725.13,
-     "min": 143642.405,
-     "max": 319807.855
+     "min": 226897.019,
+     "max": 236553.241
     },
     "allocated": {
      "median": 0.0,
@@ -4080,13 +4086,414 @@
    "sherlock: zqj": {
     "time": {
      "median": 10258.35,
-     "min": 6716.604,
-     "max": 13800.096000000001
+     "min": 10064.215,
+     "max": 10452.485
     },
     "allocated": {
      "median": 0.0,
      "min": 0.0,
      "max": 0.0
+    }
+   }
+  },
+  "V8 (Node 24)": {
+   "leipzig: ([A-Za-z]awyer|[A-Za-z]inn)\\s": {
+    "time": {
+     "median": 12656581.875,
+     "min": 12418839,
+     "max": 12814394.125
+    }
+   },
+   "leipzig: .{0,2}(Tom|Sawyer|Huckleberry|Finn)": {
+    "time": {
+     "median": 54052387,
+     "min": 53535682,
+     "max": 55200791
+    }
+   },
+   "leipzig: .{2,4}(Tom|Sawyer|Huckleberry|Finn)": {
+    "time": {
+     "median": 205262600,
+     "min": 204248820,
+     "max": 205763470
+    }
+   },
+   "leipzig: Huck[a-zA-Z]+|Saw[a-zA-Z]+": {
+    "time": {
+     "median": 9234794.363636363,
+     "min": 8795907.090909092,
+     "max": 9682842.818181818
+    }
+   },
+   "leipzig: Tom.{10,25}river|river.{10,25}Tom": {
+    "time": {
+     "median": 11795044.75,
+     "min": 11494943.75,
+     "max": 11834592.875
+    }
+   },
+   "leipzig: Tom|Sawyer|Huckleberry|Finn": {
+    "time": {
+     "median": 18327535,
+     "min": 18215466.8,
+     "max": 18424044.4
+    }
+   },
+   "leipzig: Tom|Sawyer|Huckleberry|Finn /i": {
+    "time": {
+     "median": 38283767,
+     "min": 37795802.666666664,
+     "max": 38753276
+    }
+   },
+   "leipzig: Twain": {
+    "time": {
+     "median": 2436449,
+     "min": 2373431.564102564,
+     "max": 2489998.4102564105
+    }
+   },
+   "leipzig: Twain /i": {
+    "time": {
+     "median": 10404389.5,
+     "min": 9970157.1,
+     "max": 11418902.9
+    }
+   },
+   "leipzig: [a-z]shing": {
+    "time": {
+     "median": 9271194.6,
+     "min": 9084880.4,
+     "max": 9694336
+    }
+   },
+   "leipzig: \\p{Sm}": {
+    "time": {
+     "median": 115577933,
+     "min": 112896327,
+     "max": 116352090
+    }
+   },
+   "mariomka: (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][...": {
+    "time": {
+     "median": 774480.9349593496,
+     "min": 766536.6422764228,
+     "max": 796255.325203252
+    }
+   },
+   "mariomka: [\\w\\.+-]+@[\\w\\.-]+\\.[\\w\\.-]+": {
+    "time": {
+     "median": 58004048,
+     "min": 57894685,
+     "max": 58341658.5
+    }
+   },
+   "mariomka: [\\w]+://[^/\\s?#]+[^\\s?#]+(?:\\?[^\\s#]*...": {
+    "time": {
+     "median": 44431483.5,
+     "min": 43444175,
+     "max": 44569371.5
+    }
+   },
+   "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441": {
+    "time": {
+     "median": 39556.75802139037,
+     "min": 38878.96434937611,
+     "max": 42204.13279857398
+    }
+   },
+   "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441 /i": {
+    "time": {
+     "median": 436975.4090909091,
+     "min": 429382.42272727273,
+     "max": 440073.7409090909
+    }
+   },
+   "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438...": {
+    "time": {
+     "median": 1595894.3442622952,
+     "min": 1573724.1475409835,
+     "max": 1604476.0163934426
+    }
+   },
+   "rebar-ru: \u0428\u0435\u0440\u043b\u043e\u043a \u0425\u043e\u043b\u043c\u0441|\u0414\u0436\u043e\u043d \u0423\u043e\u0442\u0441\u043e\u043d|\u0418\u0440\u0435\u043d \u0410\u0434\u043b\u0435\u0440|\u0438... /i": {
+    "time": {
+     "median": 2553731.8421052634,
+     "min": 2509669.1052631577,
+     "max": 2596610.210526316
+    }
+   },
+   "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af": {
+    "time": {
+     "median": 70626.50073637703,
+     "min": 69793.05301914581,
+     "max": 71535.99926362297
+    }
+   },
+   "rebar-zh: \u590f\u6d1b\u514b\u00b7\u798f\u5c14\u6469\u65af|\u7ea6\u7ff0\u534e\u751f|\u963f\u5fb7\u52d2|\u96f7\u65af\u5782\u5fb7|\u83ab\u91cc\u4e9a\u8482\u6559\u6388": {
+    "time": {
+     "median": 115905.35515151515,
+     "min": 115658.85212121213,
+     "max": 116524.10666666667
+    }
+   },
+   "sherlock: .*": {
+    "time": {
+     "median": 777447.4193548387,
+     "min": 773907.9032258064,
+     "max": 787473.5806451613
+    }
+   },
+   "sherlock: .* /s": {
+    "time": {
+     "median": 77659.12670068027,
+     "min": 77607.67772108843,
+     "max": 78218.95578231293
+    }
+   },
+   "sherlock: Holmes": {
+    "time": {
+     "median": 18550.384021613278,
+     "min": 18433.583558471633,
+     "max": 18705.59532998842
+    }
+   },
+   "sherlock: Holmes /i": {
+    "time": {
+     "median": 285121.27678571426,
+     "min": 282150,
+     "max": 286744.43154761905
+    }
+   },
+   "sherlock: Holmes.{0,25}Watson|Watson.{0,25}Holmes": {
+    "time": {
+     "median": 443615.3703703704,
+     "min": 442600.19444444444,
+     "max": 446909.31018518517
+    }
+   },
+   "sherlock: Sher[a-z]+|Hol[a-z]+": {
+    "time": {
+     "median": 416084.9956709957,
+     "min": 412313.5064935065,
+     "max": 416719.7792207792
+    }
+   },
+   "sherlock: Sher[a-z]+|Hol[a-z]+ /i": {
+    "time": {
+     "median": 507704.16062176164,
+     "min": 503346.69430051814,
+     "max": 516440.4093264249
+    }
+   },
+   "sherlock: Sherlock": {
+    "time": {
+     "median": 52187.95675971538,
+     "min": 51985.46031746032,
+     "max": 52288.88122605364
+    }
+   },
+   "sherlock: Sherlock /i": {
+    "time": {
+     "median": 258475.24523160764,
+     "min": 258058.07629427794,
+     "max": 265480.94005449594
+    }
+   },
+   "sherlock: Sherlock Holmes": {
+    "time": {
+     "median": 23194.56990031607,
+     "min": 22908.60904449307,
+     "max": 23359.13274981765
+    }
+   },
+   "sherlock: Sherlock Holmes /i": {
+    "time": {
+     "median": 258450.96246648792,
+     "min": 257683.01876675602,
+     "max": 260225.83378016087
+    }
+   },
+   "sherlock: Sherlock\\s+Holmes": {
+    "time": {
+     "median": 213155.01111111112,
+     "min": 212898.56666666668,
+     "max": 215080.43333333332
+    }
+   },
+   "sherlock: Sherlock|Holmes": {
+    "time": {
+     "median": 348259.321299639,
+     "min": 343604.9277978339,
+     "max": 349050.15523465705
+    }
+   },
+   "sherlock: Sherlock|Holmes|Watson": {
+    "time": {
+     "median": 205872.17907444667,
+     "min": 202371.3782696177,
+     "max": 216470.615694165
+    }
+   },
+   "sherlock: Sherlock|Holmes|Watson /i": {
+    "time": {
+     "median": 464635.0731707317,
+     "min": 456764.1707317073,
+     "max": 471517.76097560977
+    }
+   },
+   "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo...": {
+    "time": {
+     "median": 380445.962962963,
+     "min": 373737.0790123457,
+     "max": 385041.8864197531
+    }
+   },
+   "sherlock: Sherlock|Holmes|Watson|Irene|Adler|Jo... /i": {
+    "time": {
+     "median": 1115191.09375,
+     "min": 1004924.4479166666,
+     "max": 1190187.4270833333
+    }
+   },
+   "sherlock: Sherlock|Street": {
+    "time": {
+     "median": 333793.4498269896,
+     "min": 331698.8062283737,
+     "max": 336173.8685121107
+    }
+   },
+   "sherlock: The": {
+    "time": {
+     "median": 22921.503337453647,
+     "min": 22645.44326328801,
+     "max": 23994.005933250926
+    }
+   },
+   "sherlock: [^\\n]*": {
+    "time": {
+     "median": 600900.1132075472,
+     "min": 595197.0440251572,
+     "max": 604571.3647798742
+    }
+   },
+   "sherlock: [a-q][^u-z]{13}x": {
+    "time": {
+     "median": 9571861.4,
+     "min": 9494061,
+     "max": 9679359.7
+    }
+   },
+   "sherlock: [a-zA-Z]+ing": {
+    "time": {
+     "median": 3242336.7666666666,
+     "min": 3191074.5,
+     "max": 3342985.3
+    }
+   },
+   "sherlock: \\b\\w+n\\b": {
+    "time": {
+     "median": 2269191.8333333335,
+     "min": 2266022.619047619,
+     "max": 2296071.6904761903
+    }
+   },
+   "sherlock: \\p{Ll}": {
+    "time": {
+     "median": 7350999.615384615,
+     "min": 7327950.307692308,
+     "max": 7356294.846153846
+    }
+   },
+   "sherlock: \\p{Lu}": {
+    "time": {
+     "median": 445825.92093023256,
+     "min": 444714.32558139536,
+     "max": 451139.0558139535
+    }
+   },
+   "sherlock: \\p{L}": {
+    "time": {
+     "median": 7565621.230769231,
+     "min": 7541976.230769231,
+     "max": 7606482.230769231
+    }
+   },
+   "sherlock: \\s[a-zA-Z]{0,12}ing\\s": {
+    "time": {
+     "median": 2331780.0714285714,
+     "min": 2314116.9523809524,
+     "max": 2335284.761904762
+    }
+   },
+   "sherlock: \\w+": {
+    "time": {
+     "median": 2807374.911764706,
+     "min": 2801941.5588235296,
+     "max": 2820037.7352941176
+    }
+   },
+   "sherlock: \\w+\\s+Holmes": {
+    "time": {
+     "median": 4240389.0869565215,
+     "min": 4231692.608695652,
+     "max": 4333626.782608695
+    }
+   },
+   "sherlock: \\w+\\s+Holmes\\s+\\w+": {
+    "time": {
+     "median": 4190977.913043478,
+     "min": 4155859.9565217393,
+     "max": 4376139.173913044
+    }
+   },
+   "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
+    "time": {
+     "median": 209378.4354485777,
+     "min": 208264.49671772428,
+     "max": 210158.20131291027
+    }
+   },
+   "sherlock: aei": {
+    "time": {
+     "median": 195696.5630081301,
+     "min": 194990.6219512195,
+     "max": 196679.62398373985
+    }
+   },
+   "sherlock: aqj": {
+    "time": {
+     "median": 195729.91581108829,
+     "min": 195269.90759753593,
+     "max": 200731.24435318276
+    }
+   },
+   "sherlock: the": {
+    "time": {
+     "median": 449549.4162679426,
+     "min": 448593.1291866029,
+     "max": 474310.1339712919
+    }
+   },
+   "sherlock: the /i": {
+    "time": {
+     "median": 532674.8659217877,
+     "min": 532371.5865921788,
+     "max": 540032.8715083799
+    }
+   },
+   "sherlock: the\\s+\\w+": {
+    "time": {
+     "median": 505191.25396825396,
+     "min": 503213.38095238095,
+     "max": 579830.544973545
+    }
+   },
+   "sherlock: zqj": {
+    "time": {
+     "median": 6391.858649361185,
+     "min": 6237.095180152775,
+     "max": 6630.8802812140875
     }
    }
   }

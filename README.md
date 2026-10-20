@@ -193,7 +193,7 @@ safe to share between threads.
 - [docs/contributing/contributing.md](docs/contributing/contributing.md): the tools on each platform, the build and
   the gates step by step, and what a pull request needs.
 - [docs/benchmarks/industry.md](docs/benchmarks/industry.md): the measured run against `System.Text.RegularExpressions`
-  on the Industry workloads, with the host, the commit and every row; the same run as an
+  and against V8 on the Industry workloads, with the host, the commit and every row; the same run as an
   [interactive page](https://corvus-oss.org/Corvus.Regex.Ecma262/benchmarks/).
 
 ## Repository layout
