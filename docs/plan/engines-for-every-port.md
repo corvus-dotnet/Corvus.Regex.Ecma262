@@ -68,14 +68,17 @@ its platform's competitors on one runner, and **publishes the run as data**, not
   "not ECMA-262"); `schemas` are the Industry workload ids, the same names in every repository (the list comes from
   one place, `workloads.py`); `measures.time` is nanoseconds per `Count`.
 
-- **A runnable harness**, `tools/benchmarks/run.sh <workloads.json> <texts dir> <out.json>` (or a documented
-  equivalent), that builds the engine and its competitors, runs the Industry workloads, runs the test data for the
-  compliance figures, and writes that data file. The repository's own nightly job calls it; so does the central
-  site.
+- **A runnable harness**, `tools/benchmarks/run.sh <workloads.json> <texts dir> <out.json>`, that builds the
+  engine and its competitors, runs the Industry workloads, runs the test data for the compliance figures, and
+  writes that data file; and **a published container image** with the harness as its entry point,
+  `ghcr.io/corvus-dotnet/corvus-regex-ecma262-<lang>:<version>` (and `:latest`), built by the repository's
+  release workflow, so that a run needs no toolchain on the host:
+  `docker run --rm -v <workloads.json>:/workloads.json:ro -v <texts>:/texts:ro -v <out>:/out <image>` writes
+  `/out/industry.json`. The repository's own nightly job runs the same image.
 
 One repository, `corvus-regex-ecma262-benchmarks`, builds the page, and it builds it from runs it makes itself:
-its nightly job installs every toolchain, checks out each source at its latest release, runs each harness in turn
-on the same runner, and merges the results (implementations grouped by language, V8 once, every workload matched
+its nightly job pulls each source's image at its latest release, runs each in turn on the same runner (the
+same CPU and kernel for every engine; the image only carries the engine's own toolchain), and merges the results (implementations grouped by language, V8 once, every workload matched
 by id) into one data file and one page, published at `corvus-oss.org/corvus-regex-ecma262-benchmarks/` with the
 day's merged data kept. Within a run every figure is comparable, because every engine ran on the same machine in
 the same hour; the runner changes from night to night, which the kept daily files show, and V8 in every harness
