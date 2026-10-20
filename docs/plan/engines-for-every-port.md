@@ -21,7 +21,7 @@ Corvus library adopt it in place of its hand-rolled one (the design document's p
 | Python | `corvus-regex-ecma262-py` | wheel `corvus-regex-ecma262`, over the C ABI | the Rust engine | `re`, `regex`; V8 |
 | Object Pascal | `corvus-regex-ecma262-pas` | the unit, as the Pascal port ships it | `Corvus.JsonSchema.EcmaRegex.pas` | `TRegExpr` (FPC); V8 |
 | OCaml | `corvus-regex-ecma262-ocaml` | opam `corvus-regex-ecma262` | the engine in `ocaml-corvus-json-schema` | `re`, `pcre`; V8 |
-| C | `corvus-regex-ecma262-rs` (the C ABI crate and its header) | release archives of the shared library and header per platform | the Rust engine | QuickJS `libregexp` (an ECMA-262 engine in C); V8 |
+| C | `corvus-regex-ecma262-rs` (the C ABI crate and its header) | release archives of the shared library and header per platform | the Rust engine | QuickJS `libregexp` (an ECMA-262 engine in C), PCRE2 (not ECMA-262); V8 |
 | C++ | `corvus-regex-ecma262-cpp` | a header-only C++20 library over the C ABI (RAII handles, `std::string_view` and `std::u16string_view`, match ranges), with a CMake package, vcpkg and Conan recipes | the Rust engine | `std::regex` (ECMAScript grammar), Boost.Regex in its ECMAScript mode, SRELL (an ECMAScript library), RE2 (not ECMA-262); V8 |
 | Ruby | `corvus-regex-ecma262-ruby` | gem `corvus-regex-ecma262`, over the C ABI | the Rust engine | `Regexp` (Onigmo); V8 |
 | PHP | `corvus-regex-ecma262-php` | Composer package over FFI to the C ABI | the Rust engine | `preg_*` (PCRE2); V8 |
@@ -128,7 +128,8 @@ Each step is its own repository, its own pull requests and its own release, in t
 
 ## 5. Decisions taken here, and the ones that are yours
 
-Taken, unless you say otherwise: the repository and package names of section 1; V8 on every benchmark; the C ABI
+Taken, unless you say otherwise: the repository and package names of section 1; V8 on every benchmark; GraalJS
+TRegex and goja as the ECMA-262 competitors on the Java and Go benchmarks, and PCRE2 on the C benchmark; the C ABI
 living in the Rust repository; the central benchmark as its own repository with one job on one runner; the order
 of section 4.
 
@@ -136,5 +137,3 @@ Yours:
 
 - Whether the engines leave the JSON Schema monorepo's history behind (a clean start, the port's history staying
   where it is) or carry it (a filtered history per engine).
-- Whether GraalJS TRegex and goja are worth their weight on the Java and Go benchmarks (each is a large dependency
-  for a competitor row), or V8 alone is the ECMA-262 reference there.
