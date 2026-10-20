@@ -31,7 +31,8 @@ every benchmark as the common reference; it is the engine the patterns were writ
 The shape of this repository, cut down to the engine:
 
 - **The engine**, moved out of the port's tree with its history (`git filter-repo` on the path), under the
-  language's own layout and package conventions.
+  language's own layout and package conventions. The run's facts on every results page (host, runtime, job) are
+  taken from the harness's own record of the run, never typed in.
 - **The design brought over**: the start-search layer (the anchored needle with the rarest positions and the lazy
   third anchor, the multi-literal needle, the fingerprint search, the alternation windows), the case-insensitive
   search with every form, the automaton with word boundaries, the memo that keeps patterns without backreferences
@@ -41,7 +42,11 @@ The shape of this repository, cut down to the engine:
   listed, each marked done, not applicable or to do, nothing skipped silently.
 - **Compliance**: the [ECMA-262 test data](https://github.com/corvus-dotnet/ecma262-regex-test-data) run in CI,
   pinned to a commit, both encodings where the engine has both, interpreted and generated where it generates: 0
-  wrong, 0 refused-valid, 0 accepted-invalid, 0 at a limit.
+  wrong, 0 refused-valid, 0 accepted-invalid, 0 at a limit. The same runner is pointed at every competing engine
+  on the benchmark that claims ECMA-262 (V8, `regress`, TRegex, goja, QuickJS), and the results page publishes each
+  engine's compliance beside its figures: the counts of right, wrong, refused and accepted-invalid for an engine
+  that claims the grammar, and "not ECMA-262" for one that does not (`System.Text.RegularExpressions`, `regex`,
+  `java.util.regex`, Go's `regexp`, PCRE2, `re`); a reader sees what a fast engine is fast at.
 - **Benchmarks**: the Industry workloads (`tools/benchmarks/v8/workloads.py` is the list, from the benchmark
   project's own definitions) run against the platform's standard engine and its ECMA-262 competitors, by a harness
   in the language, writing the results-page data file (the `corvus-benchmark-results-page` skill's shape); the
