@@ -123,6 +123,23 @@ public class GeneratorTests
     private static (Compilation Output, ImmutableArray<Diagnostic> Diagnostics, string Generated) Run(string source)
     {
         List<MetadataReference> references = [];
+#if NETFRAMEWORK
+        // The framework's assemblies are those the process has loaded whose names say they are the framework's:
+        // mscorlib, System, System.Core, the netstandard facade the library is built against, and System.Memory,
+        // which the touches below make sure of. Nothing else: the generator's own assembly carries a copy of the
+        // engine, and with it referenced every engine type would exist twice.
+        _ = typeof(System.Buffers.ArrayPool<byte>);
+        _ = typeof(System.Runtime.InteropServices.MemoryMarshal);
+        _ = System.Reflection.Assembly.Load("netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51");
+        foreach (System.Reflection.Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            string name = assembly.GetName().Name;
+            if (!assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location) && (name.StartsWith("System", StringComparison.Ordinal) || name is "mscorlib" or "netstandard"))
+            {
+                references.Add(MetadataReference.CreateFromFile(assembly.Location));
+            }
+        }
+#else
         foreach (string path in ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator))
         {
             string name = Path.GetFileName(path);
@@ -131,6 +148,7 @@ public class GeneratorTests
                 references.Add(MetadataReference.CreateFromFile(path));
             }
         }
+#endif
 
         references.Add(MetadataReference.CreateFromFile(typeof(Regex).Assembly.Location));
         CSharpParseOptions parseOptions = new(LanguageVersion.Preview);
