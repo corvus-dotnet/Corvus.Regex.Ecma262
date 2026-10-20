@@ -16,7 +16,7 @@
   <PropertyGroup>
     <PackageId>Corvus.Regex.Ecma262</PackageId>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageDescription>An ECMA-262 regular expression engine for .NET: the grammar and answers of ECMAScript, native UTF-8 and UTF-16 matching, zero allocation per match, and a build-time source generator.</PackageDescription>
+    <PackageDescription>A drop-in replacement for System.Text.RegularExpressions that answers as ECMAScript does, with performance equal to or better than .NET's on equivalent expressions: the grammar and answers of ECMA-262, native UTF-8 and UTF-16 matching, zero allocation per match, and a build-time source generator.</PackageDescription>
     <PackageTags>regex;regular-expressions;ecmascript;ecma-262;utf8;source-generator</PackageTags>
     <PackageReleaseNotes></PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>

@@ -13,7 +13,7 @@ Navigation:
     Link: True
 MetaData:
   Title: "Corvus.Regex.Ecma262 — ECMA-262 regular expressions for .NET"
-  Description: "An ECMA-262 regular expression engine for .NET: the grammar and answers of ECMAScript, native UTF-8 and UTF-16 matching, zero allocation per match, and a build-time source generator."
+  Description: "A drop-in replacement for System.Text.RegularExpressions that answers as ECMAScript does, with performance equal to or better than .NET's on equivalent expressions: native UTF-8 and UTF-16 matching, zero allocation per match, and a build-time source generator."
   Keywords: [regex, regular expressions, ECMA-262, ECMAScript, .NET, C#, UTF-8, source generator, JSON Schema]
 OpenGraph:
   Title: "Corvus.Regex.Ecma262 — ECMA-262 regular expressions for .NET"

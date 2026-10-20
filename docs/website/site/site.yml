@@ -1,5 +1,5 @@
 Title: Corvus.Regex.Ecma262
-Description: "ECMA-262 regular expressions for .NET — the answers of ECMAScript, over UTF-8 and UTF-16, with no allocation per match."
+Description: "A drop-in replacement for System.Text.RegularExpressions that answers as ECMAScript does, with performance equal to or better than .NET's on equivalent expressions."
 Url: https://corvus-oss.org/Corvus.Regex.Ecma262
 ContentType: application/vnd.endjin.ssg.site+yml
 Taxonomy: taxonomy

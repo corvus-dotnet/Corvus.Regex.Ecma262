@@ -5,7 +5,8 @@
 [![ECMA-262 test data](https://github.com/corvus-dotnet/Corvus.Regex.Ecma262/actions/workflows/dataset.yml/badge.svg)](https://github.com/corvus-dotnet/Corvus.Regex.Ecma262/actions/workflows/dataset.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-An ECMA-262 regular expression engine for .NET: the grammar and the answers of ECMAScript, over UTF-8 and over
+A drop-in replacement for `System.Text.RegularExpressions` that answers as ECMAScript does, with performance equal
+to or better than .NET's on equivalent expressions: the grammar and the answers of ECMA-262, over UTF-8 and over
 UTF-16, with no allocation per match and a build-time source generator.
 
 Documentation: [corvus-oss.org/Corvus.Regex.Ecma262](https://corvus-oss.org/Corvus.Regex.Ecma262/)

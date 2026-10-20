@@ -6,4 +6,4 @@ Title: "ECMA-262 regular expressions for .NET"
 CTA: "Get Started"
 Url: "/getting-started/index.html"
 ---
-The grammar and the answers of ECMAScript, over UTF-8 and over UTF-16, with no allocation per match and a build-time source generator.
+A drop-in replacement for System.Text.RegularExpressions that answers as ECMAScript does, with performance equal to or better than .NET's on equivalent expressions: over UTF-8 and over UTF-16, with no allocation per match and a build-time source generator.
