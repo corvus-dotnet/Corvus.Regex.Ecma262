@@ -30,6 +30,7 @@ ap.add_argument("--job", choices=["short", "default"], default="short")
 ap.add_argument("--out-dir", required=True)
 ap.add_argument("--base-path", default="")
 ap.add_argument("--run-url", default="")
+ap.add_argument("--compliance", default="", help="the data-set runner's last line for the Corvus engines (records ... right N wrong N refused-valid N accepted-invalid N ...)")
 args = ap.parse_args()
 run, commit, date, v8_path = args.run, args.commit, args.date, args.v8
 before, after = args.probe_before, args.probe_after
@@ -37,12 +38,29 @@ if args.host == "pinned" and not (before and after):
     raise SystemExit("a pinned run has its probe readings: --probe-before and --probe-after")
 out_dir = args.out_dir
 os.makedirs(out_dir, exist_ok=True)
+# The host and the runtime as BenchmarkDotNet recorded them in the run's report header, never typed in.
+HOST_LINES = []
+for g in glob.glob(os.path.join(run, "results", "*GeneratedCount-report-github.md")):
+    with open(g, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("```"):
+                if HOST_LINES and not line:
+                    break
+                continue
+            HOST_LINES.append(line)
+            if len(HOST_LINES) >= 6:
+                break
+    break
+MACHINE = next((l for l in HOST_LINES if "CPU" in l or "cores" in l), "")
+OS_LINE = next((l for l in HOST_LINES if l.startswith("BenchmarkDotNet")), "")
+RUNTIME = next((l.split(":", 1)[1].strip() for l in HOST_LINES if l.startswith("[Host]")), ".NET 10")
 JOB = {"short": "BenchmarkDotNet's short job (one launch, three warm-ups, three iterations)", "default": "BenchmarkDotNet's default job (one launch, warm-ups and iterations as it settles them, fifteen or more)"}[args.job]
 if args.host == "pinned":
     HOST_MD = f"""- **Host** an Intel Core i7-13800H under WSL2 on Windows, the virtual machine pinned to the twelve performance cores (vmmemWSL affinity 0xFFF), the run under `taskset -c 0-11` after a settle of at least three minutes.
 - **Health probe** {before} ns before the run and {after} ns after; 12.5 to 16 is the band that makes a run valid."""
     HOST_HTML = f"<p><b>The host</b> is WSL2 on Windows on an Intel Core i7-13800H, the VM pinned to the twelve performance cores (vmmemWSL affinity 0xFFF), the run under <code>taskset -c 0-11</code> after a settle of at least three minutes, with a host probe at {before} ns before and {after} ns after (12.5 to 16 is the accepted band). .NET 10. Commit {commit}, {date}. The procedure is section 9 of the design document.</p>"
-    FACTS = [["Host", "i7-13800H, WSL2, pinned to the P-cores"], ["Probe", f"{before} ns before, {after} ns after"], ["Runtime", ".NET 10"]]
+    FACTS = [["Host", MACHINE or "the pinned host"], ["Pinned", "the performance cores, under taskset, after a settle"], ["Probe", f"{before} ns before, {after} ns after"], ["Runtime", RUNTIME]]
     TITLE_SUFFIX = ""
     LEDE_TAIL = ""
     # Relative to the page (benchmarks/index.html on the site), so no base path is needed inside the data.
@@ -50,7 +68,7 @@ if args.host == "pinned":
 else:
     HOST_MD = """- **Host** a GitHub-hosted `ubuntu-latest` runner, by the daily benchmarks workflow: every engine in one job on one runner, so the figures of a run are comparable with each other, and not pinned, so a run is not comparable with the pinned record to the last few percent."""
     HOST_HTML = f"<p><b>The host</b> is a GitHub-hosted <code>ubuntu-latest</code> runner, by the daily benchmarks workflow: every engine in one job on one runner, so the figures of a run are comparable with each other; nothing is pinned, so a run is not comparable with the pinned record to the last few percent. .NET 10. Commit {commit}, {date}.</p>"
-    FACTS = [["Host", "GitHub-hosted ubuntu-latest, one runner for every engine"], ["Runtime", ".NET 10"]]
+    FACTS = [["Host", MACHINE or "a CI runner"], ["Runner", "one runner for every engine, not pinned"], ["Runtime", RUNTIME]]
     TITLE_SUFFIX = " (daily CI run)"
     LEDE_TAIL = " This is the run of the day on a GitHub-hosted runner; the pinned record is the reference."
     LINKS = [{"label": "About these benchmarks", "url": "../../docs/industry.html"}, {"label": "Every day's data", "url": "runs/"}]
@@ -139,6 +157,19 @@ method_html = (
     + HOST_HTML
 )
 
+import re as _re
+def compliance_of(group):
+    """What an engine answers on the ECMA-262 test data: counts for an engine held to it, the oracle for V8, or not ECMA-262."""
+    if group == "V8":
+        return "the oracle of the test data"
+    if group == ".NET":
+        return "not ECMA-262"
+    m = _re.search(r"right ([\d,]+)\s+wrong ([\d,]+)\s+refused-valid (\d+)\s+accepted-invalid (\d+)", args.compliance)
+    if not m:
+        return None
+    n = lambda k: int(m.group(k).replace(",", ""))
+    return {"right": n(1), "wrong": n(2), "refused": n(3), "acceptedInvalid": n(4)}
+
 data = {
     "meta": {
         "title": "Corvus.Regex.Ecma262: the Industry benchmarks" + TITLE_SUFFIX,
@@ -162,7 +193,7 @@ data = {
         "time": {"label": "Time", "long": "time per Count", "parts": ["time"]},
         "allocated": {"label": "Allocated", "long": "bytes allocated per Count", "parts": ["allocated"], "bytes": True},
     },
-    "impls": [{"id": name, "name": name, "group": group, "version": V8[1] if V8 and name == V8[0] else ""} for _, name, group in ENGINES],
+    "impls": [{"id": name, "name": name, "group": group, "version": V8[1] if V8 and name == V8[0] else "", "compliance": compliance_of(group)} for _, name, group in ENGINES],
     "schemas": [{"name": w, "note": "", "meta": [["text", TEXTS.get(w.split(":")[0], w.split(":")[0])]]} for w in workloads],
     "results": results,
 }

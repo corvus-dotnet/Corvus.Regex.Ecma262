@@ -21,7 +21,13 @@ Corvus library adopt it in place of its hand-rolled one (the design document's p
 | Python | `corvus-regex-ecma262-py` | wheel `corvus-regex-ecma262`, over the C ABI | the Rust engine | `re`, `regex`; V8 |
 | Object Pascal | `corvus-regex-ecma262-pas` | the unit, as the Pascal port ships it | `Corvus.JsonSchema.EcmaRegex.pas` | `TRegExpr` (FPC); V8 |
 | OCaml | `corvus-regex-ecma262-ocaml` | opam `corvus-regex-ecma262` | the engine in `ocaml-corvus-json-schema` | `re`, `pcre`; V8 |
-| C, Ruby, PHP, Swift, R, Fortran | none of their own | the C ABI crate, consumed as the JSON Schema C library is | the Rust engine | QuickJS `libregexp` (an ECMA-262 engine in C), through the C benchmark |
+| C | `corvus-regex-ecma262-rs` (the C ABI crate and its header) | release archives of the shared library and header per platform | the Rust engine | QuickJS `libregexp` (an ECMA-262 engine in C), PCRE2 (not ECMA-262); V8 |
+| C++ | `corvus-regex-ecma262-cpp` | a header-only C++20 library over the C ABI (RAII handles, `std::string_view` and `std::u16string_view`, match ranges), with a CMake package, vcpkg and Conan recipes | the Rust engine | `std::regex` (ECMAScript grammar), Boost.Regex in its ECMAScript mode, SRELL (an ECMAScript library), RE2 (not ECMA-262); V8 |
+| Ruby | `corvus-regex-ecma262-ruby` | gem `corvus-regex-ecma262`, over the C ABI | the Rust engine | `Regexp` (Onigmo); V8 |
+| PHP | `corvus-regex-ecma262-php` | Composer package over FFI to the C ABI | the Rust engine | `preg_*` (PCRE2); V8 |
+| Swift | `corvus-regex-ecma262-swift` | Swift package over the C ABI | the Rust engine | `Regex` and `NSRegularExpression`; V8 |
+| R | `corvus-regex-ecma262-r` | R package over the C ABI | the Rust engine | base `regexpr` (TRE and PCRE); V8 |
+| Fortran | `corvus-regex-ecma262-fortran` | fpm package over the C ABI (`iso_c_binding`) | the Rust engine | none on the platform; V8 |
 
 The names follow the JSON Schema ports (`corvus-json-schema-<lang>`). V8 (Node 24, the oracle of the test data) is on
 every benchmark as the common reference; it is the engine the patterns were written for.
@@ -54,35 +60,66 @@ The shape of this repository, cut down to the engine:
 - **Release**: the port's existing release path (crates.io, Maven Central, Go modules, the Julia registry, PyPI,
   opam), the same CI shape as here, a tag per release.
 
-## 3. The central benchmark
+## 3. Publishing results, and the one page that shows them
 
-One repository, `corvus-regex-ecma262-benchmarks`, holds the Industry workload definitions and the texts, and one
-workflow job on one GitHub-hosted runner builds and runs **every** engine and competitor (each language's toolchain
-installed in that job) each night, so that the figures of a run are comparable across languages as well as within
-one. It writes one results page (the implementations grouped by language, which the page already does) to
-`corvus-oss.org/regex-benchmarks/`, keeping each day's data. Figures across languages on one runner are the only
-cross-language figures published; the per-repository pages compare an engine with its own platform's.
+An engine repository is not responsible for a benchmark site. Its nightly benchmarks workflow runs its engines and
+its platform's competitors on one runner, and **publishes the run as data**, nothing else, to its own `gh-pages`:
 
-Until an engine is published, its row is absent; the page gains a row per release.
+- `benchmarks/latest.json`: the run, in the results-page data shape (the `corvus-benchmark-results-page` skill:
+  `meta`, `impls`, `schemas`, `measures`, `results`), and `benchmarks/runs/<date>-<commit>.json`, the same file
+  kept per day.
+- `meta` carries the repository, the commit, the run's time, the runner and the host as the harness recorded them
+  (never typed in), the workflow run's URL, and the engine versions; `impls` are the repository's engines, the
+  platform's competitors and V8, each with its `group` (the language) and its compliance (the counts, or
+  "not ECMA-262"); `schemas` are the Industry workload ids, the same names in every repository (the list comes from
+  one place, `workloads.py`); `measures.time` is nanoseconds per `Count`.
+
+- **A runnable harness**, `tools/benchmarks/run.sh <workloads.json> <texts dir> <out.json>`, that builds the
+  engine and its competitors, runs the Industry workloads, runs the test data for the compliance figures, and
+  writes that data file; and **a published container image** with the harness as its entry point,
+  `ghcr.io/corvus-dotnet/corvus-regex-ecma262-<lang>:<version>` (and `:latest`), built by the repository's
+  release workflow, so that a run needs no toolchain on the host:
+  `docker run --rm -v <workloads.json>:/workloads.json:ro -v <texts>:/texts:ro -v <out>:/out <image>` writes
+  `/out/industry.json`. The repository's own nightly job runs the same image.
+
+One repository, `corvus-regex-ecma262-benchmarks`, builds the page, and it builds it from runs it makes itself:
+its nightly job pulls each source's image at its latest release, runs each in turn on the same runner (the
+same CPU and kernel for every engine; the image only carries the engine's own toolchain), and merges the results (implementations grouped by language, V8 once, every workload matched
+by id) into one data file and one page, published at `corvus-oss.org/corvus-regex-ecma262-benchmarks/` with the
+day's merged data kept. Within a run every figure is comparable, because every engine ran on the same machine in
+the same hour; the runner changes from night to night, which the kept daily files show, and V8 in every harness
+(the same Node) gives a figure read across two nights a common reference. The sources' own `latest.json` files are
+each repository's view for its own readers and a fallback the central site can show, marked as foreign, when a
+harness fails to run.
+
+Until an engine publishes, it has no row; the page gains a row the night after a repository's first run. The .NET
+repository conforms by writing `latest.json` beside what it publishes today, and its own page becomes a link to the
+central one once that exists.
 
 ## 4. Order, and the gate at each step
 
 Each step is its own repository, its own pull requests and its own release, in this order, one at a time:
 
-0. **This plan**, and the central benchmark repository with the workloads, the texts, the results page, and the two
-   engines that exist (.NET and V8) on it.
+0. **This plan**, the results contract above, and the central benchmark repository building the page from the
+   sources that exist (the .NET repository's run, with V8 on it).
 1. **Rust.** The highest return: the C ABI crate is the engine under Ruby, PHP, Swift, R and Fortran, and can be
    under Python. The search layer maps onto what Rust already has (`memchr::memmem` is the rarest-byte needle,
    `aho-corasick`'s packed search is the fingerprint search), so this is adoption as much as porting; the
    alternation windows, the case search, the automaton and the memo are carried over. Gate: data set 0 wrong;
-   the Industry set against `regex`, `regress` and V8 on the page; crate and C ABI published.
-2. **Java.** Its own engine already; `indexOf` intrinsics for the needle, the Vector API for the fingerprint
+   at or below `regex` on every Industry workload where both answer, a row above it only where an ECMA-262 rule
+   forces the work, named with its cost; `regress` and V8 on the page; crate and C ABI published.
+2. **A standalone library for every language on the Rust crate, before any other engine.** C++, Python, Ruby,
+   PHP, Swift, R and Fortran each get their own regex library, in its own repository and on its own package registry
+   (section 1), a binding over the Rust C ABI with an API idiomatic to the language. Each repository holds the
+   section 2 contents: the data set run through its binding at 0 wrong, the Industry benchmarks against its
+   platform's engines and V8, the harness and its image, and its run published to the central site. These are new
+   libraries; the Corvus JSON Schema ports are not changed here (that is step 7). No other engine is started until
+   Rust is released and every one of these is published.
+3. **Java.** Its own engine already; `indexOf` intrinsics for the needle, the Vector API for the fingerprint
    search, generated code through the Java generator we have (under the method-size limit). Same gate.
-3. **Go.** The scalar parts of the search layer over `bytes.Index`, which is vectorised in the runtime; assembly
+4. **Go.** The scalar parts of the search layer over `bytes.Index`, which is vectorised in the runtime; assembly
    only where a measured row demands it. Same gate.
-4. **Julia.** The search layer with SIMD.jl. Same gate.
-5. **Python.** A wheel over the C ABI; the translator retired. Gate: the data set through the wheel; `re` and
-   `regex` on the page.
+5. **Julia.** The search layer with SIMD.jl. Same gate.
 6. **Object Pascal and OCaml.** Moved out as they are, held to the data, on the page against their platforms'
    engines; the search layer when a consumer asks.
 7. **Phase 6, per library.** When an engine is published: the Corvus library of that language takes the package in
@@ -91,15 +128,9 @@ Each step is its own repository, its own pull requests and its own release, in t
 
 ## 5. Decisions taken here, and the ones that are yours
 
-Taken, unless you say otherwise: the repository and package names of section 1; V8 on every benchmark; the C ABI
-living in the Rust repository; the central benchmark as its own repository with one job on one runner; the order
+Taken, unless you say otherwise: the repository and package names of section 1; V8 on every benchmark; GraalJS
+TRegex and goja as the ECMA-262 competitors on the Java and Go benchmarks, and PCRE2 on the C benchmark; each engine carrying its history out of the JSON Schema
+monorepo (a filtered history, as the Rust engine did); the C ABI living in the Rust repository; the central benchmark as its own repository with one job on one runner; the order
 of section 4.
 
-Yours:
-
-- The central benchmark's home and name (`corvus-regex-ecma262-benchmarks`, published at
-  `corvus-oss.org/regex-benchmarks/`), or inside this repository's site instead.
-- Whether the engines leave the JSON Schema monorepo's history behind (a clean start, the port's history staying
-  where it is) or carry it (a filtered history per engine).
-- Whether GraalJS TRegex and goja are worth their weight on the Java and Go benchmarks (each is a large dependency
-  for a competitor row), or V8 alone is the ECMA-262 reference there.
+Nothing is left open.

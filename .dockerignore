@@ -1,0 +1,6 @@
+**/bin
+**/obj
+docs/website/node_modules
+docs/website/.output
+docs/website/.endjin
+.git

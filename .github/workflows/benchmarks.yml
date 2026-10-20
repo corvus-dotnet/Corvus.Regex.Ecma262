@@ -7,6 +7,8 @@ name: benchmarks
 on:
   schedule:
   - cron: '41 1 * * *'
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       job:
@@ -17,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 concurrency:
   group: benchmarks
@@ -33,46 +36,32 @@ jobs:
       MSBUILDDISABLENODEREUSE: '1'
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-    - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
-      with:
-        global-json-file: global.json
-    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-      with:
-        node-version: '24'
-    - name: Build the benchmarks
-      run: dotnet build Solutions/Corvus.Regex.Ecma262.Benchmarks/Corvus.Regex.Ecma262.Benchmarks.csproj -c Release -m:4 -nr:false
-    - name: Run the .NET and Corvus engines (BenchmarkDotNet)
-      # The benchmark downloads the texts into the local application data directory on first use; V8 reads them there.
-      run: |
-        job='${{ github.event.inputs.job || 'default' }}'
-        cd Solutions/Corvus.Regex.Ecma262.Benchmarks
-        ./bin/Release/net10.0/Corvus.Regex.Ecma262.Benchmarks --filter '*GeneratedCount*' --job "$job" --artifacts "$GITHUB_WORKSPACE/run" > "$GITHUB_WORKSPACE/run.log" 2>&1 || { tail -50 "$GITHUB_WORKSPACE/run.log"; exit 1; }
-        grep -E '^// \* Summary|^\| ' "$GITHUB_WORKSPACE/run.log" | head -5
-    - name: Run V8 (Node 24)
+    - name: "Build the harness image (the results contract: the engines, the test data, one data file)"
+      run: docker build --build-arg COMMIT="${GITHUB_SHA::7}" -t harness .
+    - name: Run the harness image, as the central benchmark site runs it
       run: |
         python3 tools/benchmarks/v8/workloads.py Solutions/Corvus.Regex.Ecma262.Benchmarks/Industry.cs > workloads.json
-        node --version
-        node tools/benchmarks/v8/industry.mjs workloads.json 2 5 > v8.json 2> v8.log
-        tail -3 v8.log
-    - name: Write the record and the page
-      run: |
-        job='${{ github.event.inputs.job || 'default' }}'
-        python3 tools/benchmarks/industry-results.py --run run --commit "${GITHUB_SHA::7}" --date "$(date -u +%FT%TZ)" --v8 v8.json --host ci --job "$job" --out-dir out --base-path /Corvus.Regex.Ecma262 --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-        cp v8.json out/industry-v8.json
+        tools/benchmarks/texts.sh texts
+        mkdir -p out
+        docker run --rm -e JOB='${{ github.event.inputs.job || 'default' }}' -e CORVUS_REGEX_RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" -v "$PWD/workloads.json:/workloads.json:ro" -v "$PWD/texts:/texts:ro" -v "$PWD/out:/out" harness
         python3 tools/benchmarks/results-page/generate_site.py --data out/industry.json --out out/index.html
         head -12 out/industry.md
+    - name: Publish the harness image
+      # The image the central benchmark site pulls: latest from main each night, and a version tag from the release build.
+      if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+      run: |
+        echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+        image=ghcr.io/corvus-dotnet/corvus-regex-ecma262-dotnet
+        docker tag harness "$image:latest" && docker push "$image:latest"
+        if [ '${{ github.event_name }}' = 'release' ]; then docker tag harness "$image:${{ github.event.release.tag_name }}" && docker push "$image:${{ github.event.release.tag_name }}"; fi
     - name: Keep the run
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: industry-${{ github.run_id }}
-        path: |
-          out
-          run/results
-          run.log
-          v8.log
+        path: out
     - name: Publish to the site
       # The page at benchmarks/ci/ is replaced and the run's data kept under benchmarks/ci/runs/; the rest of gh-pages
       # is untouched (.github/scripts/Update-GhPages.ps1).
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' || github.event_name == 'release'
       shell: pwsh
       run: ./.github/scripts/Update-GhPages.ps1 -Mode Benchmarks -Source out -RunName "$(Get-Date -AsUTC -Format yyyy-MM-dd)-$($env:GITHUB_SHA.Substring(0, 7))"
