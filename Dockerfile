@@ -17,5 +17,6 @@ COPY . .
 ENV MSBUILDDISABLENODEREUSE=1 DOTNET_NOLOGO=true DOTNET_CLI_TELEMETRY_OPTOUT=true
 RUN dotnet build Solutions/Corvus.Regex.Ecma262.Benchmarks/Corvus.Regex.Ecma262.Benchmarks.csproj -c Release -m:4 -nr:false \
     && dotnet build Solutions/Corvus.Regex.Ecma262.DatasetRunner/Corvus.Regex.Ecma262.DatasetRunner.csproj -c Release -f net10.0 -m:4 -nr:false
-ENV CORVUS_REGEX_BASE_PATH=/Corvus.Regex.Ecma262
+ARG COMMIT=unknown
+ENV CORVUS_REGEX_BASE_PATH=/Corvus.Regex.Ecma262 CORVUS_REGEX_COMMIT=${COMMIT}
 ENTRYPOINT ["/bin/bash", "-c", "tools/benchmarks/run.sh /workloads.json /texts /out/industry.json \"$( [ -d /data ] && echo /data || echo '' )\" \"${JOB:-default}\""]

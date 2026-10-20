@@ -37,7 +37,7 @@ jobs:
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - name: "Build the harness image (the results contract: the engines, the test data, one data file)"
-      run: docker build -t harness .
+      run: docker build --build-arg COMMIT="${GITHUB_SHA::7}" -t harness .
     - name: Run the harness image, as the central benchmark site runs it
       run: |
         python3 tools/benchmarks/v8/workloads.py Solutions/Corvus.Regex.Ecma262.Benchmarks/Industry.cs > workloads.json

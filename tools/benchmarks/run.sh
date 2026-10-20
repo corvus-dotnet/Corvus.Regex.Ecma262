@@ -36,7 +36,8 @@ echo "== V8 (Node $(node --version))"
 CORVUS_REGEX_TEXTS="$texts" node "$here/tools/benchmarks/v8/industry.mjs" "$workloads" 2 5 > "$work/v8.json" 2> "$work/v8.log"
 
 echo "== the record"
-commit="$(git -C "$here" rev-parse --short HEAD)"
+# Inside the image there is no .git: the build passes the commit (CORVUS_REGEX_COMMIT).
+commit="${CORVUS_REGEX_COMMIT:-$(git -C "$here" rev-parse --short HEAD 2>/dev/null || echo unknown)}"
 python3 "$here/tools/benchmarks/industry-results.py" --run "$work/run" --commit "$commit" --date "$(date -u +%FT%TZ)" --v8 "$work/v8.json" --host ci --job "$job" --out-dir "$work/out" --base-path "${CORVUS_REGEX_BASE_PATH:-}" --run-url "${CORVUS_REGEX_RUN_URL:-}" --compliance "$compliance" >/dev/null
 cp "$work/out/industry.json" "$out"; cp "$work/out/industry.md" "$outdir/industry.md"; cp "$work/v8.json" "$outdir/industry-v8.json"
 echo "wrote $out"
