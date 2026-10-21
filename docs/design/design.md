@@ -440,13 +440,13 @@ gets right and asking it again, and the runner skips it.
 
 ### 8.2 How the tests read the data
 
-The data set is not vendored. The engine repository's `dataset.yml` checks out the data repository at a pinned
-commit and runs the `DatasetRunner` over it nightly and on demand, both encodings, with 0 wrong, 0 refused-valid,
-0 accepted-invalid and 0 at a limit as the pass; a second job runs the same data on Windows under .NET Framework
-4.8.1, over the `netstandard2.0` build. The same runner is run locally before a change is pushed, in
-Debug and Release and with every pattern as generated code (the generated pass compiles each pattern's emitted
-source with Roslyn and takes about six minutes). The current count is 22,895,231 answers right and 0 wrong in each
-mode.
+The data set is not vendored. The engine repository's `dataset.yml` checks out the data repository at a pinned commit
+and runs the `DatasetRunner` over it on every pull request, on every push to `main`, nightly and on demand, both
+encodings, with 0 wrong, 0 refused-valid, 0 accepted-invalid and 0 at a limit as the pass; a second job runs the same
+data on Windows under .NET Framework 4.8.1, over the `netstandard2.0` build. The same runner is run locally before a
+change is pushed, in Debug and Release and with every pattern as generated code (the generated pass compiles each
+pattern's emitted source with Roslyn and takes about six minutes). The current count is 23,647,077 answers right and 0
+wrong in each mode.
 
 ### 8.3 The other tests
 
