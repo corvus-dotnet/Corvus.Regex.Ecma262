@@ -20,9 +20,10 @@ namespace Corvus.Ecma262.RegularExpressions;
 internal sealed class EcmaRegexParser
 {
     /// <summary>
-    /// Groups may nest this deep: a pattern of this many groups, each inside the last, is read, and one of a group
-    /// more is not. It bounds the recursion of the reader and of the writer. A pattern that nests deeper is refused
-    /// as too large (<see cref="RegexPatternTooLargeException"/>), and not as a pattern that is not valid.
+    /// Groups, and the classes of the v flag's grammar that a class holds, may nest this deep together: a pattern of
+    /// this many groups, each inside the last, is read, and one of a group more is not, and so for nested classes and
+    /// for any mix of the two. It bounds the recursion of the reader and of the writer. A pattern that nests deeper is
+    /// refused as too large (<see cref="RegexPatternTooLargeException"/>), and not as a pattern that is not valid.
     /// </summary>
     public const int MaxNesting = 200;
 
@@ -286,6 +287,7 @@ internal sealed class EcmaRegexParser
 
     private EcmaRegexNode Disjunction()
     {
+        DeepStack.Ensure();
         if (++this.depth > MaxNesting)
         {
             throw new RegexPatternTooLargeException(
@@ -1401,7 +1403,15 @@ internal sealed class EcmaRegexParser
         int c = this.Peek();
         if (c == '[')
         {
-            // A nested class: its strings count as strings whether or not there are any.
+            // A nested class: its strings count as strings whether or not there are any. It is a level of nesting,
+            // as a group is: the reader goes a level deeper for it.
+            DeepStack.Ensure();
+            if (++this.depth > MaxNesting)
+            {
+                throw new RegexPatternTooLargeException(
+                    "Its groups and classes nest more than " + MaxNesting.ToString(System.Globalization.CultureInfo.InvariantCulture) + " deep.");
+            }
+
             int start = this.i;
             this.i++;
             bool negated = this.Eat('^');
@@ -1410,6 +1420,8 @@ internal sealed class EcmaRegexParser
             {
                 throw this.Error("Unterminated character class");
             }
+
+            this.depth--;
 
             if (negated)
             {

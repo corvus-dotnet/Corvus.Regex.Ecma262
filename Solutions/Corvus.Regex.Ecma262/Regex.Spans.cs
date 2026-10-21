@@ -333,8 +333,11 @@ public sealed partial class Regex
             throw new ArgumentNullException(nameof(destination));
         }
 
-        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
-        Span<ValueCapture> captures = stackalloc ValueCapture[this.GroupCount + 1];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.GroupCount + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
+        int capturesLength = this.GroupCount + 1;
+        Span<ValueCapture> captures = capturesLength <= StackBuffer.MaxLength ? stackalloc ValueCapture[capturesLength] : new ValueCapture[capturesLength];
         Program program = this.CaptureProgram();
         bool global = (this.Flags & RegexFlags.Global) != 0;
         int last = 0;
@@ -384,8 +387,11 @@ public sealed partial class Regex
             throw new ArgumentNullException(nameof(destination));
         }
 
-        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
-        Span<ValueCapture> captures = stackalloc ValueCapture[this.GroupCount + 1];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.GroupCount + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
+        int capturesLength = this.GroupCount + 1;
+        Span<ValueCapture> captures = capturesLength <= StackBuffer.MaxLength ? stackalloc ValueCapture[capturesLength] : new ValueCapture[capturesLength];
         Program program = this.CaptureProgram();
         bool global = (this.Flags & RegexFlags.Global) != 0;
         int last = 0;
@@ -464,7 +470,9 @@ public sealed partial class Regex
     /// <summary>The match at or after a position and its groups, with a state the caller holds for a run of matches.</summary>
     internal bool TryMatchCaptures(MatchState st, ref ScanCursor cursor, ReadOnlySpan<char> input, int startAt, Span<ValueCapture> captures, out ValueMatch match)
     {
-        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.GroupCount + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         bool ok = Matcher.MatchWith<char, Utf16Encoding>(st, ref cursor, this.CaptureProgram(), input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
@@ -477,7 +485,9 @@ public sealed partial class Regex
     /// <summary>The match at or after a position in UTF-8 and its groups, with a state the caller holds for a run of matches.</summary>
     internal bool TryMatchCaptures(MatchState st, ref ScanCursor cursor, ReadOnlySpan<byte> utf8, int startAt, Span<ValueCapture> captures, out ValueMatch match)
     {
-        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.GroupCount + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         bool ok = Matcher.MatchWith<byte, Utf8Encoding>(st, ref cursor, this.CaptureProgram(), utf8, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
@@ -489,7 +499,9 @@ public sealed partial class Regex
 
     internal bool TryMatchCaptures(ReadOnlySpan<char> input, int startAt, Span<ValueCapture> captures, out ValueMatch match)
     {
-        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.GroupCount + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         bool ok = Matcher.Match<char, Utf16Encoding>(this.CaptureProgram(), input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
@@ -502,7 +514,9 @@ public sealed partial class Regex
     /// <summary>The first match at or after a position, with what each group captured, for the enumerators.</summary>
     internal bool TryMatchCaptures(ReadOnlySpan<byte> utf8, int startAt, Span<ValueCapture> captures, out ValueMatch match)
     {
-        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.GroupCount + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         bool ok = Matcher.Match<byte, Utf8Encoding>(this.CaptureProgram(), utf8, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
@@ -706,7 +720,9 @@ public sealed partial class Regex
         , allows ref struct
 #endif
     {
-        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.GroupCount + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         Program program = this.CaptureProgram();
         bool global = (this.Flags & RegexFlags.Global) != 0;
         bool plain = replacement.IndexOf(AsciiOf<TUnit>('$')) < 0;

@@ -308,7 +308,9 @@ public sealed partial class Regex
             throw new ArgumentException("The captures span is too short.", nameof(captures));
         }
 
-        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.GroupCount + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         bool ok = Matcher.Match<char, Utf16Encoding>(this.CaptureProgram(), input, this.Normalize(input, startAt), this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
@@ -336,7 +338,9 @@ public sealed partial class Regex
             throw new ArgumentException("The captures span is too short.", nameof(captures));
         }
 
-        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.GroupCount + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         bool ok = Matcher.Match<byte, Utf8Encoding>(this.CaptureProgram(), utf8, this.Normalize(utf8, startAt), this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
@@ -412,7 +416,9 @@ public sealed partial class Regex
         }
 
         int size = input.Length;
-        Span<int> slots = stackalloc int[2 * (this.GroupCount + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.GroupCount + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         Program program = this.CaptureProgram();
         if (size == 0)
         {
@@ -562,7 +568,9 @@ public sealed partial class Regex
     {
         if (scan.Kind != 0 && !this.Sticky)
         {
-            Span<int> resumed = stackalloc int[2 * (this.program.Groups + 1)];
+            // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+            int resumedLength = 2 * (this.program.Groups + 1);
+            Span<int> resumed = resumedLength <= StackBuffer.MaxLength ? stackalloc int[resumedLength] : new int[resumedLength];
             bool again = Matcher.ResumeWith<char, Utf16Encoding>(st, ref cursor, ref scan, this.program, input, startAt, this.Limit, resumed, out MatchStop why);
             if (why != MatchStop.None)
             {
@@ -587,7 +595,9 @@ public sealed partial class Regex
             return found;
         }
 
-        Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.program.Groups + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         bool ok = Matcher.MatchWith<char, Utf16Encoding>(st, ref cursor, ref scan, this.program, input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
@@ -638,7 +648,9 @@ public sealed partial class Regex
     {
         if (scan.Kind != 0 && !this.Sticky)
         {
-            Span<int> resumed = stackalloc int[2 * (this.program.Groups + 1)];
+            // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+            int resumedLength = 2 * (this.program.Groups + 1);
+            Span<int> resumed = resumedLength <= StackBuffer.MaxLength ? stackalloc int[resumedLength] : new int[resumedLength];
             bool again = Matcher.ResumeWith<byte, Utf8Encoding>(st, ref cursor, ref scan, this.program, input, startAt, this.Limit, resumed, out MatchStop why);
             if (why != MatchStop.None)
             {
@@ -663,7 +675,9 @@ public sealed partial class Regex
             return found;
         }
 
-        Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.program.Groups + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         bool ok = Matcher.MatchWith<byte, Utf8Encoding>(st, ref cursor, ref scan, this.program, input, startAt, this.Sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
@@ -682,7 +696,9 @@ public sealed partial class Regex
             return Matcher.Simple<char, Utf16Encoding>(this.program, null, input, startAt, sticky, out from, out to);
         }
 
-        Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.program.Groups + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         bool ok = Matcher.Match<char, Utf16Encoding>(this.program, input, startAt, sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
@@ -702,7 +718,9 @@ public sealed partial class Regex
             return Matcher.Simple<byte, Utf8Encoding>(this.program, null, input, startAt, sticky, out from, out to);
         }
 
-        Span<int> slots = stackalloc int[2 * (this.program.Groups + 1)];
+        // The pattern decides how many groups there are: the slots are on the stack only when there are few.
+        int slotsLength = 2 * (this.program.Groups + 1);
+        Span<int> slots = slotsLength <= StackBuffer.MaxLength ? stackalloc int[slotsLength] : new int[slotsLength];
         bool ok = Matcher.Match<byte, Utf8Encoding>(this.program, input, startAt, sticky, this.Limit, slots, out MatchStop stop);
         if (stop != MatchStop.None)
         {
