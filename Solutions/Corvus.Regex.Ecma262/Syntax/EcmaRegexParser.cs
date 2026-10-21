@@ -20,9 +20,9 @@ namespace Corvus.Ecma262.RegularExpressions;
 internal sealed class EcmaRegexParser
 {
     /// <summary>
-    /// Groups may nest this deep. It bounds the recursion of the reader and of the writer. A pattern that nests
-    /// deeper is refused as too large (<see cref="RegexPatternTooLargeException"/>), and not as a pattern that
-    /// is not valid.
+    /// Groups may nest this deep: a pattern of this many groups, each inside the last, is read, and one of a group
+    /// more is not. It bounds the recursion of the reader and of the writer. A pattern that nests deeper is refused
+    /// as too large (<see cref="RegexPatternTooLargeException"/>), and not as a pattern that is not valid.
     /// </summary>
     public const int MaxNesting = 200;
 
@@ -61,7 +61,8 @@ internal sealed class EcmaRegexParser
     private readonly Dictionary<string, List<int[]>> names = [];
     private readonly List<EcmaRegexNode> namedRefs = [];
     private int i;
-    private int depth;
+    /// <summary>The number of groups that enclose the disjunction being read: 0 for the pattern's own.</summary>
+    private int depth = -1;
     private bool hasNames;
     private int groups;
 
