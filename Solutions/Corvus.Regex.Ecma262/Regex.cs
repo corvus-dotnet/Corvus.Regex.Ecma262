@@ -94,10 +94,11 @@ public sealed partial class Regex
         this.MatchTimeout = matchTimeout;
         bool unicode = (flags & (RegexFlags.Unicode | RegexFlags.UnicodeSets)) != 0;
 
-        // The reader and the compiler go a level deeper for each level of groups and classes, so a pattern that
-        // nests deeply is read and compiled on a stack of its own (see DeepStack).
+        // The reader and the compiler go a level deeper for each level of groups (and with the v flag, of classes),
+        // so a pattern that nests deeply is read and compiled on a stack of its own (see DeepStack).
         (EcmaRegexParser parser, EcmaRegexNode root, Program program) = DeepStack.Run(
             pattern,
+            (flags & RegexFlags.UnicodeSets) != 0,
             () =>
             {
                 EcmaRegexParser parser = new(
@@ -410,7 +411,7 @@ public sealed partial class Regex
         {
             // Simplify changes the tree in place, and did so when the first program was compiled; compiling the
             // same tree again gives the same program apart from the groups it tracks.
-            cp = DeepStack.Run(this.Pattern, () => Compiler.Compile(this.root, this.unicode, this.GroupCount, trackAll: true));
+            cp = DeepStack.Run(this.Pattern, (this.Flags & RegexFlags.UnicodeSets) != 0, () => Compiler.Compile(this.root, this.unicode, this.GroupCount, trackAll: true));
             cp.Runner = this.captureRunner;
             Interlocked.CompareExchange(ref this.captureProgram, cp, null);
             cp = this.captureProgram;
@@ -425,7 +426,7 @@ public sealed partial class Regex
         {
             if (this.linear)
             {
-                Dfa? built = DeepStack.Run(this.Pattern, () => Dfa.Build(this.root));
+                Dfa? built = DeepStack.Run(this.Pattern, (this.Flags & RegexFlags.UnicodeSets) != 0, () => Dfa.Build(this.root));
                 Interlocked.CompareExchange(ref this.dfa, built, null);
             }
 

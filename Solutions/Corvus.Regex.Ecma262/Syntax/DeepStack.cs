@@ -30,27 +30,29 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// </remarks>
 internal static class DeepStack
 {
-    /// <summary>The number of groups and classes a pattern may open and still be read on the stack of the thread that asks.</summary>
+    /// <summary>The number of groups (and with the v flag, classes) a pattern may open and still be read on the stack of the thread that asks.</summary>
     public const int Shallow = 32;
 
-    /// <summary>The stack of the thread that reads a pattern with more groups and classes than that.</summary>
+    /// <summary>The stack of the thread that reads a pattern with more groups than that.</summary>
     public const int StackSize = 64 << 20;
 
     /// <summary>
-    /// Gets a value indicating whether a pattern opens few enough groups and classes to be read on the stack of the
-    /// thread that asks. A class of the v flag's grammar may hold a class, and the reader goes a level deeper for
-    /// each, as it does for a group, so a <c>[</c> counts as a <c>(</c> does. In the other grammars a <c>[</c> opens
-    /// no level, and counting it only sends a pattern with many of them to a thread of its own, which is safe.
+    /// Gets a value indicating whether a pattern opens few enough groups to be read on the stack of the thread that
+    /// asks. With the v flag a class may hold a class, and the reader goes a level deeper for each, as it does for a
+    /// group, so there a <c>[</c> counts as a <c>(</c> does. In the other grammars a class holds no class and a
+    /// <c>[</c> opens no level: counting it would send a pattern of many classes to a thread of its own for nothing,
+    /// at some times the cost of compiling it.
     /// </summary>
     /// <param name="pattern">The pattern.</param>
+    /// <param name="unicodeSets">Whether the pattern is read with the v flag's grammar.</param>
     /// <returns>Whether the pattern is shallow.</returns>
-    public static bool IsShallow(ReadOnlySpan<char> pattern)
+    public static bool IsShallow(ReadOnlySpan<char> pattern, bool unicodeSets)
     {
         int opened = 0;
         for (int k = 0; k < pattern.Length; k++)
         {
             char c = pattern[k];
-            if ((c == '(' || c == '[') && ++opened > Shallow)
+            if ((c == '(' || (unicodeSets && c == '[')) && ++opened > Shallow)
             {
                 return false;
             }
@@ -62,12 +64,13 @@ internal static class DeepStack
     /// <summary>Runs work for a pattern, on a thread with a deep stack unless the pattern is shallow.</summary>
     /// <typeparam name="T">The result of the work.</typeparam>
     /// <param name="pattern">The pattern.</param>
+    /// <param name="unicodeSets">Whether the pattern is read with the v flag's grammar.</param>
     /// <param name="work">The work.</param>
     /// <returns>The result of the work.</returns>
     /// <exception cref="RegexPatternTooLargeException">The stack was too shallow for the pattern.</exception>
-    public static T Run<T>(string pattern, Func<T> work)
+    public static T Run<T>(string pattern, bool unicodeSets, Func<T> work)
     {
-        if (IsShallow(pattern.AsSpan()))
+        if (IsShallow(pattern.AsSpan(), unicodeSets))
         {
             return RunHere(work);
         }

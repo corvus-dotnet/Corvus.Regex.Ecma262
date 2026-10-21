@@ -204,6 +204,8 @@ safe to share between threads.
 - `Solutions/Corvus.Regex.Ecma262.Tests`, `Corvus.Regex.Ecma262.SourceGenerator.Tests` - the unit tests, each pattern
   run as interpreted and as generated code.
 - `Solutions/Corvus.Regex.Ecma262.DatasetRunner` - the run over the whole ECMA-262 test data, interpreted or generated.
+- `Solutions/Corvus.Regex.Ecma262.StackProbe` - patterns built to overflow the stack, each run in a process of its own on
+  small stacks, none of which may end the process.
 - `Solutions/Corvus.Regex.Ecma262.Benchmarks` - the BenchmarkDotNet comparisons with `System.Text.RegularExpressions`.
 - `Solutions/Corvus.Regex.Ecma262.AotSample` - a native AOT sample of the generator.
 - `docs/design`, `docs/benchmarks` - the design and the committed benchmark tables.

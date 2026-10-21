@@ -186,6 +186,26 @@ public class ValidityTests
     }
 
     [TestMethod]
+    public void ManyClassesWithoutTheVFlagAreReadWhereTheyAreAsked()
+    {
+        // Without the v flag a class holds no class, so a pattern of many classes nests no deeper than one of none: it
+        // is read on the stack of the thread that asks, not on a thread of its own, and it compiles and matches on a
+        // small stack all the same.
+        string classes = string.Concat(Enumerable.Range(0, 400).Select(i => "[a-" + (char)('b' + (i % 20)) + "]"));
+        Assert.IsTrue(DeepStack.IsShallow(classes.AsSpan(), unicodeSets: false));
+        Assert.IsFalse(DeepStack.IsShallow(classes.AsSpan(), unicodeSets: true));
+        OnASmallStack(() =>
+        {
+            foreach (string flags in new[] { "", "u", "i", "iu" })
+            {
+                Regex r = new(classes, flags);
+                Assert.IsTrue(r.IsMatch(new string('a', 400)), flags);
+                Assert.IsFalse(r.IsMatch(new string('a', 399)), flags);
+            }
+        });
+    }
+
+    [TestMethod]
     public void TheFlagsStringIsReadAndWritten()
     {
         Regex r = new("a", "yusmig");

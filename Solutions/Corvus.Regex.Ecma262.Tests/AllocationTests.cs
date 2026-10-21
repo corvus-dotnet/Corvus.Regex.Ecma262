@@ -45,4 +45,35 @@ public class AllocationTests
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.AreEqual(0, allocated, $"/{pattern}/{flags} allocated {allocated} bytes over 2000 matches");
     }
+
+    [TestMethod]
+    [DataRow(200, "")]
+    [DataRow(200, "u")]
+    [DataRow(1000, "")]
+    public void AMatchOfManyGroupsAllocatesNothingOnceWarm(int groups, string flags)
+    {
+        // The slots of so many groups are more than are put on the stack, so they are rented from the shared pool and
+        // returned: a match that reports every group still allocates nothing.
+        Regex r = new(string.Concat(Enumerable.Repeat("(a)", groups)), flags);
+        string text = new('a', groups);
+        byte[] utf8 = Encoding.UTF8.GetBytes(text);
+        ValueCapture[] captures = new ValueCapture[groups + 1];
+        for (int k = 0; k < 50; k++)
+        {
+            Assert.IsTrue(r.TryMatch(text.AsSpan(), 0, captures, out _));
+            Assert.IsTrue(r.TryMatch(utf8, 0, captures, out _));
+        }
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int k = 0; k < 1000; k++)
+        {
+            if (!r.TryMatch(text.AsSpan(), 0, captures, out _) || !r.TryMatch(utf8, 0, captures, out _))
+            {
+                Assert.Fail("The answer changed.");
+            }
+        }
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.AreEqual(0, allocated, $"{groups} groups /{flags} allocated {allocated} bytes over 2000 matches");
+    }
 }

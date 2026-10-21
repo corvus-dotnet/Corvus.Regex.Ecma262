@@ -160,13 +160,17 @@ No pattern and no text may overflow the stack, since a stack overflow ends the p
 The limit of nesting counts groups and the classes a class of the `v` flag's grammar holds together, since the
 reader goes a level deeper for each. The reader, the compiler and every walk of the syntax tree (the program of
 every group and the automaton, built when a match first needs them, among them) run on a thread with a 64 MB stack
-of its own when the pattern opens more than 32 groups and classes (`DeepStack`), so the deepest nesting the limit
-allows is read on any thread, the 1 MB main thread of Windows and the few hundred kilobytes of a host's thread
-among them. Where no thread can be started, the reader and the compiler check the stack as they go
-(`RuntimeHelpers.EnsureSufficientExecutionStack`) and refuse a pattern too deep for it as too large. A buffer whose
-length the pattern decides, such as the slots of the groups, is on the stack only up to 256 elements
-(`StackBuffer`), and on the heap beyond. An adversarial set of 814 patterns, deep, wide and long in every grammar
-and through every member, is answered or refused, and never overflows, on threads of 256 KB, 1 MB and 8 MB.
+of its own when the pattern opens more than 32 groups, or with the `v` flag more than 32 groups and classes
+(`DeepStack`): so the deepest nesting the limit allows is read on any thread, the 1 MB main thread of Windows and
+the few hundred kilobytes of a host's thread among them, and a pattern of many classes without the `v` flag, which
+nest no deeper than one, is read where it is asked. Where no thread can be started, the reader and the compiler
+check the stack as they go (`RuntimeHelpers.EnsureSufficientExecutionStack`) and refuse a pattern too deep for it
+as too large. A buffer whose length the pattern decides, such as the slots of the groups, is on the stack only up to
+256 elements and rented from the shared array pool beyond (`StackBuffer`), so a match of many groups still
+allocates nothing. `Corvus.Regex.Ecma262.StackProbe` asks about 964 patterns built to overflow the stack (deep, wide
+and long, in five grammars, through every member over UTF-16 and UTF-8), the probes of the Rust crate's
+`stack-probe`, each in a process of its own on threads of 8 MB, 1 MB and 256 KB: every one is answered or refused,
+and none overflows.
 
 ## 4. Engine design
 
@@ -405,6 +409,7 @@ Corvus.Regex.Ecma262/
     Corvus.Regex.Ecma262.SourceGenerator.Tests/
     Corvus.Regex.Ecma262.Benchmarks/   BenchmarkDotNet (section 9)
     Corvus.Regex.Ecma262.DatasetRunner/  console: the test data run, interpreted and generated, both encodings
+    Corvus.Regex.Ecma262.StackProbe/   console: patterns built to overflow the stack, each in a process of its own
     Corvus.Regex.Ecma262.AotSample/    a native AOT publish of a generated pattern
   tools/unicode/                       gen-ecma-unicode-data.ps1 and gen-ecma-unicode-strings.ps1 (from UCD)
   tools/benchmarks/                    industry-results.py (the record of a run) and the results page generator
