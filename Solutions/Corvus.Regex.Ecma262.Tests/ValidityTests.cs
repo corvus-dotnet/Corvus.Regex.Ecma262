@@ -79,6 +79,112 @@ public class ValidityTests
         static string Nest(string open, int depth) => string.Concat(Enumerable.Repeat(open, depth)) + "hello" + new string(')', depth);
     }
 
+    /// <summary>Runs a test on a thread with a small stack, as a thread of a host may have, and rethrows what it throws.</summary>
+    private static void OnASmallStack(Action test, int stack = 256 * 1024)
+    {
+        Exception? failure = null;
+        Thread thread = new(
+            () =>
+            {
+                try
+                {
+                    test();
+                }
+                catch (Exception e)
+                {
+                    failure = e;
+                }
+            },
+            stack);
+        thread.Start();
+        thread.Join();
+        if (failure is not null)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+    }
+
+    [TestMethod]
+    [DataRow("[", "]", "a", 200, "a")]
+    [DataRow("[^", "]", "a", 200, "a")]
+    [DataRow("[a--", "]", "[b]", 199, "a")]
+    [DataRow("[a&&", "]", "[a]", 199, "a")]
+    [DataRow("[\\q{ab|c}", "]", "a", 200, "ab")]
+    public void ClassesNestTwoHundredDeepAndNoDeeperOnASmallStack(string open, string close, string body, int depth, string text)
+    {
+        // A class of the v flag's grammar may hold a class, and the reader goes a level deeper for each, so the classes
+        // a class holds count against the limit of nesting as groups do. The deepest the limit allows is read and
+        // matched on a thread with a small stack (it is read on a stack of its own), and anything deeper is refused,
+        // which a caller can catch, rather than overflowing the stack, which ends the process.
+        OnASmallStack(() =>
+        {
+            foreach (string flags in new[] { "v", "iv" })
+            {
+                // The body of a difference or an intersection is a class of its own, a level deeper. A negated class
+                // of a negated class is the class again: 200 of them hold a.
+                Regex atLimit = new(Nest(open, close, body, depth), flags);
+                Assert.IsTrue(atLimit.IsMatch(text), open + " " + flags);
+
+                RegexPatternTooLargeException e = Assert.ThrowsExactly<RegexPatternTooLargeException>(() => new Regex(Nest(open, close, body, depth + 1), flags), open + " " + flags);
+                StringAssert.Contains(e.Message, "nest more than 200 deep");
+
+                // Far deeper, and open with nothing to close them: refused, by the limit of nesting or by another limit
+                // of size that is met first.
+                Assert.ThrowsExactly<RegexPatternTooLargeException>(() => new Regex(Nest(open, close, body, 200_000), flags), open + " " + flags);
+                Assert.ThrowsExactly<RegexPatternTooLargeException>(() => new Regex(new string('[', 200_000), flags), open + " " + flags);
+            }
+        });
+
+        static string Nest(string open, string close, string body, int depth) =>
+            "[" + string.Concat(Enumerable.Repeat(open, depth)) + body + string.Concat(Enumerable.Repeat(close, depth)) + "]";
+    }
+
+    [TestMethod]
+    [DataRow("(", "", "<hello>")]
+    [DataRow("(?<=", "u", "hello<>")]
+    [DataRow("(?:", "v", "<hello>")]
+    public void TheDeepestGroupsAreReadOnASmallStack(string open, string flags, string replaced)
+    {
+        // Two hundred groups, each inside the last, take more stack to read and compile than a small thread has: they
+        // are read and compiled on a stack of their own, and so are the program of every group and the automaton
+        // that are built from the tree when a match first needs them.
+        OnASmallStack(() =>
+        {
+            Regex r = new(string.Concat(Enumerable.Repeat(open, 200)) + "hello" + new string(')', 200), flags);
+            Assert.IsTrue(r.IsMatch("hello"));
+            Assert.AreEqual(open == "(" ? 201 : 1, r.Match("hello").Groups.Count);
+            Assert.AreEqual(replaced, r.Replace("hello", "<$&>"));
+        });
+    }
+
+    [TestMethod]
+    public void ATooDeepPatternIsRefusedWhereNoThreadOfItsOwnCanReadIt()
+    {
+        // Where no thread can be started the reader runs on the stack of the thread that asks, and refuses a pattern
+        // too deep for that stack, rather than overflowing it.
+        string deep = string.Concat(Enumerable.Repeat("(?:", 200)) + "a" + new string(')', 200);
+        OnASmallStack(
+            () => Assert.ThrowsExactly<RegexPatternTooLargeException>(() => DeepStack.RunHere(() => new EcmaRegexParser(deep.AsSpan(), unicode: true).Parse())),
+            stack: 64 * 1024);
+    }
+
+    [TestMethod]
+    public void AGreatManyGroupsAreMatchedOnASmallStack()
+    {
+        // The pattern decides how many groups there are, so their slots are on the heap when there are many: a pattern
+        // of 100,000 groups is matched, replaced and split on a thread with a small stack.
+        OnASmallStack(() =>
+        {
+            Regex r = new(string.Concat(Enumerable.Repeat("(a)", 100_000)));
+            string text = new('a', 100_000);
+            Assert.IsTrue(r.IsMatch(text));
+            Assert.AreEqual(100_001, r.Match(text).Groups.Count);
+            Assert.AreEqual(100_001, r.Matches(text)[0].Groups.Count);
+            Assert.AreEqual(text.Length + 2, r.Replace(text, "<$&>").Length);
+            Assert.AreEqual(100_002, r.Split(text).Length);
+        });
+    }
+
     [TestMethod]
     public void TheFlagsStringIsReadAndWritten()
     {

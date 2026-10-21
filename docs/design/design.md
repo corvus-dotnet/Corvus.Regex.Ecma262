@@ -156,6 +156,18 @@ exception for that and a consumer's `catch` must already hold the case. Limits o
 of two hundred, program size, construction cost) are deterministic, never a clock, and throw
 `RegexPatternTooLargeException`.
 
+No pattern and no text may overflow the stack, since a stack overflow ends the process and no caller can catch it.
+The limit of nesting counts groups and the classes a class of the `v` flag's grammar holds together, since the
+reader goes a level deeper for each. The reader, the compiler and every walk of the syntax tree (the program of
+every group and the automaton, built when a match first needs them, among them) run on a thread with a 64 MB stack
+of its own when the pattern opens more than 32 groups and classes (`DeepStack`), so the deepest nesting the limit
+allows is read on any thread, the 1 MB main thread of Windows and the few hundred kilobytes of a host's thread
+among them. Where no thread can be started, the reader and the compiler check the stack as they go
+(`RuntimeHelpers.EnsureSufficientExecutionStack`) and refuse a pattern too deep for it as too large. A buffer whose
+length the pattern decides, such as the slots of the groups, is on the stack only up to 256 elements
+(`StackBuffer`), and on the heap beyond. An adversarial set of 814 patterns, deep, wide and long in every grammar
+and through every member, is answered or refused, and never overflows, on threads of 256 KB, 1 MB and 8 MB.
+
 ## 4. Engine design
 
 ### 4.1 One matcher, two encodings, no copy

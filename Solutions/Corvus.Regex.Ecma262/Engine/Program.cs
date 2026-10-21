@@ -1059,6 +1059,7 @@ internal sealed class Compiler
     /// <returns>The node, rewritten.</returns>
     public static EcmaRegexNode Simplify(EcmaRegexNode n, List<int> open)
     {
+        DeepStack.Ensure();
         if (n.Kind == EcmaRegexNodeKind.Backref)
         {
             bool all = true;
@@ -2629,6 +2630,7 @@ internal sealed class Compiler
     /// <summary>Writes the instructions for <paramref name="n"/>. With <paramref name="back"/> set the instructions match right to left, as the body of a lookbehind must.</summary>
     private void Emit(EcmaRegexNode n, bool back)
     {
+        DeepStack.Ensure();
         switch (n.Kind)
         {
             case EcmaRegexNodeKind.Empty:

@@ -33,6 +33,8 @@
     <Compile Include="..\Corvus.Regex.Ecma262\RegexParseException.cs" Link="Shared\RegexParseException.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\RegexPatternTooLargeException.cs" Link="Shared\RegexPatternTooLargeException.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexLimits.cs" Link="Shared\Syntax\EcmaRegexLimits.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Syntax\DeepStack.cs" Link="Shared\Syntax\DeepStack.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\StackBuffer.cs" Link="Shared\StackBuffer.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexNode.cs" Link="Shared\Syntax\EcmaRegexNode.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexParser.cs" Link="Shared\Syntax\EcmaRegexParser.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicode.cs" Link="Shared\Unicode\EcmaRegexUnicode.cs" />

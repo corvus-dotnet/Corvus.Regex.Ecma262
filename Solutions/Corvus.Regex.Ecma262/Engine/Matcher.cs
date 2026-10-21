@@ -1591,7 +1591,9 @@ public static class Matcher
             // order from the farthest.
             int lo = p.RequiredCount;
             int hi = p.RequiredCountMax;
-            Span<int> backs = stackalloc int[hi + 1];
+            // One slot for each character before the literal: on the stack only when there are few.
+            int backsLength = hi + 1;
+            Span<int> backs = backsLength <= StackBuffer.MaxLength ? stackalloc int[backsLength] : new int[backsLength];
             int next = pos + lo;
             int tried = pos - 1;
             while (true)
