@@ -57,6 +57,29 @@ public class ValidityTests
     }
 
     [TestMethod]
+    [DataRow("(", "")]
+    [DataRow("(", "u")]
+    [DataRow("(", "v")]
+    [DataRow("(?:", "")]
+    [DataRow("(?:", "u")]
+    [DataRow("(?:", "v")]
+    public void GroupsNestTwoHundredDeepAndNoDeeper(string open, string flags)
+    {
+        // The limit is on the groups: the pattern's own disjunction is not one of them.
+        string atLimit = Nest(open, 200);
+        (Regex interpreted, Regex generated) = Engines.Both(atLimit, flags);
+        Assert.IsTrue(interpreted.IsMatch("hello"), "interpreted: " + open + " " + flags);
+        Assert.IsTrue(generated.IsMatch("hello"), "generated: " + open + " " + flags);
+        Assert.IsFalse(interpreted.IsMatch("help"), "interpreted: " + open + " " + flags);
+        Assert.IsFalse(generated.IsMatch("help"), "generated: " + open + " " + flags);
+
+        RegexPatternTooLargeException e = Assert.ThrowsExactly<RegexPatternTooLargeException>(() => new Regex(Nest(open, 201), flags));
+        StringAssert.Contains(e.Message, "nest more than 200 deep");
+
+        static string Nest(string open, int depth) => string.Concat(Enumerable.Repeat(open, depth)) + "hello" + new string(')', depth);
+    }
+
+    [TestMethod]
     public void TheFlagsStringIsReadAndWritten()
     {
         Regex r = new("a", "yusmig");
