@@ -428,6 +428,8 @@ of it, over both encodings, interpreted and as generated code:
 | `engine-faults.jsonl` | 3,885 | 377,812 | Families built around faults found in the engines |
 | `unicode-sets.jsonl` | 5,520 | 795,150 | The v flag: each pattern with `v`, with `u` and with neither |
 | `captures.jsonl` | 5,188 | 207,485 | `exec`, the global search, `y`, `replace`, `replaceAll`, `split` |
+| `test262.jsonl` | 4,907 | 547,818 | The patterns and texts of test262's regular expression tests, with `v`, `u` and neither |
+| `test262-lone-surrogates.jsonl` | 3,435 | 10,326 | Those of test262 that hold a lone surrogate, on UTF-16 input |
 
 `captures.jsonl` is what the drop-in surface needs beyond "does it match anywhere": the match's `[start, end]` and
 each group's, the sequence of `exec` results of a `g` loop with the ECMA-262 `lastIndex` advance, `exec` with `y`
@@ -438,6 +440,14 @@ starts inside a surrogate pair; with `i` and `v` a string of one character in `\
 folded without the long s and the Kelvin sign) is marked on the record, by rewriting the pattern to the form V8
 gets right and asking it again, and the runner skips it.
 
+The runner asks the `v` grammar of every record that has `unicode_sets` answers, and matches a text with a lone
+surrogate as UTF-16 alone, whatever the file. In the files from test262 a record or a test may be marked
+`unicode-version`: V8 13.6 has the character database of Unicode 16, test262 and this library that of Unicode 17.
+Those are not skipped but judged by test262: a marked record in each grammar its `test262_valid` names, by that
+verdict, and its tests by their `test262_answer` in that grammar; a marked test in each grammar its `test262_answer`
+names, by that answer. Every other marked record or test is skipped. The header of the runner's `Program.cs` states
+these rules, and the runners of the other ports follow them.
+
 ### 8.2 How the tests read the data
 
 The data set is not vendored. The engine repository's `dataset.yml` checks out the data repository at a pinned commit
@@ -445,8 +455,10 @@ and runs the `DatasetRunner` over it on every pull request, on every push to `ma
 encodings, with 0 wrong, 0 refused-valid, 0 accepted-invalid and 0 at a limit as the pass; a second job runs the same
 data on Windows under .NET Framework 4.8.1, over the `netstandard2.0` build. The same runner is run locally before a
 change is pushed, in Debug and Release and with every pattern as generated code (the generated pass compiles each
-pattern's emitted source with Roslyn and takes about six minutes). The current count is 23,647,077 answers right and 0
-wrong in each mode.
+pattern's emitted source with Roslyn and takes about six minutes). The current count is 26,913,801 answers right and 0
+wrong in each mode, with 6 refusals of a valid pattern: the two patterns of test262 whose groups nest 200 deep, in
+each of their three grammars, are refused as too large by the parser's nesting limit (`MaxNesting`, which counts the
+pattern's own disjunction as a level), so the data set is not yet at its pass.
 
 ### 8.3 The other tests
 

@@ -6,9 +6,9 @@
 #   tools/benchmarks/run.sh <workloads.json> <texts dir> <out.json> [<test data dir>] [short|default]
 #
 # The texts are the .txt.gz files the benchmark project downloads (Inputs.cs); they are linked into the directory the
-# project reads. The test data is cloned at depth 1 when no directory is given. industry.md and industry-v8.json are
-# written beside <out.json>. The harness image (Dockerfile) runs this script, and the central benchmark site runs
-# that image on its own runner, beside every other engine's.
+# project reads. The test data is fetched at the commit dataset.yml pins when no directory is given. industry.md and
+# industry-v8.json are written beside <out.json>. The harness image (Dockerfile) runs this script, and the central
+# benchmark site runs that image on its own runner, beside every other engine's.
 set -euo pipefail
 workloads="$(realpath "$1")"; texts="$(realpath "$2")"; out="$(realpath -m "$3")"; data="${4:-}"; job="${5:-default}"
 here="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -28,7 +28,14 @@ echo "== the .NET and Corvus engines (BenchmarkDotNet, $job job)"
 ( cd "$here/Solutions/Corvus.Regex.Ecma262.Benchmarks" && ./bin/Release/net10.0/Corvus.Regex.Ecma262.Benchmarks --filter '*GeneratedCount*' --job "$job" --artifacts "$work/run" > "$work/run.log" 2>&1 ) || { tail -40 "$work/run.log"; exit 1; }
 
 echo "== the ECMA-262 test data (interpreted, both encodings)"
-if [ -z "$data" ]; then git clone --quiet --depth 1 https://github.com/corvus-dotnet/ecma262-regex-test-data.git "$work/data"; data="$work/data/data"; fi
+# The data commit dataset.yml pins, so that the compliance figures are those CI holds the library to.
+datacommit=77ca768ec8e711c67241416ba66931ae89a95e2d
+if [ -z "$data" ]; then
+  git init --quiet "$work/data"
+  git -C "$work/data" fetch --quiet --depth 1 https://github.com/corvus-dotnet/ecma262-regex-test-data.git "$datacommit"
+  git -C "$work/data" checkout --quiet FETCH_HEAD
+  data="$work/data/data"
+fi
 compliance="$(dotnet "$here/Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll" "$data" "$work/wrong.tsv" | tail -1)"
 echo "$compliance"
 

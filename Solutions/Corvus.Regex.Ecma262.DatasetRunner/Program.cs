@@ -7,10 +7,19 @@
 //   DatasetRunner <data directory> <wrong-cases output file> [file filter] [utf16|utf8|both]
 //
 // Each record is asked about under each grammar V8 found it valid in: the record's flags with u added (the
-// `unicode` answers) and the record's flags alone (the `legacy` answers). A text is matched as UTF-16 and as UTF-8.
-// A text with a lone surrogate has no UTF-8 form and is matched as UTF-16 alone. Records marked v8_deviation are
-// left out. Any difference from V8 is a wrong answer; a refusal of a valid pattern, an acceptance of an invalid
-// one, and a match that reaches its limit are counted apart and listed too.
+// `unicode` answers), the record's flags alone (the `legacy` answers) and, in every record that has them (those of
+// unicode-sets.jsonl and of the files from test262), the flags with v added (the `unicode_sets` answers). A text is
+// matched as UTF-16 and as UTF-8. A text with a lone surrogate has no UTF-8 form and is matched as UTF-16 alone,
+// whatever the file. Records and tests marked v8_deviation are left out, but for those marked `unicode-version`,
+// where V8 has the Unicode of 16 and test262 that of 17: the library has Unicode 17, so they are judged by
+// test262's verdicts (`test262_valid`) and answers (`test262_answer`) in the grammars those name, and left out in
+// the others. A marked record is judged in each grammar its `test262_valid` names, by that verdict, and its tests
+// in that grammar by their `test262_answer`; a marked test (of an unmarked record) in each grammar its
+// `test262_answer` names, by that answer. Any difference from V8 (or, there, from test262) is a wrong answer; a
+// refusal of a valid pattern, an acceptance of an invalid one, and a match that reaches its limit are counted apart
+// and listed too. captures.jsonl is judged on exec, the global search, the sticky flag, replace and split.
+//
+// These are the judging rules the runners of the other ports follow.
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -48,7 +57,7 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
     {
         using JsonDocument doc = JsonDocument.Parse(line);
         JsonElement r = doc.RootElement;
-        if (r.TryGetProperty("v8_deviation", out JsonElement dev) && dev.GetBoolean())
+        if (Deviations.IsSkipped(r))
         {
             Interlocked.Increment(ref skipped);
             return;
@@ -75,15 +84,22 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
         bool validUnicode = valid.GetProperty("unicode").GetBoolean();
         bool validLegacy = valid.GetProperty("legacy").GetBoolean();
         r.TryGetProperty("tests", out JsonElement tests);
-        // The three modes: the u flag ("unicode"), no flag ("legacy") and, in the file that has it, the v flag ("unicode_sets").
-        List<(string Suffix, string AnswerName, bool ExpectedValid)> modes = [("u", "unicode", validUnicode), (string.Empty, "legacy", validLegacy)];
+        // The three modes: the u flag ("unicode"), no flag ("legacy") and, in the records that have it, the v flag ("unicode_sets").
+        List<(string Suffix, string AnswerName, bool V8Valid)> modes = [("u", "unicode", validUnicode), (string.Empty, "legacy", validLegacy)];
         if (valid.TryGetProperty("unicode_sets", out JsonElement validSets))
         {
             modes.Add(("v", "unicode_sets", validSets.GetBoolean()));
         }
 
-        foreach ((string suffix, string answerName, bool expectedValid) in modes)
+        // A record marked for the Unicode version is judged in the grammars test262 gives a verdict for, by it.
+        bool recordByTest262 = Deviations.IsRecordByTest262(r);
+        foreach ((string suffix, string answerName, bool v8Valid) in modes)
         {
+            if (!Deviations.TryGetExpectedValid(r, answerName, v8Valid, out bool expectedValid))
+            {
+                continue;
+            }
+
             string modeFlags = flags + suffix;
             Regex? regex = null;
             string? error = null;
@@ -132,13 +148,14 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
 
             foreach (JsonElement t in tests.EnumerateArray())
             {
-                if (!t.TryGetProperty(answerName, out JsonElement answer))
+                // A test marked for the Unicode version, or any test of a record so marked, is judged by test262's
+                // answer in this grammar, and left out where it has none. A test marked otherwise is left out.
+                if (!Deviations.TryGetExpected(t, recordByTest262, answerName, out bool expected))
                 {
                     continue;
                 }
 
                 string text = Unescape(t.GetProperty("text").GetRawText());
-                bool expected = answer.GetBoolean();
                 if (utf16)
                 {
                     Judge(regex, pattern, modeFlags, text, expected, name, "utf16", ref fileRight, ref fileWrong, ref fileLimited, () => regex.IsMatch(text));

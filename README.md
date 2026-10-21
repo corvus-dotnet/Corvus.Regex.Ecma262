@@ -17,8 +17,9 @@ Documentation: [corvus-oss.org/Corvus.Regex.Ecma262](https://corvus-oss.org/Corv
 Unicode properties. A pattern written for JavaScript, or taken from a JSON Schema (whose `pattern`, `patternProperties`
 and `regex` format are defined as ECMA-262 regular expressions), can parse in .NET and match different texts, or
 fail to parse at all. This library answers as ECMAScript does, and is tested against V8's answers for every pattern
-of the [ECMA-262 regular expression test data](https://github.com/corvus-dotnet/ecma262-regex-test-data): 104,359
-patterns and 5.1 million texts, 0 wrong.
+of the [ECMA-262 regular expression test data](https://github.com/corvus-dotnet/ecma262-regex-test-data): 117,889
+patterns and 5.9 million texts, the patterns and texts of test262 among them (judged by test262's Unicode 17 answers
+where V8 has Unicode 16), 0 wrong.
 
 - **The answers of ECMAScript 2025**: lookbehind, named groups, modifier groups `(?i:...)`, Unicode property escapes
   on Unicode 17 data, the `u` flag, and the `v` flag with set notation (`[[a-z]--[aeiou]]`, `&&`), strings in classes

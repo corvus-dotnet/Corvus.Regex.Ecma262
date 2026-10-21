@@ -69,7 +69,7 @@ internal static class Factory
 
             using JsonDocument doc = JsonDocument.Parse(line);
             JsonElement r = doc.RootElement;
-            if (r.TryGetProperty("v8_deviation", out JsonElement dev) && dev.GetBoolean())
+            if (Deviations.IsSkipped(r))
             {
                 continue;
             }
@@ -77,15 +77,15 @@ internal static class Factory
             string pattern = unescape(r.GetProperty("pattern").GetRawText());
             string flags = r.GetProperty("flags").GetString()!;
             JsonElement valid = r.GetProperty("valid");
-            List<(string Mode, bool IsValid)> modes = [("unicode", valid.GetProperty("unicode").GetBoolean()), ("legacy", valid.GetProperty("legacy").GetBoolean())];
+            List<(string Mode, bool V8Valid)> modes = [("unicode", valid.GetProperty("unicode").GetBoolean()), ("legacy", valid.GetProperty("legacy").GetBoolean())];
             if (valid.TryGetProperty("unicode_sets", out JsonElement validSets))
             {
                 modes.Add(("unicode_sets", validSets.GetBoolean()));
             }
 
-            foreach ((string mode, bool isValid) in modes)
+            foreach ((string mode, bool v8Valid) in modes)
             {
-                if (!isValid)
+                if (!Deviations.TryGetExpectedValid(r, mode, v8Valid, out bool isValid) || !isValid)
                 {
                     continue;
                 }
