@@ -1,34 +1,47 @@
-# The benchmark harness image: built and smoke-run on every push to main and every release, and published to
-# ghcr.io/corvus-dotnet/corvus-regex-ecma262-dotnet (`:latest` from main, the version tag from a release). This
-# repository publishes no benchmark results of its own: the central benchmark site
-# (https://corvus-oss.org/corvus-regex-ecma262-benchmarks/) runs this image each night on its runner, beside every
-# other Corvus ECMA-262 engine, and is the one page of figures.
+# The benchmark harness image: built and smoke-run on every pull request, every push to main and every release tag, and
+# published to ghcr.io/corvus-dotnet/corvus-regex-ecma262-dotnet (`:latest` from main, the version tag from the tag's
+# push). auto_release.yml pushes the tag with the endjin bot's token, which starts this workflow; the GitHub release it
+# then makes with the workflow's own token starts nothing. A run by hand with a tag builds and publishes that release's
+# image (to make one a release lacks).
+# This repository publishes no benchmark results of its own: the central benchmark site
+# (https://corvus-oss.org/corvus-regex-ecma262-benchmarks/) runs this image each night on its runner, beside every other
+# Corvus ECMA-262 engine, and is the one page of figures.
 name: harness-image
 on:
   push:
     branches:
     - main
+    tags:
+    - '[0-9]+.[0-9]+.[0-9]+*'
+  pull_request:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: A release's tag, to build and publish that release's image
+        required: false
+        default: ''
 
 permissions:
   contents: read
   packages: write
 
 concurrency:
-  group: harness-image
+  group: harness-image-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   image:
-    name: Build, smoke-run and publish the harness image
+    name: Harness image
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        ref: ${{ inputs.tag || github.ref }}
     - name: Build the harness image
-      run: docker build --build-arg COMMIT="${GITHUB_SHA::7}" -t harness .
+      run: docker build --build-arg COMMIT="$(git rev-parse --short=7 HEAD)" -t harness .
     - name: "Smoke-run it: two workloads, the short job, as the central site runs it"
       run: |
         python3 tools/benchmarks/v8/workloads.py Solutions/Corvus.Regex.Ecma262.Benchmarks/Industry.cs > all.json
@@ -38,9 +51,12 @@ jobs:
         docker run --rm -e JOB=short -e CORVUS_REGEX_WORKLOADS='aei,zqj' -v "$PWD/workloads.json:/workloads.json:ro" -v "$PWD/texts:/texts:ro" -v "$PWD/out:/out" harness
         python3 -c "import json; d=json.load(open('out/industry.json')); assert len(d['schemas']) == 2 and len(d['impls']) >= 6, d['schemas']; print('smoke run wrote', len(d['impls']), 'engines over', len(d['schemas']), 'workloads')"
     - name: Publish the image
-      if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+      if: github.ref == 'refs/heads/main' || github.ref_type == 'tag' || github.event_name == 'release' || inputs.tag != ''
+      env:
+        # The version: the tag pushed, the release's, or the one given by hand.
+        VERSION: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || github.event.release.tag_name || '' }}
       run: |
         echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
         image=ghcr.io/corvus-dotnet/corvus-regex-ecma262-dotnet
-        docker tag harness "$image:latest" && docker push "$image:latest"
-        if [ '${{ github.event_name }}' = 'release' ]; then docker tag harness "$image:${{ github.event.release.tag_name }}" && docker push "$image:${{ github.event.release.tag_name }}"; fi
+        if [ '${{ github.ref }}' = 'refs/heads/main' ] && [ -z "$VERSION" ]; then docker tag harness "$image:latest" && docker push "$image:latest"; fi
+        if [ -n "$VERSION" ]; then docker tag harness "$image:$VERSION" && docker push "$image:$VERSION"; fi
