@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Writes the Industry benchmark record from a GeneratedCount run into a directory: industry.json (the data of the
+"""Writes the Industry benchmark record from a run into a directory: industry.json (the data of the
 results page, see tools/benchmarks/results-page/generate_site.py) and industry.md (the table). The daily workflow is
 its publisher; nothing it writes is committed.
 
-Usage: industry-results.py --run <BenchmarkDotNet artifacts dir> --commit <sha> --date <date> [--v8 <results json>]
+Usage: industry-results.py (--interleaved <run.json> | --run <BenchmarkDotNet artifacts dir> [--v8 <results json>])
+                           --commit <sha> --date <date>
                            [--host pinned|ci] [--probe-before <ns> --probe-after <ns>] [--job short|default]
                            [--out-dir <dir>] [--base-path <prefix>] [--run-url <url>]
 
@@ -12,14 +13,18 @@ The host is "pinned" for the procedure of the design document (the probes are th
 run on a GitHub-hosted runner (the benchmarks workflow), where nothing is pinned and the figures are those of that
 day's runner; the two are kept apart and never read against each other.
 
-The run is the GeneratedCount benchmark of Solutions/Corvus.Regex.Ecma262.Benchmarks under the pinned-host procedure
-(docs/design/design.md, section 9): five engines over the 57 Industry workloads, one Count each.
+The run is the Industry benchmark of Solutions/Corvus.Regex.Ecma262.Benchmarks: five engines over the 57 Industry
+workloads, one Count each. With --interleaved it is the run of the interleaved protocol every Corvus ECMA-262 engine's
+harness runs (Driver.cs, `Corvus.Regex.Ecma262.Benchmarks industry`), V8 among its engines, whose facts are the run's
+own record of itself; with --run, BenchmarkDotNet's GeneratedCount class under the pinned-host procedure
+(docs/design/design.md, section 9), V8 from its own harness (--v8).
 """
 import csv, string, glob, json, math, os, statistics, sys
 
 import argparse
 ap = argparse.ArgumentParser()
-ap.add_argument("--run", required=True)
+ap.add_argument("--run")
+ap.add_argument("--interleaved", help="the run.json of the interleaved driver (Driver.cs), in place of --run and --v8")
 ap.add_argument("--commit", required=True)
 ap.add_argument("--date", required=True)
 ap.add_argument("--v8")
@@ -32,6 +37,8 @@ ap.add_argument("--base-path", default="")
 ap.add_argument("--run-url", default="")
 ap.add_argument("--compliance", default="", help="the data-set runner's last line for the Corvus engines (records ... right N wrong N refused-valid N accepted-invalid N ...)")
 args = ap.parse_args()
+if not (args.run or args.interleaved):
+    raise SystemExit("a run: --interleaved <run.json> or --run <BenchmarkDotNet artifacts>")
 run, commit, date, v8_path = args.run, args.commit, args.date, args.v8
 before, after = args.probe_before, args.probe_after
 if args.host == "pinned" and not (before and after):
@@ -40,7 +47,7 @@ out_dir = args.out_dir
 os.makedirs(out_dir, exist_ok=True)
 # The host and the runtime as BenchmarkDotNet recorded them in the run's report header, never typed in.
 HOST_LINES = []
-for g in glob.glob(os.path.join(run, "results", "*GeneratedCount-report-github.md")):
+for g in (glob.glob(os.path.join(run, "results", "*GeneratedCount-report-github.md")) if run else []):
     with open(g, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -56,6 +63,16 @@ MACHINE = next((l for l in HOST_LINES if "CPU" in l or "cores" in l), "")
 OS_LINE = next((l for l in HOST_LINES if l.startswith("BenchmarkDotNet")), "")
 RUNTIME = next((l.split(":", 1)[1].strip() for l in HOST_LINES if l.startswith("[Host]")), ".NET 10")
 JOB = {"short": "BenchmarkDotNet's short job (one launch, three warm-ups, three iterations)", "default": "BenchmarkDotNet's default job (one launch, warm-ups and iterations as it settles them, fifteen or more)"}[args.job]
+# An interleaved run records itself: the host, the runtime and the protocol come from its facts.
+INTERLEAVED = json.load(open(args.interleaved, encoding="utf-8")) if args.interleaved else None
+if INTERLEAVED:
+    f_ = INTERLEAVED["facts"]
+    MACHINE = f"{f_.get('cpu', '')}, {f_.get('os', '')}, {f_.get('cores', '')} cores (affinity {f_.get('affinity', '')}), load {f_.get('load', '')} at the start"
+    RUNTIME = f_.get("runtime", ".NET 10")
+    JOB = (f"the interleaved protocol of every Corvus engine's harness: every workload in turn, each in {f_.get('rounds')} rounds of the "
+           f"engines in turn (their order turned each round), each figure a process of its own, warmed for at least 1.5 s (for "
+           f".NET's tiered compiler) and timed for {f_.get('seconds')} s in {f_.get('passes')} passes; a workload's figure is the "
+           f"median of its rounds, the spread its fastest and slowest round")
 if args.host == "pinned":
     HOST_MD = f"""- **Host** an Intel Core i7-13800H under WSL2 on Windows, the virtual machine pinned to the twelve performance cores (vmmemWSL affinity 0xFFF), the run under `taskset -c 0-11` after a settle of at least three minutes.
 - **Health probe** {before} ns before the run and {after} ns after; 12.5 to 16 is the band that makes a run valid."""
@@ -95,15 +112,17 @@ ENGINES = [
 ]
 TEXTS = {"sherlock": "Sherlock Holmes (0.6 M chars)", "leipzig": "Leipzig corpus (16 M chars)", "mariomka": "mariomka (0.05 M chars)", "rebar-ru": "OpenSubtitles ru (1.2 M chars)", "rebar-zh": "OpenSubtitles zh (0.3 M chars)"}
 
-f = glob.glob(os.path.join(run, "results", "*GeneratedCount-report.csv"))[0]
+# The driver's engines, as the rows of the page name them.
+INTERLEAVED_ENGINES = {"net-interpreter": ".NET interpreter", "net-generated": ".NET generated", "corvus-utf16": "Corvus interpreter",
+                       "corvus-generated-utf16": "Corvus generated UTF-16", "corvus-generated-utf8": "Corvus generated UTF-8"}
 rows = {}
-for r in csv.DictReader(open(f)):
+for r in (csv.DictReader(open(glob.glob(os.path.join(run, "results", "*GeneratedCount-report.csv"))[0])) if run else []):
     # BenchmarkDotNet writes a backslash in a parameter as two; the pattern has one.
     rows.setdefault(r["Workload"].replace("\\\\", "\\"), {})[r["Method"].strip("'")] = r
 
-workloads = list(rows)
+workloads = list(rows) if run else list(next(iter(INTERLEAVED["results"].values())))
 results = {}
-for method, name, group in ENGINES:
+for method, name, group in (ENGINES if run else []):
     results[name] = {}
     for w in workloads:
         r = rows[w].get(method)
@@ -121,9 +140,23 @@ for method, name, group in ENGINES:
             entry["allocated"] = {"median": alloc, "min": alloc, "max": alloc}
         results[name][w] = entry
 
+if INTERLEAVED:
+    by_name = {v: k for k, v in INTERLEAVED_ENGINES.items()}
+    for _, name, _ in ENGINES:
+        figures = INTERLEAVED["results"].get(by_name[name], {})
+        results[name] = {w: ({"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if "median" in r else None)
+                         for w, r in figures.items()}
+
 # V8 as an engine beside the .NET ones: its own harness, the same texts and workloads, the same flags as the Corvus rows.
 V8 = None
-if v8_path:
+if INTERLEAVED and "v8" in INTERLEAVED["results"]:
+    engine = INTERLEAVED["facts"].get("v8", "V8")
+    node = engine.split("Node ")[-1].rstrip(")").split(".")[0]
+    V8 = ("V8 (Node " + node + ")", engine)
+    ENGINES.append((V8[0], V8[0], "V8"))
+    results[V8[0]] = {w: ({"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if "median" in r else None)
+                      for w, r in INTERLEAVED["results"]["v8"].items()}
+elif v8_path:
     v8 = json.load(open(v8_path, encoding="utf-8"))
     node = v8["engine"].split("Node ")[-1].rstrip(")").split(".")[0]
     V8 = ("V8 (Node " + node + ")", v8["engine"])
@@ -153,7 +186,9 @@ method_html = (
 "<p><b>Each figure is one <code>Count</code></b> over the whole text: every match found, as the benchmark of dotnet/performance measures it. The Corvus rows run under the <code>u</code> flag, which .NET has no mode for; counts agree on 53 of the 57 rows, and the four apart are <code>$</code> and <code>.</code> at CRLF, where ECMA-262 counts CR as a line terminator, and <code>\\w</code>, which .NET takes as Unicode letters and digits.</p>"
     + "<p><b>Where this library is slower, and why.</b> Four kinds of row read above 1.0, each the price of an ECMA-262 rule .NET does not apply: <code>.</code> and <code>$</code> at CRLF, where ECMA-262's <code>.</code> stops at CR as well as LF, so <code>.*</code> finds 36,491 matches to .NET's 26,105 at parity per match; case-insensitive patterns under the u flag, whose search must find the long s and the Kelvin sign as forms of <code>s</code> and <code>k</code>, which .NET's search ignores; a class that admits a supplementary character (two units) before a literal at a fixed distance, so the distance is not fixed (<code>[a-q][^u-z]{13}x</code>); and non-ASCII literals over UTF-8, where every Cyrillic or Chinese character is two or three bytes with no rare byte among them, against UTF-16's one rare unit per character. The other rows above 1.0 are within a few percent of parity and read either side of it from run to run.</p>"
     + "<p><b>The engines</b> are .NET's interpreter (<code>RegexOptions.None</code>), .NET's source generator (<code>[GeneratedRegex]</code>), this library's interpreter over UTF-16, this library's source generator over UTF-16 and over UTF-8, and V8 (Node 24's <code>RegExp</code>, the oracle of the test data) over the same texts with the same flags as the Corvus rows, its matches counted by a <code>test</code> loop that advances <code>lastIndex</code> as <code>matchAll</code> does. The UTF-8 rows match the same text as bytes, with nothing transcoded.</p>"
-    + f"<p><b>The bar is the mean</b> of {JOB} and the whisker one standard deviation of its iterations; a row's ratio is read against its neighbours' rather than to the last few percent. Allocated is the bytes the benchmark allocated per operation; the library allocates nothing per match once its working memory has grown.</p>"
+    + (f"<p><b>The bar is the median</b> of {JOB}. A row's ratio is read against its neighbours' rather than to the last few percent.</p>"
+       if INTERLEAVED else
+       f"<p><b>The bar is the mean</b> of {JOB} and the whisker one standard deviation of its iterations; a row's ratio is read against its neighbours' rather than to the last few percent. Allocated is the bytes the benchmark allocated per operation; the library allocates nothing per match once its working memory has grown.</p>")
     + HOST_HTML
 )
 
@@ -186,12 +221,14 @@ data = {
     "vocab": {
         "impl": "engine", "impls": "engines", "Impls": "Engines",
         "schema": "workload", "schemas": "workloads", "Schema": "Workload", "Schemas": "Workloads",
-        "failed": "did not run", "centre": "Mean", "spread": "StdDev",
-        "barLegend": "mean of the run", "whiskerLegend": "whisker: one standard deviation",
+        "failed": "did not run",
+        **({"centre": "Median", "spread": "fastest to slowest round", "barLegend": "median of the rounds",
+            "whiskerLegend": "whisker: the fastest and the slowest round"} if INTERLEAVED else
+           {"centre": "Mean", "spread": "StdDev", "barLegend": "mean of the run", "whiskerLegend": "whisker: one standard deviation"}),
     },
     "measures": {
         "time": {"label": "Time", "long": "time per Count", "parts": ["time"]},
-        "allocated": {"label": "Allocated", "long": "bytes allocated per Count", "parts": ["allocated"], "bytes": True},
+        **({} if INTERLEAVED else {"allocated": {"label": "Allocated", "long": "bytes allocated per Count", "parts": ["allocated"], "bytes": True}}),
     },
     "impls": [{"id": name, "name": name, "group": group, "version": V8[1] if V8 and name == V8[0] else "", "compliance": compliance_of(group)} for _, name, group in ENGINES],
     "schemas": [{"name": w, "note": "", "meta": [["text", TEXTS.get(w.split(":")[0], w.split(":")[0])]]} for w in workloads],
