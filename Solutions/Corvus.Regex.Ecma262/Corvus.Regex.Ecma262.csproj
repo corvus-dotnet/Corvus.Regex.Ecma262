@@ -61,7 +61,9 @@
     <Compile Include="RegexMatchTimeoutException.cs" />
     <Compile Include="RegexParseException.cs" />
     <Compile Include="RegexPatternTooLargeException.cs" />
+    <Compile Include="StackBuffer.cs" />
     <Compile Include="Syntax\EcmaRegexLimits.cs" />
+    <Compile Include="Syntax\DeepStack.cs" />
     <Compile Include="Syntax\EcmaRegexNode.cs" />
     <Compile Include="Syntax\EcmaRegexParser.cs" />
     <Compile Include="Unicode\EcmaRegexUnicode.cs" />

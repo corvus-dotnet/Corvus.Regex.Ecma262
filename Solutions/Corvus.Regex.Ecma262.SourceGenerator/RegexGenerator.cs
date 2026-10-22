@@ -198,6 +198,13 @@ public sealed class RegexGenerator : IIncrementalGenerator
     /// <returns>The text of the classes, indented for a nested class.</returns>
     internal static string Runners(string pattern, int flags)
     {
+        // The reader, the compiler and the emitters go a level deeper for each level of groups (and with the v flag,
+        // of classes), so a pattern that nests deeply is read on a stack of its own (see DeepStack).
+        return DeepStack.Run(pattern, (flags & (int)RegexFlags.UnicodeSets) != 0, () => RunnersOnThisStack(pattern, flags));
+    }
+
+    private static string RunnersOnThisStack(string pattern, int flags)
+    {
         bool unicode = (flags & (int)(RegexFlags.Unicode | RegexFlags.UnicodeSets)) != 0;
         EcmaRegexParser parser = new(
             pattern.AsSpan(),
