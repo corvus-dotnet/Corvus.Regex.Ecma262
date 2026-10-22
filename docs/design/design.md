@@ -423,7 +423,7 @@ protected by a ruleset in the same shape as Corvus.JsonSchema's.
 
 ### 8.1 The data set
 
-`corvus-dotnet/ecma262-regex-test-data` holds V8's verdicts (Node 24, V8 13.6) for every pattern of its families
+`corvus-dotnet/ecma262-regex-test-data` holds V8's verdicts (Node 24.22.0, V8 13.6.233.17, Unicode 17) for every pattern of its families
 (validity under both grammars) and `RegExp.prototype.test` answers for the texts of each, with the `i`, `m` and
 `s` flags where a family exercises them. It is the oracle for every Corvus port, and this library is held to all
 of it, over both encodings, interpreted and as generated code:
@@ -439,11 +439,13 @@ of it, over both encodings, interpreted and as generated code:
 | `word-boundaries.jsonl` | 2,000 | 542,000 | `\b`, `\B` |
 | `backreferences.jsonl` | 3,871 | 514,843 | Every form of backreference |
 | `lookarounds.jsonl` | 4,499 | 590,167 | Lookahead and lookbehind |
-| `case-folding.jsonl` | 2,863 | 407,080 | The two case rules |
+| `case-folding.jsonl` | 2,863 | 408,326 | The two case rules |
 | `code-units.jsonl` | 3,000 | 296,940 | Matching by code unit without `u` |
 | `lone-surrogates.jsonl` | 1,500 | 69,000 | Lone surrogates on UTF-16 input |
 | `engine-faults.jsonl` | 3,885 | 377,812 | Families built around faults found in the engines |
-| `unicode-sets.jsonl` | 5,520 | 795,150 | The v flag: each pattern with `v`, with `u` and with neither |
+| `unicode-sets.jsonl` | 5,520 | 795,300 | The v flag: each pattern with `v`, with `u` and with neither |
+| `test262.jsonl` | 4,907 | 547,818 | The patterns and texts of test262's regular expression tests, with `v`, `u` and neither |
+| `test262-lone-surrogates.jsonl` | 3,435 | 10,326 | Those of test262 that hold a lone surrogate, on UTF-16 input |
 | `captures.jsonl` | 5,188 | 207,485 | `exec`, the global search, `y`, `replace`, `replaceAll`, `split` |
 
 `captures.jsonl` is what the drop-in surface needs beyond "does it match anywhere": the match's `[start, end]` and
@@ -462,7 +464,7 @@ and runs the `DatasetRunner` over it on every pull request, on every push to `ma
 encodings, with 0 wrong, 0 refused-valid, 0 accepted-invalid and 0 at a limit as the pass; a second job runs the same
 data on Windows under .NET Framework 4.8.1, over the `netstandard2.0` build. The same runner is run locally before a
 change is pushed, in Debug and Release and with every pattern as generated code (the generated pass compiles each
-pattern's emitted source with Roslyn and takes about six minutes). The current count is 23,647,077 answers right and 0
+pattern's emitted source with Roslyn and takes about six minutes). The current count is 26,950,829 answers right and 0
 wrong in each mode.
 
 ### 8.3 The other tests
