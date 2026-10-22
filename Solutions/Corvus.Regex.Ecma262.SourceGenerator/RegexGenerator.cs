@@ -122,7 +122,8 @@ public sealed class RegexGenerator : IIncrementalGenerator
         string pattern = string.Empty;
         int flags = 0;
         string? flagsText = null;
-        int timeout = -1;
+        // Null when the attribute gives none, for the default match timeout.
+        int? timeout = null;
         string runners = string.Empty;
         ImmutableArray<TypedConstant> args = attribute.ConstructorArguments;
         if (args.Length >= 1 && args[0].Value is string p)
@@ -337,9 +338,11 @@ public sealed class RegexGenerator : IIncrementalGenerator
 
         string holder = "CorvusRegex_" + target.Member;
         string flags = "(global::Corvus.Ecma262.RegularExpressions.RegexFlags)" + target.Flags.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        string timeout = target.TimeoutMilliseconds < 0
+        string timeout = target.TimeoutMilliseconds is not int ms
+            ? "global::Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout"
+            : ms < 0
             ? "global::Corvus.Ecma262.RegularExpressions.Regex.InfiniteMatchTimeout"
-            : "global::System.TimeSpan.FromMilliseconds(" + target.TimeoutMilliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
+            : "global::System.TimeSpan.FromMilliseconds(" + ms.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
         string pattern = SymbolDisplay.FormatLiteral(target.Pattern, quote: true);
 
         Indent(sb, indent).AppendLine("/// <summary>The regular expression " + Comment(target) + ", made once.</summary>");
@@ -458,7 +461,7 @@ public sealed class RegexGenerator : IIncrementalGenerator
         string Pattern,
         int Flags,
         string? FlagsText,
-        int TimeoutMilliseconds,
+        int? TimeoutMilliseconds,
         string Runners,
         ImmutableArray<Diagnostic> Diagnostics);
 }

@@ -30,13 +30,18 @@ public class GeneratorTests
 
                     [GeneratedRegex(@"[a-z]+", RegexFlags.IgnoreCase | RegexFlags.Unicode, 250)]
                     internal static partial Regex Word();
+
+                    [GeneratedRegex("x", "", -1)]
+                    internal static partial Regex Untimed();
                 }
             }
             """);
         Assert.AreEqual(0, diagnostics.Length, string.Join("\n", diagnostics));
         AssertCompiles(output);
         StringAssert.Contains(generated, "public static partial global::Corvus.Ecma262.RegularExpressions.Regex Digits() => CorvusRegex_Digits.Instance;");
-        StringAssert.Contains(generated, "new(\"\\\\d+\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)34, global::Corvus.Ecma262.RegularExpressions.Regex.InfiniteMatchTimeout, new Bounds(), new Captures());");
+        // No timeout in the attribute is the default match timeout, and -1 is none.
+        StringAssert.Contains(generated, "new(\"\\\\d+\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)34, global::Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout, new Bounds(), new Captures());");
+        StringAssert.Contains(generated, "new(\"x\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)0, global::Corvus.Ecma262.RegularExpressions.Regex.InfiniteMatchTimeout, new Bounds(), new Captures());");
         StringAssert.Contains(generated, "(global::Corvus.Ecma262.RegularExpressions.RegexFlags)36, global::System.TimeSpan.FromMilliseconds(250), new Bounds(), new Captures());");
     }
 

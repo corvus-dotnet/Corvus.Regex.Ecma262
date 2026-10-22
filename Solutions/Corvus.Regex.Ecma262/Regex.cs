@@ -19,6 +19,15 @@ public sealed partial class Regex
     /// <summary>The match timeout that means no timeout.</summary>
     public static readonly TimeSpan InfiniteMatchTimeout = Timeout.InfiniteTimeSpan;
 
+    /// <summary>
+    /// The name of the <see cref="AppContext"/> data that sets the default match timeout, which
+    /// <c>System.Text.RegularExpressions</c> reads too.
+    /// </summary>
+    private const string DefaultMatchTimeoutKey = "REGEX_DEFAULT_MATCH_TIMEOUT";
+
+    /// <summary>The default match timeout in ticks once it has been read, or <see cref="long.MinValue"/> before.</summary>
+    private static long defaultMatchTimeoutTicks = long.MinValue;
+
     private readonly Program program;
     private readonly EcmaRegexNode root;
     private readonly bool linear;
@@ -29,36 +38,43 @@ public sealed partial class Regex
     private Dfa? dfa;
     private bool dfaTried;
 
-    /// <summary>Initializes a new instance of the <see cref="Regex"/> class with no flags.</summary>
+    /// <summary>Initializes a new instance of the <see cref="Regex"/> class with no flags and the <see cref="DefaultMatchTimeout"/>.</summary>
     /// <param name="pattern">The pattern.</param>
     /// <exception cref="RegexParseException">The pattern is not valid.</exception>
     /// <exception cref="RegexPatternTooLargeException">The pattern is over a limit of size.</exception>
     public Regex(string pattern)
-        : this(pattern, RegexFlags.None, InfiniteMatchTimeout)
+        : this(pattern, RegexFlags.None, DefaultMatchTimeout)
     {
     }
 
-    /// <summary>Initializes a new instance of the <see cref="Regex"/> class.</summary>
+    /// <summary>Initializes a new instance of the <see cref="Regex"/> class with the <see cref="DefaultMatchTimeout"/>.</summary>
     /// <param name="pattern">The pattern.</param>
     /// <param name="flags">The flags.</param>
     /// <exception cref="RegexParseException">The pattern is not valid in the grammar of its flags.</exception>
     /// <exception cref="RegexPatternTooLargeException">The pattern is over a limit of size.</exception>
     public Regex(string pattern, RegexFlags flags)
-        : this(pattern, flags, InfiniteMatchTimeout)
+        : this(pattern, flags, DefaultMatchTimeout)
     {
     }
 
-    /// <summary>Initializes a new instance of the <see cref="Regex"/> class, with the flags as <c>new RegExp(pattern, flags)</c> takes them.</summary>
+    /// <summary>Initializes a new instance of the <see cref="Regex"/> class, with the flags as <c>new RegExp(pattern, flags)</c> takes them and the <see cref="DefaultMatchTimeout"/>.</summary>
     /// <param name="pattern">The pattern.</param>
     /// <param name="flags">The flags: any of <c>d</c>, <c>g</c>, <c>i</c>, <c>m</c>, <c>s</c>, <c>u</c>, <c>v</c> and <c>y</c>, each at most once.</param>
     /// <exception cref="RegexParseException">The pattern is not valid in the grammar of its flags, or the flags are not valid.</exception>
     /// <exception cref="RegexPatternTooLargeException">The pattern is over a limit of size.</exception>
     public Regex(string pattern, string flags)
-        : this(pattern, ParseFlags(flags), InfiniteMatchTimeout)
+        : this(pattern, ParseFlags(flags), DefaultMatchTimeout)
     {
     }
 
-    /// <summary>Initializes a new instance of the <see cref="Regex"/> class with a match timeout.</summary>
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Regex"/> class with a match timeout: the time each match may take
+    /// before it is abandoned with <see cref="RegexMatchTimeoutException"/>. A match with a timeout is also abandoned,
+    /// with <see cref="RegexMatchTimeoutException.ExceededMemory"/>, when its backtracking stack reaches its cap.
+    /// Every member that matches gives each of its matches the timeout, whatever the pattern. Without one a match has
+    /// no limit of time or of memory, so a pattern or a text from outside should be given one, here or for every
+    /// instance with <see cref="DefaultMatchTimeout"/>.
+    /// </summary>
     /// <param name="pattern">The pattern.</param>
     /// <param name="flags">The flags.</param>
     /// <param name="matchTimeout">The time a match may take before it is abandoned with <see cref="RegexMatchTimeoutException"/>, or <see cref="InfiniteMatchTimeout"/>.</param>
@@ -113,7 +129,10 @@ public sealed partial class Regex
             });
         this.root = root;
         this.linear = !parser.HasBackreferences;
-        this.limit = this.linear ? TimeSpan.Zero : (matchTimeout == InfiniteMatchTimeout ? TimeSpan.Zero : matchTimeout);
+
+        // Every pattern has its timeout. One without a backreference takes time in proportion to its size times the
+        // text, but a count is not size: (?:a?){2147483647} keeps a choice for each of its iterations.
+        this.limit = matchTimeout == InfiniteMatchTimeout ? TimeSpan.Zero : matchTimeout;
         this.unicode = unicode;
         this.GroupCount = parser.GroupCount;
         this.GroupNames = parser.GroupNames;
@@ -126,6 +145,30 @@ public sealed partial class Regex
 
     /// <summary>Gets the flags.</summary>
     public RegexFlags Flags { get; }
+
+    /// <summary>
+    /// Gets the match timeout of every instance made without one of its own: the <c>REGEX_DEFAULT_MATCH_TIMEOUT</c>
+    /// data of the <see cref="AppContext"/>, which <c>System.Text.RegularExpressions</c> reads too, as a
+    /// <see cref="TimeSpan"/>, or <see cref="InfiniteMatchTimeout"/> when it is not set. It is read once, when it is
+    /// first needed, so a program sets it when it starts (with <c>AppContext.SetData</c>, or
+    /// <c>AppDomain.CurrentDomain.SetData</c> on .NET Framework, or in its runtimeconfig.json).
+    /// </summary>
+    /// <exception cref="InvalidCastException">The data is not a <see cref="TimeSpan"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The data is not a valid match timeout.</exception>
+    public static TimeSpan DefaultMatchTimeout
+    {
+        get
+        {
+            long ticks = Volatile.Read(ref defaultMatchTimeoutTicks);
+            if (ticks == long.MinValue)
+            {
+                ticks = ReadDefaultMatchTimeout(AppContext.GetData(DefaultMatchTimeoutKey)).Ticks;
+                Volatile.Write(ref defaultMatchTimeoutTicks, ticks);
+            }
+
+            return TimeSpan.FromTicks(ticks);
+        }
+    }
 
     /// <summary>Gets the time a match may take before it is abandoned, or <see cref="InfiniteMatchTimeout"/>.</summary>
     public TimeSpan MatchTimeout { get; }
@@ -383,6 +426,29 @@ public sealed partial class Regex
             throw new RegexParseException("Invalid regular expression flags", 0);
         }
 
+    }
+
+    /// <summary>The default match timeout the <see cref="AppContext"/> data sets.</summary>
+    /// <param name="data">The data, or null when it is not set.</param>
+    /// <returns>The timeout, or <see cref="InfiniteMatchTimeout"/>.</returns>
+    internal static TimeSpan ReadDefaultMatchTimeout(object? data)
+    {
+        if (data is null)
+        {
+            return InfiniteMatchTimeout;
+        }
+
+        if (data is not TimeSpan timeout)
+        {
+            throw new InvalidCastException($"The AppContext data '{DefaultMatchTimeoutKey}' is a {data.GetType()}, not a TimeSpan.");
+        }
+
+        if (timeout != InfiniteMatchTimeout && (timeout <= TimeSpan.Zero || timeout.TotalMilliseconds > int.MaxValue - 1))
+        {
+            throw new ArgumentOutOfRangeException(DefaultMatchTimeoutKey, timeout, "The AppContext data is not a valid match timeout.");
+        }
+
+        return timeout;
     }
 
     private static void ValidateMatchTimeout(TimeSpan matchTimeout)

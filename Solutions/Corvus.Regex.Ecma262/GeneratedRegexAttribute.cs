@@ -20,14 +20,14 @@ namespace Corvus.Ecma262.RegularExpressions;
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
 public sealed class GeneratedRegexAttribute : Attribute
 {
-    /// <summary>Initializes a new instance of the <see cref="GeneratedRegexAttribute"/> class.</summary>
+    /// <summary>Initializes a new instance of the <see cref="GeneratedRegexAttribute"/> class: the regular expression has the <see cref="Regex.DefaultMatchTimeout"/>.</summary>
     /// <param name="pattern">The pattern.</param>
     public GeneratedRegexAttribute(string pattern)
         : this(pattern, RegexFlags.None, -1)
     {
     }
 
-    /// <summary>Initializes a new instance of the <see cref="GeneratedRegexAttribute"/> class.</summary>
+    /// <summary>Initializes a new instance of the <see cref="GeneratedRegexAttribute"/> class: the regular expression has the <see cref="Regex.DefaultMatchTimeout"/>.</summary>
     /// <param name="pattern">The pattern.</param>
     /// <param name="flags">The flags.</param>
     public GeneratedRegexAttribute(string pattern, RegexFlags flags)
@@ -38,7 +38,7 @@ public sealed class GeneratedRegexAttribute : Attribute
     /// <summary>Initializes a new instance of the <see cref="GeneratedRegexAttribute"/> class.</summary>
     /// <param name="pattern">The pattern.</param>
     /// <param name="flags">The flags.</param>
-    /// <param name="matchTimeoutMilliseconds">The limit of time on a match in milliseconds, or -1 for none.</param>
+    /// <param name="matchTimeoutMilliseconds">The match timeout in milliseconds, or -1 for none (<see cref="Regex.InfiniteMatchTimeout"/>).</param>
     public GeneratedRegexAttribute(string pattern, RegexFlags flags, int matchTimeoutMilliseconds)
     {
         this.Pattern = pattern;
@@ -46,7 +46,7 @@ public sealed class GeneratedRegexAttribute : Attribute
         this.MatchTimeoutMilliseconds = matchTimeoutMilliseconds;
     }
 
-    /// <summary>Initializes a new instance of the <see cref="GeneratedRegexAttribute"/> class.</summary>
+    /// <summary>Initializes a new instance of the <see cref="GeneratedRegexAttribute"/> class: the regular expression has the <see cref="Regex.DefaultMatchTimeout"/>.</summary>
     /// <param name="pattern">The pattern.</param>
     /// <param name="flags">The flags as ECMA-262 writes them: letters from <c>dgimsuvy</c>.</param>
     public GeneratedRegexAttribute(string pattern, string flags)
@@ -57,7 +57,7 @@ public sealed class GeneratedRegexAttribute : Attribute
     /// <summary>Initializes a new instance of the <see cref="GeneratedRegexAttribute"/> class.</summary>
     /// <param name="pattern">The pattern.</param>
     /// <param name="flags">The flags as ECMA-262 writes them: letters from <c>dgimsuvy</c>.</param>
-    /// <param name="matchTimeoutMilliseconds">The limit of time on a match in milliseconds, or -1 for none.</param>
+    /// <param name="matchTimeoutMilliseconds">The match timeout in milliseconds, or -1 for none (<see cref="Regex.InfiniteMatchTimeout"/>).</param>
     public GeneratedRegexAttribute(string pattern, string flags, int matchTimeoutMilliseconds)
     {
         this.Pattern = pattern;
