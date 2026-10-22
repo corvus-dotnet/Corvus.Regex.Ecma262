@@ -160,12 +160,18 @@ public class ValidityTests
     [TestMethod]
     public void ATooDeepPatternIsRefusedWhereNoThreadOfItsOwnCanReadIt()
     {
-        // Where no thread can be started the reader runs on the stack of the thread that asks, and refuses a pattern
-        // too deep for that stack, rather than overflowing it.
-        string deep = string.Concat(Enumerable.Repeat("(?:", 200)) + "a" + new string(')', 200);
-        OnASmallStack(
-            () => Assert.ThrowsExactly<RegexPatternTooLargeException>(() => DeepStack.RunHere(() => new EcmaRegexParser(deep.AsSpan(), unicode: true).Parse())),
-            stack: 64 * 1024);
+        // Where no thread can be started the reader runs on the stack of the thread that asks, and its recursive steps
+        // check the stack as they go (DeepStack.Ensure): work that would go deeper than that stack allows is refused as
+        // a pattern too large, which a caller can catch, rather than overflowing the stack. How much stack the reader
+        // takes for 200 groups depends on the runtime's frames and on the size it gives a thread (200 groups fit in a
+        // thread of 64 KB on one runtime and not on another), so the check is driven here by recursion with no end.
+        OnASmallStack(() => Assert.ThrowsExactly<RegexPatternTooLargeException>(() => DeepStack.RunHere(() => Descend(0))));
+
+        static int Descend(int depth)
+        {
+            DeepStack.Ensure();
+            return Descend(depth + 1) + 1;
+        }
     }
 
     [TestMethod]
