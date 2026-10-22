@@ -41,9 +41,14 @@ The Corvus and V8 rows run under the `u` flag, which .NET has no mode for, so th
 rules: counts agree with .NET on 53 of the 57 workloads, and the four apart are `$` and `.` at CRLF, where ECMA-262
 counts CR as a line terminator, and `\w`, which .NET takes as Unicode letters and digits.
 
-The bar is the mean of BenchmarkDotNet's default job and the whisker one standard deviation of its iterations; a
-row's ratio is read against its neighbours' rather than to the last few percent. Allocated is the bytes the
-benchmark allocated per operation; the library allocates nothing per match once its working memory has grown.
+The figures on the benchmark page are measured under the interleaved protocol of every Corvus engine's harness
+(`Corvus.Regex.Ecma262.Benchmarks industry`, `tools/benchmarks/run.sh`): every workload in turn, each in three rounds
+of the engines in turn, their order turned each round, each figure a process of its own, warmed for at least 1.5 s
+(.NET compiles a method again as it is used, and needs that long to reach its final code) and timed for 0.7 s in seven
+passes. The bar is the median of the rounds and the whisker the fastest and the slowest round; a row's ratio is read
+against its neighbours' rather than to the last few percent. The BenchmarkDotNet classes of the same project
+(`Industry.cs`, `GeneratedIndustry.cs`) measure the same counts under the pinned-host procedure, with what each
+allocates; the library allocates nothing per match once its working memory has grown.
 
 ## Where this library is slower than .NET, and why
 

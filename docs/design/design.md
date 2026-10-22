@@ -510,9 +510,10 @@ A pinned run is the procedure for development, read against the run before it; `
 writes a page's data and table from a run's artifacts, and nothing it writes is committed.
 
 The published figures are on one page, [the benchmark page](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/): each night it runs every Corvus ECMA-262 engine's
-harness image on one runner, this library's (`.github/workflows/harness-image.yml` publishes it, BenchmarkDotNet's
-default job then V8, then the test data for compliance) among them, so that every figure on it was measured on one
-machine in one hour, with each day's data kept. This repository publishes no figures of its own.
+harness image on one runner, this library's (`.github/workflows/harness-image.yml` publishes it: the test data for
+compliance, then the five .NET-side engines and V8 under the interleaved protocol every engine's harness runs, each
+figure in a process of its own warmed for at least 1.5 s for .NET's tiered compiler) among them, so that every figure
+on it was measured on one machine in one hour, with each day's data kept. This repository publishes no figures of its own.
 `docs/benchmarks/industry.md` says what is measured and where the library is slower and why, and repeats no
 figure. The benchmarks never share a solution with the tests, because BenchmarkDotNet and worktrees
 do not mix.

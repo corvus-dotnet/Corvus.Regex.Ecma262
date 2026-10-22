@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
 # The runnable harness of the results contract: builds this library's benchmarks, runs the Industry workloads for the
-# five .NET-side engines (BenchmarkDotNet, the default job) and for V8 (Node 24), runs the ECMA-262 test data for the
-# compliance figures, and writes the run as one data file in the results-page shape.
+# five .NET-side engines and V8 (Node 24) under the interleaved protocol of every Corvus ECMA-262 engine's harness
+# (Corvus.Regex.Ecma262.Benchmarks industry, Driver.cs; its numbers in tools/benchmarks/protocol.sh), runs the ECMA-262
+# test data for the compliance figures, and writes the run as one data file in the results-page shape.
 #
 #   tools/benchmarks/run.sh <workloads.json> <texts dir> <out.json> [<test data dir>] [short|default]
 #
+# short is a quick look (JOB=short of protocol.sh); ROUNDS, SECONDS_EACH, PASSES and SPREAD set the protocol's numbers,
+# and CORES a taskset core list for the timed run.
+#
 # The texts are the .txt.gz files the benchmark project downloads (Inputs.cs); they are linked into the directory the
-# project reads. The test data is cloned at depth 1 when no directory is given. industry.md and industry-v8.json are
+# project reads. The test data is cloned at depth 1 when no directory is given. industry.md and industry-run.json are
 # written beside <out.json>. The harness image (Dockerfile) runs this script, and the central benchmark site runs
 # that image on its own runner, beside every other engine's.
 set -euo pipefail
 workloads="$(realpath "$1")"; texts="$(realpath "$2")"; out="$(realpath -m "$3")"; data="${4:-}"; job="${5:-default}"
+[ "$job" = short ] && export JOB=short
+. "$(cd "$(dirname "$0")" && pwd)/protocol.sh"
+timed() { if [ -n "${CORES:-}" ]; then taskset -c "$CORES" "$@"; else "$@"; fi; }
 here="$(cd "$(dirname "$0")/../.." && pwd)"
 outdir="$(dirname "$out")"; mkdir -p "$outdir"
 work="$(mktemp -d)"
@@ -24,20 +31,20 @@ echo "== build"
 dotnet build "$here/Solutions/Corvus.Regex.Ecma262.Benchmarks/Corvus.Regex.Ecma262.Benchmarks.csproj" -c Release -m:4 -nr:false >/dev/null
 dotnet build "$here/Solutions/Corvus.Regex.Ecma262.DatasetRunner/Corvus.Regex.Ecma262.DatasetRunner.csproj" -c Release -f net10.0 -m:4 -nr:false >/dev/null
 
-echo "== the .NET and Corvus engines (BenchmarkDotNet, $job job)"
-( cd "$here/Solutions/Corvus.Regex.Ecma262.Benchmarks" && ./bin/Release/net10.0/Corvus.Regex.Ecma262.Benchmarks --filter '*GeneratedCount*' --job "$job" --artifacts "$work/run" > "$work/run.log" 2>&1 ) || { tail -40 "$work/run.log"; exit 1; }
-
 echo "== the ECMA-262 test data (interpreted, both encodings)"
 if [ -z "$data" ]; then git clone --quiet --depth 1 https://github.com/corvus-dotnet/ecma262-regex-test-data.git "$work/data"; data="$work/data/data"; fi
 compliance="$(dotnet "$here/Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll" "$data" "$work/wrong.tsv" | tail -1)"
 echo "$compliance"
 
-echo "== V8 (Node $(node --version))"
-CORVUS_REGEX_TEXTS="$texts" node "$here/tools/benchmarks/v8/industry.mjs" "$workloads" 2 5 > "$work/v8.json" 2> "$work/v8.log"
+echo "== the .NET and Corvus engines and V8 (Node $(node --version)), interleaved: $rounds rounds of $seconds s, $passes passes"
+( cd "$here/Solutions/Corvus.Regex.Ecma262.Benchmarks" && CORVUS_REGEX_TEXTS="$texts" timed ./bin/Release/net10.0/Corvus.Regex.Ecma262.Benchmarks industry "$workloads" \
+    --v8 "$here/tools/benchmarks/v8/industry.mjs" --engines corvus-utf16,corvus-generated-utf16,corvus-generated-utf8,net-interpreter,net-generated,v8 \
+    --rounds "$rounds" --seconds "$seconds" --passes "$passes" --spread "$spread" --out "$work/run.json" 2> "$work/run.log" ) || { tail -40 "$work/run.log"; exit 1; }
+grep -E '^(SPREAD|COUNT) ' "$work/run.log" || true
 
 echo "== the record"
 # Inside the image there is no .git: the build passes the commit (CORVUS_REGEX_COMMIT).
 commit="${CORVUS_REGEX_COMMIT:-$(git -C "$here" rev-parse --short HEAD 2>/dev/null || echo unknown)}"
-python3 "$here/tools/benchmarks/industry-results.py" --run "$work/run" --commit "$commit" --date "$(date -u +%FT%TZ)" --v8 "$work/v8.json" --host ci --job "$job" --out-dir "$work/out" --base-path "${CORVUS_REGEX_BASE_PATH:-}" --run-url "${CORVUS_REGEX_RUN_URL:-}" --compliance "$compliance" >/dev/null
-cp "$work/out/industry.json" "$out"; cp "$work/out/industry.md" "$outdir/industry.md"; cp "$work/v8.json" "$outdir/industry-v8.json"
+python3 "$here/tools/benchmarks/industry-results.py" --interleaved "$work/run.json" --commit "$commit" --date "$(date -u +%FT%TZ)" --host ci --out-dir "$work/out" --base-path "${CORVUS_REGEX_BASE_PATH:-}" --run-url "${CORVUS_REGEX_RUN_URL:-}" --compliance "$compliance" >/dev/null
+cp "$work/out/industry.json" "$out"; cp "$work/out/industry.md" "$outdir/industry.md"; cp "$work/run.json" "$outdir/industry-run.json"
 echo "wrote $out"
