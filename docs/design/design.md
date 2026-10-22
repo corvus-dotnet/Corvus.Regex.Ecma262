@@ -147,10 +147,13 @@ string.
 
 ### 3.5 Limits and timeouts
 
-A `matchTimeout` as in .NET, default `Regex.InfiniteMatchTimeout`, settable per instance. A pattern without a
-backreference is matched in linear time by the memo of section 4.2, and takes no timeout: the clock is never read
-for it. A pattern with a backreference can take exponential time, so the timeout applies to it, and a match that
-passes the timeout throws `RegexMatchTimeoutException`. A match whose backtracking stack reaches its cap (a
+A `matchTimeout` as in .NET, settable per instance, and for every instance made without one by the
+`REGEX_DEFAULT_MATCH_TIMEOUT` data of the `AppContext` that `System.Text.RegularExpressions` reads
+(`Regex.DefaultMatchTimeout`, `Regex.InfiniteMatchTimeout` when it is not set). It applies to every pattern. A pattern
+without a backreference is matched in time proportional to its size times the text by the memo of section 4.2, but a
+count is not size: `(?:a?){2147483647}` keeps a choice for each of its iterations, so the clock and the cap on the
+stack are looked at for it too, every 4,096 steps. A match that passes the timeout throws
+`RegexMatchTimeoutException`. A match whose backtracking stack reaches its cap (a
 million entries) throws `RegexMatchTimeoutException` too, with a message that says memory, because .NET has no
 exception for that and a consumer's `catch` must already hold the case. Limits of size on the pattern (nesting
 of two hundred, program size, construction cost) are deterministic, never a clock, and throw

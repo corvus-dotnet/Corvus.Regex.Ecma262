@@ -146,6 +146,54 @@ public class MatchingTests
     }
 
     [TestMethod]
+    public void TheDefaultMatchTimeoutIsTheAppContextDataSystemTextRegularExpressionsReads()
+    {
+        Assert.AreEqual(Regex.InfiniteMatchTimeout, Regex.ReadDefaultMatchTimeout(null));
+        Assert.AreEqual(TimeSpan.FromSeconds(2), Regex.ReadDefaultMatchTimeout(TimeSpan.FromSeconds(2)));
+        Assert.AreEqual(Regex.InfiniteMatchTimeout, Regex.ReadDefaultMatchTimeout(Regex.InfiniteMatchTimeout));
+        Assert.ThrowsExactly<InvalidCastException>(() => Regex.ReadDefaultMatchTimeout("00:00:01"));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => Regex.ReadDefaultMatchTimeout(TimeSpan.Zero));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => Regex.ReadDefaultMatchTimeout(TimeSpan.FromDays(30)));
+
+        // The tests set none, so every constructor without a timeout gives no timeout.
+        Assert.AreEqual(Regex.InfiniteMatchTimeout, Regex.DefaultMatchTimeout);
+        Assert.AreEqual(Regex.DefaultMatchTimeout, new Regex("a").MatchTimeout);
+        Assert.AreEqual(Regex.DefaultMatchTimeout, new Regex("a", RegexFlags.Global).MatchTimeout);
+        Assert.AreEqual(Regex.DefaultMatchTimeout, new Regex("a", "g").MatchTimeout);
+    }
+
+    [TestMethod]
+    public void AMatchOfAPatternWithoutABackreferenceIsAbandonedAtItsTimeout()
+    {
+        Regex r = new(@"^(?:a|a)*(?:aa)*c$", RegexFlags.None, TimeSpan.FromMilliseconds(1));
+        string text = new string('a', 100000) + "b";
+
+        // An answer, or the timeout; it is never a wrong answer.
+        try
+        {
+            Assert.IsFalse(r.IsMatch(text));
+        }
+        catch (RegexMatchTimeoutException e)
+        {
+            Assert.IsFalse(e.ExceededMemory);
+        }
+    }
+
+    [TestMethod]
+    public void AMatchOfAPatternWithoutABackreferenceIsAbandonedAtItsMemoryLimit()
+    {
+        // No backreference, so the memory of failed places keeps the time in proportion to the pattern's size times
+        // the text; but a count is not size, and the timeout and its cap on the memory still apply.
+        Regex r = new(@"^(?:a?){2147483647}$", RegexFlags.None, TimeSpan.FromSeconds(30));
+        RegexMatchTimeoutException e = Assert.ThrowsExactly<RegexMatchTimeoutException>(() => r.IsMatch(string.Empty));
+        Assert.IsTrue(e.ExceededMemory);
+        e = Assert.ThrowsExactly<RegexMatchTimeoutException>(() => r.IsMatch(ReadOnlySpan<byte>.Empty));
+        Assert.IsTrue(e.ExceededMemory);
+        e = Assert.ThrowsExactly<RegexMatchTimeoutException>(() => r.Split(string.Empty));
+        Assert.IsTrue(e.ExceededMemory);
+    }
+
+    [TestMethod]
     public void ALoneSurrogateInUtf16IsMatchedAsEcma262Says()
     {
         Assert.IsTrue(new Regex(@"^\ud800$").IsMatch("\ud800"));

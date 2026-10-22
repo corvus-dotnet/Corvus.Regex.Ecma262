@@ -182,8 +182,10 @@ safe to share between threads.
 - **Case**: with `i` and `u` simple case folding (`ſ` matches `s`, `K` matches `k`); with `i` and no flag,
   `toUpperCase` of one character.
 - **Captures**: ECMA-262 keeps a group's last capture under a quantifier, so `Group.Captures` has one entry.
-- **Timeouts**: patterns without backreferences are linear and take no timeout; `MatchTimeout` applies to the others,
-  and a match that reaches its limit of time or memory throws `RegexMatchTimeoutException`.
+- **Timeouts**: `MatchTimeout` applies to every pattern, and a match that reaches its limit of time or memory throws
+  `RegexMatchTimeoutException`. An instance made without one takes `Regex.DefaultMatchTimeout`, the
+  `REGEX_DEFAULT_MATCH_TIMEOUT` data of the `AppContext` that `System.Text.RegularExpressions` reads too. Without a
+  timeout a match has no limit of time or memory, so give one to a pattern or a text from outside.
 
 ## Documentation
 
