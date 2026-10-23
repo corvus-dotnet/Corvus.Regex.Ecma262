@@ -15,9 +15,9 @@
 // order turned by one each round. Each figure is a child process of its own, so that one engine's caches, allocations
 // and compiled code do not reach another's figures; it warms for two fifths of its seconds, then times `passes` passes
 // of as many counts as fit the rest and reports their median. A workload's figure for an engine is the median of its
-// rounds, with the fastest and the slowest round as its spread; a figure whose spread, (slowest - fastest) / median,
-// is over --spread is listed in the run's facts (spread_over) and on stderr. A child that does not finish in two
-// minutes is stopped and recorded as such.
+// rounds, with the fastest and the slowest round as its spread; a figure whose spread, (slowest - fastest) / median, is
+// over --spread is listed in the run's facts (spread_over) and on stderr. A figure that does not finish in 30 s is
+// stopped and recorded as giving no result within 30 s, and is not run in the workload's later rounds.
 //
 // The engines: this library's interpreter over the string (corvus-utf16) and over its UTF-8 bytes (corvus-utf8), its
 // generated code over each (corvus-generated-utf16, corvus-generated-utf8), each with the workload's flags and gu, as
@@ -261,6 +261,9 @@ internal static class Driver
         };
     }
 
+    /// <summary>The line of a figure stopped at the limit, which the page shows as giving no result within 30 s.</summary>
+    private const string Stopped = "{\"error\":\"did not produce a result within 30 s\",\"limit\":30}";
+
     /// <summary>One figure: an engine over a workload in a child process. The child's line of JSON, or one with the error.</summary>
     private static string Figure(string exe, string? v8, string path, int index, string engine, string seconds, string passes)
     {
@@ -302,9 +305,9 @@ internal static class Driver
         using (child)
         {
             Task<string?> read = child.StandardOutput.ReadLineAsync();
-            string line = read.Wait(TimeSpan.FromMinutes(2))
+            string line = read.Wait(TimeSpan.FromSeconds(30))
                 ? read.Result ?? "{\"error\":\"the process ended without figures\"}"
-                : "{\"error\":\"did not finish in two minutes\"}";
+                : Stopped;
             try
             {
                 child.Kill(entireProcessTree: true);
@@ -393,6 +396,13 @@ internal static class Driver
                 for (int turn = 0; turn < engines.Length; turn++)
                 {
                     int e = (turn + round) % engines.Length;
+
+                    // A figure stopped at the limit in an earlier round is not run again.
+                    if (lines[e][k] == Stopped)
+                    {
+                        continue;
+                    }
+
                     string line = Figure(exe, v8, path, k, engines[e], seconds, passes);
                     if (Number(line, "median") is double m)
                     {
