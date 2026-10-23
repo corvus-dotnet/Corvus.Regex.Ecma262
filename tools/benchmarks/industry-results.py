@@ -184,10 +184,15 @@ elif v8_path:
         r = v8["results"].get(w)
         results[V8[0]][w] = {"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if r else None
 
+def timed(name, w):
+    """An engine's figure for a workload when it has a time; None when it has none, or is a failure (failure())."""
+    x = results[name].get(w)
+    return x if x and "time" in x else None
+
 def ratio_rows(a, b):
     out = []
     for w in workloads:
-        x, y = results[a].get(w), results[b].get(w)
+        x, y = timed(a, w), timed(b, w)
         if x and y:
             out.append(x["time"]["median"] / y["time"]["median"])
     return out
@@ -217,6 +222,9 @@ def counts_of(line, encodings, note=""):
     figure is a share of: every answer the test data asks in those encodings)."""
     m = _re.search(r"right ([\d,]+)\s+wrong ([\d,]+)\s+refused-valid ([\d,]+)\s+accepted-invalid ([\d,]+)(?:\s+limit ([\d,]+))?", line)
     if not m:
+        # A data-set runner that failed gives no counts: the engine is shown with no compliance figure, and its
+        # timing is kept.
+        print(f"industry-results: no counts in the data-set runner's last line ({line!r}); no compliance figure", file=sys.stderr)
         return None
     n = lambda k: int((m.group(k) or "0").replace(",", ""))
     out = {"right": n(1), "wrong": n(2), "refused": n(3), "acceptedInvalid": n(4), "limited": n(5), "encodings": encodings}
@@ -259,7 +267,7 @@ data = {
         "time": {"label": "Time", "long": "time per Count", "parts": ["time"]},
         **({} if INTERLEAVED else {"allocated": {"label": "Allocated", "long": "bytes allocated per Count", "parts": ["allocated"], "bytes": True}}),
     },
-    "impls": [{"id": name, "name": name, "group": group, "version": V8[1] if V8 and name == V8[0] else "", "compliance": compliance_of(group)} for _, name, group in ENGINES],
+    "impls": [{k: v for k, v in {"id": name, "name": name, "group": group, "version": V8[1] if V8 and name == V8[0] else "", "compliance": compliance_of(group)}.items() if v is not None} for _, name, group in ENGINES],
     "schemas": [{"name": w, "note": "", "meta": [["text", TEXTS.get(w.split(":")[0], w.split(":")[0])]]} for w in workloads],
     "results": results,
 }
@@ -267,11 +275,15 @@ with open(os.path.join(out_dir, "industry.json"), "w", encoding="utf-8") as fo:
     json.dump(data, fo, indent=1)
 
 def us(x):
-    """Microseconds to one decimal, or to three significant digits below ten."""
-    return f"{x:.1f}" if x >= 10 else f"{x:.2f}" if x >= 1 else f"{x:.3f}"
+    """Microseconds to one decimal, or to three significant digits below ten; a dash for a figure with no time."""
+    return "-" if x != x else f"{x:.1f}" if x >= 10 else f"{x:.2f}" if x >= 1 else f"{x:.3f}"
+
+def ratio(a, b):
+    """A ratio to two places; empty where either figure has no time."""
+    return "" if a != a or b != b or not b else f"{a/b:.2f}"
 
 def cell(name, w):
-    x = results[name].get(w)
+    x = timed(name, w)
     return x["time"]["median"] / 1000 if x else float("nan")
 
 lines = []
@@ -283,16 +295,22 @@ for w in workloads:
     v8c = ""
     if V8:
         vv = cell(V8[0], w)
-        v8c = f" {us(vv)} | {cg/vv:.2f} |" if vv == vv and vv > 0 else " | |"
-    lines.append(f"| {ww} | {us(ni)} | {us(ci)} | {ci/ni if ni else 0:.2f} | {us(ng)} | {us(cg)} | {us(c8)} | {cg/ng if ng else 0:.2f} | {c8/ng if ng else 0:.2f} |" + v8c)
+        v8c = f" {us(vv)} | {ratio(cg, vv)} |"
+    lines.append(f"| {ww} | {us(ni)} | {us(ci)} | {ratio(ci, ni)} | {us(ng)} | {us(cg)} | {us(c8)} | {ratio(cg, ng)} | {ratio(c8, ng)} |" + v8c)
 
-summary = f"""- Interpreter against .NET's interpreter, over UTF-16: median {statistics.median(ri):.2f}, geometric mean {gm(ri):.2f}, at or below 1.0 on {sum(1 for x in ri if x <= 1.0)} of {len(ri)}.
-- Generated code against .NET's generated code, over UTF-16: median {statistics.median(rg):.2f}, geometric mean {gm(rg):.2f}, at or below 1.0 on {sum(1 for x in rg if x <= 1.0)} of {len(rg)}.
-- Generated code over UTF-8 against .NET's generated code: median {statistics.median(rg8):.2f}, geometric mean {gm(rg8):.2f}, at or below 1.0 on {sum(1 for x in rg8 if x <= 1.0)} of {len(rg8)}."""
+def ratios(xs):
+    """The median and geometric mean of a pair of engines' ratios; none where no workload has a time from both."""
+    if not xs:
+        return "no workload timed by both"
+    return f"median {statistics.median(xs):.2f}, geometric mean {gm(xs):.2f}, at or below 1.0 on {sum(1 for x in xs if x <= 1.0)} of {len(xs)}"
+
+summary = f"""- Interpreter against .NET's interpreter, over UTF-16: {ratios(ri)}.
+- Generated code against .NET's generated code, over UTF-16: {ratios(rg)}.
+- Generated code over UTF-8 against .NET's generated code: {ratios(rg8)}."""
 v8_head = v8_sep = ""
 if V8:
     rv = ratio_rows("Corvus generated UTF-16", V8[0])
-    summary += f"\n- Generated code over UTF-16 against {V8[0]}: median {statistics.median(rv):.2f}, geometric mean {gm(rv):.2f}, at or below 1.0 on {sum(1 for x in rv if x <= 1.0)} of {len(rv)}."
+    summary += f"\n- Generated code over UTF-16 against {V8[0]}: {ratios(rv)}."
     v8_head = f" {V8[0]} | ratio to V8 |"
     v8_sep = "---|---|"
 
@@ -335,7 +353,7 @@ Times are microseconds for one `Count` over the text.
 with open(os.path.join(out_dir, "industry.md"), "w", encoding="utf-8") as fo:
     fo.write(md)
 print(summary)
-above = sorted(((w, results["Corvus generated UTF-16"][w]["time"]["median"] / results[".NET generated"][w]["time"]["median"]) for w in workloads if results[".NET generated"].get(w) and results["Corvus generated UTF-16"].get(w)), key=lambda x: -x[1])
+above = sorted(((w, timed("Corvus generated UTF-16", w)["time"]["median"] / timed(".NET generated", w)["time"]["median"]) for w in workloads if timed(".NET generated", w) and timed("Corvus generated UTF-16", w)), key=lambda x: -x[1])
 print("above 1.0 (generated):", [(w, round(r, 2)) for w, r in above if r > 1.0])
-abovei = sorted(((w, results["Corvus interpreter"][w]["time"]["median"] / results[".NET interpreter"][w]["time"]["median"]) for w in workloads if results[".NET interpreter"].get(w) and results["Corvus interpreter"].get(w)), key=lambda x: -x[1])
+abovei = sorted(((w, timed("Corvus interpreter", w)["time"]["median"] / timed(".NET interpreter", w)["time"]["median"]) for w in workloads if timed(".NET interpreter", w) and timed("Corvus interpreter", w)), key=lambda x: -x[1])
 print("above 1.0 (interpreter):", [(w, round(r, 2)) for w, r in abovei if r > 1.0])

@@ -40,6 +40,32 @@ jobs:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         ref: ${{ inputs.tag || github.ref }}
+    - name: "The record of a run with figures that have no time: stopped at the limit, an error, a differing count"
+      # tools/benchmarks/record-check/README.md. The smoke run below never gives such a figure.
+      run: |
+        c="records 1 right 1 wrong 0 refused-valid 0 accepted-invalid 0 limit 0 errors 0"
+        python3 tools/benchmarks/industry-results.py --interleaved tools/benchmarks/record-check/run.json --commit check --date 2026-10-23 --host ci --out-dir record-check --compliance "$c" --compliance-v8 "$c"
+        python3 - <<'PY'
+        import json
+        r = json.load(open("record-check/industry.json"))["results"]
+        assert r[".NET interpreter"]["sherlock: zqj"] == {"limit": 30}, r[".NET interpreter"]["sherlock: zqj"]
+        assert r["Corvus generated UTF-8"]["sherlock: aei"] == {"error": "a round gave no figure"}, r["Corvus generated UTF-8"]["sherlock: aei"]
+        assert "time" in r[".NET generated"]["sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m"]
+        print("the record keeps a stopped figure, an error and a differing count")
+        # An engine with no time on any workload, and a data-set runner that gave no counts line.
+        d = json.load(open("tools/benchmarks/record-check/run.json"))
+        d["results"]["net-generated"] = {w: {"error": "no workload of this harness has the pattern"} for w in d["results"]["net-generated"]}
+        json.dump(d, open("record-check/run-untimed.json", "w"))
+        PY
+        python3 tools/benchmarks/industry-results.py --interleaved record-check/run-untimed.json --commit check --date 2026-10-23 --host ci --out-dir record-check/untimed --compliance "Unhandled exception." --compliance-v8 "$c"
+        python3 - <<'PY'
+        import json
+        d = json.load(open("record-check/untimed/industry.json"))
+        assert all("time" not in v for v in d["results"][".NET generated"].values())
+        corvus = [i for i in d["impls"] if i["group"] not in (".NET", "V8")]
+        assert corvus and all("compliance" not in i for i in corvus), corvus
+        print("the record keeps an engine with no time anywhere, and engines with no compliance figure")
+        PY
     - name: Build the harness image
       run: docker build --build-arg COMMIT="$(git rev-parse --short=7 HEAD)" -t harness .
     - name: "Smoke-run it: two workloads, the short job, as the central site runs it"

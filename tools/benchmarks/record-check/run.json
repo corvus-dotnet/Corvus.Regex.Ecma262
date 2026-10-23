@@ -1,0 +1,224 @@
+{
+ "facts": {
+  "cpu": "13th Gen Intel(R) Core(TM) i7-13800H",
+  "cores": "20",
+  "affinity": "0-19",
+  "os": "Linux 6.18.33.2-microsoft-standard-WSL2",
+  "load": "0.46",
+  "runtime": ".NET 10.0.12",
+  "commit": "f556d9d8bf37edd88e36d8ab745b0fb17ab13a7f",
+  "date": "2026-10-23T20:25:31Z",
+  "seconds": "0.05",
+  "passes": "1",
+  "runner": "",
+  "runner_os": "",
+  "image": "",
+  "corvus-regex-ecma262": "1.0.0.0",
+  "rounds": "1",
+  "protocol": "interleaved",
+  "spread_limit": "0.05",
+  "spread_over": "",
+  "counts_differ": "net-interpreter sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m 34 vs V8 37; net-generated sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m 34 vs V8 37",
+  "v8": "V8 13.6.233.17-node.57 (Node 24.22.0)"
+ },
+ "end": "2026-10-23T20:25:31Z",
+ "results": {
+  "corvus-utf16": {
+   "sherlock: zqj": {
+    "median": 15736.7,
+    "min": 15736.7,
+    "max": 15736.7,
+    "count": 0,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     15736.7
+    ]
+   },
+   "sherlock: aei": {
+    "median": 26434.1,
+    "min": 26434.1,
+    "max": 26434.1,
+    "count": 0,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     26434.1
+    ]
+   },
+   "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
+    "median": 23303.3,
+    "min": 23303.3,
+    "max": 23303.3,
+    "count": 37,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     23303.3
+    ]
+   }
+  },
+  "corvus-generated-utf16": {
+   "sherlock: zqj": {
+    "median": 16081.2,
+    "min": 16081.2,
+    "max": 16081.2,
+    "count": 0,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     16081.2
+    ]
+   },
+   "sherlock: aei": {
+    "median": 27703.0,
+    "min": 27703.0,
+    "max": 27703.0,
+    "count": 0,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     27703.0
+    ]
+   },
+   "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
+    "median": 23098.8,
+    "min": 23098.8,
+    "max": 23098.8,
+    "count": 37,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     23098.8
+    ]
+   }
+  },
+  "corvus-generated-utf8": {
+   "sherlock: zqj": {
+    "median": 9949.4,
+    "min": 9949.4,
+    "max": 9949.4,
+    "count": 0,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     9949.4
+    ]
+   },
+   "sherlock: aei": {
+    "error": "a round gave no figure"
+   },
+   "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
+    "median": 13418.0,
+    "min": 13418.0,
+    "max": 13418.0,
+    "count": 37,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     13418.0
+    ]
+   }
+  },
+  "net-interpreter": {
+   "sherlock: zqj": {
+    "error": "did not produce a result within 30 s",
+    "limit": 30
+   },
+   "sherlock: aei": {
+    "median": 31307.3,
+    "min": 31307.3,
+    "max": 31307.3,
+    "count": 0,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     31307.3
+    ]
+   },
+   "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
+    "median": 34187.2,
+    "min": 34187.2,
+    "max": 34187.2,
+    "count": 34,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     34187.2
+    ],
+    "differs": "net-interpreter 34, V8 37"
+   }
+  },
+  "net-generated": {
+   "sherlock: zqj": {
+    "median": 26404.7,
+    "min": 26404.7,
+    "max": 26404.7,
+    "count": 0,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     26404.7
+    ]
+   },
+   "sherlock: aei": {
+    "median": 26242.2,
+    "min": 26242.2,
+    "max": 26242.2,
+    "count": 0,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     26242.2
+    ]
+   },
+   "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
+    "median": 28769.9,
+    "min": 28769.9,
+    "max": 28769.9,
+    "count": 34,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     28769.9
+    ],
+    "differs": "net-generated 34, V8 37"
+   }
+  },
+  "v8": {
+   "sherlock: zqj": {
+    "median": 6329.4,
+    "min": 6329.4,
+    "max": 6329.4,
+    "count": 0,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     6329.4
+    ]
+   },
+   "sherlock: aei": {
+    "median": 203043.4,
+    "min": 203043.4,
+    "max": 203043.4,
+    "count": 0,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     203043.4
+    ]
+   },
+   "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m": {
+    "median": 229266.5,
+    "min": 229266.5,
+    "max": 229266.5,
+    "count": 37,
+    "rounds": 1,
+    "spread": 0.0,
+    "each": [
+     229266.5
+    ]
+   }
+  }
+ }
+}

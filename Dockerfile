@@ -6,11 +6,14 @@
 #
 # writes /out/industry.json (and industry.md, industry-v8.json beside it). Mount the test data at /data to skip the
 # clone; set JOB=short for a quick look.
-FROM mcr.microsoft.com/dotnet/sdk:10.0
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:747cbade5bfd918a175ac32f8f1d931edec2c7d0d5397a3de72eaef1ac1f66d2
 ARG NODE_VERSION=24.22.0
+# The SHA-256 of node-v24.22.0-linux-x64.tar.xz, from nodejs.org/dist/v24.22.0/SHASUMS256.txt.
+ARG NODE_SHA256=cc2f601cee82d9a5a233302fe307abc600727035fd7d2c3a3571755989e95008
 RUN apt-get update && apt-get install -y --no-install-recommends curl git python3 ca-certificates xz-utils \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -sSfL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" | tar -xJ -C /opt \
+    && curl -sSfL -o /tmp/node.tar.xz "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+    && echo "${NODE_SHA256}  /tmp/node.tar.xz" | sha256sum -c - && tar -xJf /tmp/node.tar.xz -C /opt && rm /tmp/node.tar.xz \
     && ln -s "/opt/node-v${NODE_VERSION}-linux-x64/bin/node" /usr/local/bin/node
 WORKDIR /src
 COPY . .

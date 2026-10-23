@@ -44,11 +44,15 @@ fi
 
 echo "== the ECMA-262 test data (interpreted, both encodings)"
 if [ -z "$data" ]; then git clone --quiet --depth 1 https://github.com/corvus-dotnet/ecma262-regex-test-data.git "$work/data"; data="$work/data/data"; fi
-compliance="$(dotnet "$here/Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll" "$data" "$work/wrong.tsv" | tail -1)"
+# The runner exits 1 on any answer that is not right; here its counts are a figure of the page, not a gate, so neither
+# that nor a runner that fails stops the timing: an engine with no counts line is shown with no compliance figure.
+compliance="$( { dotnet "$here/Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll" "$data" "$work/wrong.tsv" || true; } | tail -1)"
 echo "$compliance"
+case "$compliance" in records*) ;; *) echo "WARNING: the data-set runner gave no counts line; this library's engines will have no compliance figure" ;; esac
 # V8 judged as every engine is, over UTF-16, its one encoding (tools/benchmarks/v8/dataset.mjs).
-compliance_v8="$(node "$here/tools/benchmarks/v8/dataset.mjs" "$data" | tail -1)"
+compliance_v8="$( { node "$here/tools/benchmarks/v8/dataset.mjs" "$data" || true; } | tail -1)"
 echo "$compliance_v8"
+case "$compliance_v8" in records*) ;; *) echo "WARNING: V8's data-set run gave no counts line; V8 will have no compliance figure" ;; esac
 
 echo "== the .NET and Corvus engines and V8 (Node $(node --version)), interleaved: $rounds rounds of $seconds s, $passes passes"
 ( cd "$here/Solutions/Corvus.Regex.Ecma262.Benchmarks" && CORVUS_REGEX_TEXTS="$texts" timed ./bin/Release/net10.0/Corvus.Regex.Ecma262.Benchmarks industry "$workloads" \
@@ -59,6 +63,11 @@ grep -E '^(SPREAD|COUNT) ' "$work/run.log" || true
 echo "== the record"
 # Inside the image there is no .git: the build passes the commit (CORVUS_REGEX_COMMIT).
 commit="${CORVUS_REGEX_COMMIT:-$(git -C "$here" rev-parse --short HEAD 2>/dev/null || echo unknown)}"
-python3 "$here/tools/benchmarks/industry-results.py" --interleaved "$work/run.json" --commit "$commit" --date "$(date -u +%FT%TZ)" --host ci --out-dir "$work/out" --base-path "${CORVUS_REGEX_BASE_PATH:-}" --run-url "${CORVUS_REGEX_RUN_URL:-}" --compliance "$compliance" --compliance-v8 "$compliance_v8" >/dev/null
-cp "$work/out/industry.json" "$out"; cp "$work/out/industry.md" "$outdir/industry.md"; cp "$work/run.json" "$outdir/industry-run.json"
+# The data file is written first: whatever fails after it (the table, the summary), the figures still reach /out.
+status=0
+python3 "$here/tools/benchmarks/industry-results.py" --interleaved "$work/run.json" --commit "$commit" --date "$(date -u +%FT%TZ)" --host ci --out-dir "$work/out" --base-path "${CORVUS_REGEX_BASE_PATH:-}" --run-url "${CORVUS_REGEX_RUN_URL:-}" --compliance "$compliance" --compliance-v8 "$compliance_v8" >/dev/null || status=$?
+cp "$work/run.json" "$outdir/industry-run.json"
+[ -f "$work/out/industry.json" ] || { echo "the record step wrote no industry.json (exit $status)"; exit 1; }
+[ "$status" = 0 ] || echo "WARNING: the record step failed (exit $status) after writing industry.json; the figures are kept"
+cp "$work/out/industry.json" "$out"; [ -f "$work/out/industry.md" ] && cp "$work/out/industry.md" "$outdir/industry.md"
 echo "wrote $out"
