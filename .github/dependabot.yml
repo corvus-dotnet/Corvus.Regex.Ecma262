@@ -9,3 +9,9 @@ updates:
   directory: /
   schedule:
     interval: weekly
+# The harness image's base image, pinned by digest: one pull request a month moves it, so that the SDK and runtime the
+# image measures change only by a merge.
+- package-ecosystem: docker
+  directory: /
+  schedule:
+    interval: monthly
