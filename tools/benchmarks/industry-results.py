@@ -14,9 +14,9 @@ run on a GitHub-hosted runner (the benchmarks workflow), where nothing is pinned
 day's runner; the two are kept apart and never read against each other.
 
 The run is the Industry benchmark of Solutions/Corvus.Regex.Ecma262.Benchmarks: five engines over the 57 Industry
-workloads, one Count each. With --interleaved it is the run of the interleaved protocol every Corvus ECMA-262 engine's
-harness runs (Driver.cs, `Corvus.Regex.Ecma262.Benchmarks industry`), V8 among its engines, whose facts are the run's
-own record of itself; with --run, BenchmarkDotNet's GeneratedCount class under the pinned-host procedure
+workloads, one Count each. With --interleaved it is the run of the interleaved protocol every harness of the central
+benchmark page runs (Driver.cs, `Corvus.Regex.Ecma262.Benchmarks industry`), V8 among its engines, whose facts are
+the run's own record of itself; with --run, BenchmarkDotNet's GeneratedCount class under the pinned-host procedure
 (docs/design/design.md, section 9), V8 from its own harness (--v8).
 """
 import csv, string, glob, json, math, os, statistics, sys
@@ -302,7 +302,7 @@ md = f"""# Benchmarks: the Industry workloads
 {HOST_MD}
 - **Runtime and harness** .NET 10, {JOB}, the `GeneratedCount` benchmark of `Solutions/Corvus.Regex.Ecma262.Benchmarks`.
 
-The data of this run is `industry.json` beside this file, in the results-page shape; the central benchmark page, [corvus-oss.org/corvus-regex-ecma262-benchmarks](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/), shows it beside every Corvus ECMA-262 engine.
+The data of this run is `industry.json` beside this file, in the results-page shape; the central benchmark page, [corvus-oss.org/corvus-regex-ecma262-benchmarks](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/), shows it beside the engines of every other source.
 
 The workloads are the Industry set of dotnet/performance (`Perf.Regex.Industry`: the Sherlock Holmes, Leipzig and mariomka texts and the rebar names), the set behind .NET's own "regex performance improvements in .NET N" tables. Each is run five ways: .NET's interpreter (`RegexOptions.None`), .NET's source generator (`[GeneratedRegex]`), this library's interpreter over UTF-16, and this library's source generator over UTF-16 and over UTF-8. `Count` over the text, one call per operation. A ratio below 1.0 is this library being faster.
 

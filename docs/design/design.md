@@ -537,7 +537,7 @@ Runs follow a pinned-host procedure: the virtual machine pinned to the performan
 A pinned run is the procedure for development, read against the run before it; `tools/benchmarks/industry-results.py`
 writes a page's data and table from a run's artifacts, and nothing it writes is committed.
 
-The published figures are on one page, [the benchmark page](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/): each night it runs every Corvus ECMA-262 engine's
+The published figures are on one page, [the benchmark page](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/): each night it runs every source's
 harness image on one runner, this library's (`.github/workflows/harness-image.yml` publishes it: the test data for
 compliance, then the five .NET-side engines and V8 under the interleaved protocol every engine's harness runs, each
 figure in a process of its own warmed for at least 1.5 s for .NET's tiered compiler) among them, so that every figure

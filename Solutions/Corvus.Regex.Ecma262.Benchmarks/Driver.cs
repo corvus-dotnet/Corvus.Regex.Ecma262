@@ -2,7 +2,7 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
-// The Industry benchmark under the interleaved protocol of every other Corvus ECMA-262 engine's harness: a port of the
+// The Industry benchmark under the interleaved protocol of every harness of the central benchmark page: a port of the
 // Rust harness's driver (corvus-regex-ecma262-rs, tools/src/bin/industry.rs), which the C, C++, Python, Ruby, PHP,
 // Swift, R and Fortran harnesses port too, so that every source on the central benchmark page is measured the same way.
 //

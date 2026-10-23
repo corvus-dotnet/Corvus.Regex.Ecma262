@@ -1,4 +1,4 @@
-# The numbers of the interleaved protocol of every Corvus ECMA-262 engine's harness (corvus-regex-ecma262-rs,
+# The numbers of the interleaved protocol of every harness of the central benchmark page (corvus-regex-ecma262-rs,
 # tools/benchmarks/protocol.sh), which tools/benchmarks/run.sh sources: ROUNDS rounds, each figure
 # SECONDS_EACH seconds of PASSES passes in a process of its own, and SPREAD, the spread over which a figure is listed in
 # the run's facts. JOB=short is a quick look (3 rounds of 0.1 s, one pass).

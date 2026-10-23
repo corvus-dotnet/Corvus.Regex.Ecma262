@@ -196,7 +196,7 @@ writes a page's data and table from the `GeneratedCount` CSV, for your own readi
 host are comparable with themselves, never with another host's.
 
 The published figures are on [the benchmark page](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/), which runs this repository's harness image each night
-beside every other Corvus ECMA-262 engine. `harness-image.yml` builds that image on every push to main and every
+beside the engines of every other source. `harness-image.yml` builds that image on every push to main and every
 release, smoke-runs it on two workloads, and publishes it; to try the image yourself, see the `Dockerfile`.
 
 A benchmark run must never share the machine with a build: the SDK's build servers and the JIT's tiering of the
