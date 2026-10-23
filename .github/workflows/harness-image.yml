@@ -40,6 +40,19 @@ jobs:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         ref: ${{ inputs.tag || github.ref }}
+    - name: "The record of a run with figures that have no time: stopped at the limit, an error, a differing count"
+      # tools/benchmarks/record-check/README.md. The smoke run below never gives such a figure.
+      run: |
+        c="records 1 right 1 wrong 0 refused-valid 0 accepted-invalid 0 limit 0 errors 0"
+        python3 tools/benchmarks/industry-results.py --interleaved tools/benchmarks/record-check/run.json --commit check --date 2026-10-23 --host ci --out-dir record-check --compliance "$c" --compliance-v8 "$c"
+        python3 - <<'PY'
+        import json
+        r = json.load(open("record-check/industry.json"))["results"]
+        assert r[".NET interpreter"]["sherlock: zqj"] == {"limit": 30}, r[".NET interpreter"]["sherlock: zqj"]
+        assert r["Corvus generated UTF-8"]["sherlock: aei"] == {"error": "a round gave no figure"}, r["Corvus generated UTF-8"]["sherlock: aei"]
+        assert "time" in r[".NET generated"]["sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m"]
+        print("the record keeps a stopped figure, an error and a differing count")
+        PY
     - name: Build the harness image
       run: docker build --build-arg COMMIT="$(git rev-parse --short=7 HEAD)" -t harness .
     - name: "Smoke-run it: two workloads, the short job, as the central site runs it"
