@@ -16,13 +16,18 @@ internal static class Captures
     private const string Replacement = "<$&|$1|$2|$10|$<a>|$$|$`|$'>";
 
     /// <summary>Judges one record. Returns the number of right answers and appends each wrong one.</summary>
-    public static int Judge(JsonElement r, string pattern, TimeSpan limit, Func<string, string> unescape, Action<string> wrong, out int wrongCount, out int limited)
+    public static int Judge(JsonElement r, string pattern, TimeSpan limit, Func<string, string> unescape, Action<string> wrong, out int wrongCount, out int limited, int line)
     {
         int right = 0;
         wrongCount = 0;
         limited = 0;
         string flags = r.GetProperty("flags").GetString()!;
         JsonElement valid = r.GetProperty("valid");
+        if (Overlay.Enabled)
+        {
+            Answers(r, pattern, flags, valid, limit, unescape, line);
+        }
+
         foreach (JsonElement t in r.GetProperty("tests").EnumerateArray())
         {
             if (t.TryGetProperty("v8_deviation", out JsonElement dev) && dev.GetBoolean())
@@ -54,6 +59,59 @@ internal static class Captures
         }
 
         return right;
+    }
+
+    /// <summary>With --answers: the engine's verdict and answers under each grammar, where they differ from the data's.</summary>
+    private static void Answers(JsonElement r, string pattern, string flags, JsonElement valid, TimeSpan limit, Func<string, string> unescape, int line)
+    {
+        foreach (string mode in new[] { "unicode", "legacy" })
+        {
+            bool isValid = valid.GetProperty(mode).GetBoolean();
+            RegexFlags modeFlags = Regex.ParseFlags(mode == "unicode" ? flags + "u" : flags);
+            Regex? re = null;
+            try
+            {
+                re = Factory.Make(pattern, modeFlags, limit);
+            }
+            catch (Exception e) when (e is RegexParseException or RegexPatternTooLargeException)
+            {
+            }
+
+            if ((re is not null) != isValid)
+            {
+                Overlay.Valid("captures.jsonl", line, mode, re is not null);
+            }
+
+            if (re is null)
+            {
+                continue;
+            }
+
+            Regex g = Factory.Make(pattern, modeFlags | RegexFlags.Global, limit);
+            Regex y = Factory.Make(pattern, modeFlags | RegexFlags.Sticky, limit);
+            int i = -1;
+            foreach (JsonElement t in r.GetProperty("tests").EnumerateArray())
+            {
+                i++;
+                if (t.TryGetProperty("v8_deviation", out JsonElement dev) && dev.GetBoolean())
+                {
+                    continue;
+                }
+
+                try
+                {
+                    string answer = Overlay.CapturesAnswer(re, g, y, unescape(t.GetProperty("text").GetRawText()), Replacement);
+                    if (!isValid || !t.TryGetProperty(mode, out JsonElement a) || a.GetRawText() != answer)
+                    {
+                        Overlay.Answer("captures.jsonl", line, mode, i, answer);
+                    }
+                }
+                catch (RegexMatchTimeoutException)
+                {
+                    // A limit gives no answer to write.
+                }
+            }
+        }
     }
 
     private static int JudgeMode(string pattern, string modeFlags, string text, JsonElement a, TimeSpan limit, string where, Func<string, string> unescape, Action<string> wrong, ref int wrongCount)
@@ -88,6 +146,8 @@ internal static class Captures
         {
             if (n >= all.Count)
             {
+                // One match more than the data has: wrong, unless the data kept only the first twenty.
+                allOk &= all.Count == 20;
                 break;
             }
 
@@ -119,6 +179,7 @@ internal static class Captures
             {
                 if (n >= all.Count)
                 {
+                    utf8Ok &= all.Count == 20;
                     break;
                 }
 
@@ -286,7 +347,6 @@ internal static class Captures
         return true;
     }
 
-    /// <summary>A string as the data writes it: JSON, ASCII, every other character a \u escape in lower case hex.</summary>
     private static readonly byte[] Replacement8 = Encoding.UTF8.GetBytes(Replacement);
 
     private static string ToUtf8Lossy(string s) => Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(s));
@@ -331,7 +391,8 @@ internal static class Captures
         }
     }
 
-    private static string JsonText(string s)
+    /// <summary>A string as the data writes it: JSON, ASCII, every other character a \u escape in lower case hex.</summary>
+    internal static string JsonText(string s)
     {
         StringBuilder sb = new(s.Length + 2);
         sb.Append('"');
