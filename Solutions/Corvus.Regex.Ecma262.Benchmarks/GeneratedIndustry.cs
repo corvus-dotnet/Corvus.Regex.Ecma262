@@ -195,7 +195,7 @@ public partial class GeneratedCount
     /// <summary>This library's generated code over the UTF-8 bytes.</summary>
     /// <returns>The count.</returns>
     [Benchmark(Description = "Corvus generated UTF-8")]
-    public int CorvusGeneratedUtf8() => this.corvusGenerated.Count(this.utf8);
+    public int CorvusGeneratedUtf8() => this.corvusGenerated.CountUnchecked(this.utf8);
 
 
     [global::Corvus.Ecma262.RegularExpressions.GeneratedRegex(@"[\w\.+-]+@[\w\.-]+\.[\w\.-]+", "gu")]
