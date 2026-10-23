@@ -11,3 +11,7 @@ run can give besides a time:
 The harness-image workflow writes the record of it with `industry-results.py` and checks that the record keeps each
 failure as the data file carries it, so the record step cannot fail on a figure with no time unnoticed. The smoke run
 of the image times two workloads whose figures always have one.
+
+The workflow also writes the record of the same run with the .NET generator given no time on any workload, and with a
+data-set runner that gave no counts line, and checks that the record keeps the engine and shows this library's engines
+with no compliance figure.
