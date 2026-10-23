@@ -145,7 +145,9 @@ if INTERLEAVED:
     by_name = {v: k for k, v in INTERLEAVED_ENGINES.items()}
     for _, name, _ in ENGINES:
         figures = INTERLEAVED["results"].get(by_name[name], {})
-        results[name] = {w: ({"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if "median" in r else None)
+        # A figure stopped at the limit is {"limit": 30}, which the page shows as giving no result within 30 s.
+        results[name] = {w: ({"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if "median" in r
+                             else {"limit": r["limit"]} if "limit" in r else None)
                          for w, r in figures.items()}
 
 # V8 as an engine beside the .NET ones: its own harness, the same texts and workloads, the same flags as the Corvus rows.
@@ -155,7 +157,8 @@ if INTERLEAVED and "v8" in INTERLEAVED["results"]:
     node = engine.split("Node ")[-1].rstrip(")").split(".")[0]
     V8 = ("V8 (Node " + node + ")", engine)
     ENGINES.append((V8[0], V8[0], "V8"))
-    results[V8[0]] = {w: ({"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if "median" in r else None)
+    results[V8[0]] = {w: ({"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if "median" in r
+                          else {"limit": r["limit"]} if "limit" in r else None)
                       for w, r in INTERLEAVED["results"]["v8"].items()}
 elif v8_path:
     v8 = json.load(open(v8_path, encoding="utf-8"))
