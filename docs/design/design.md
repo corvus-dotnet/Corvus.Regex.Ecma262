@@ -140,7 +140,16 @@ spans and a few more, every one of them allocation-free:
 
 `Index` and `Length` are in the unit of the input: chars for UTF-16, bytes for UTF-8.
 
-A UTF-8 input that is not valid UTF-8 is read a byte at a time as U+FFFD, as the Go engine reads it. A UTF-16
+A UTF-8 input must be UTF-8. Each member that takes `ReadOnlySpan<byte>` checks it before reading any of it and
+throws `ArgumentException` for bytes that are not (an overlong form, an encoded surrogate, a value beyond
+U+10FFFF, a sequence cut short or a stray byte), as the C library refuses them with `CRE_INVALID_UTF8` and the Rust
+crate by taking a `str`: such bytes are never matched, read in part or read as U+FFFD. Each of those members has a
+twin whose name ends in `Unchecked` (`IsMatchUnchecked`, `CountUnchecked`, `EnumerateMatchesUnchecked`,
+`TryMatchUnchecked`, `TryReplaceUnchecked`, `ReplaceUnchecked`, `EnumerateSplitsUnchecked`) that skips the check,
+for a caller whose text is UTF-8 already: the strings of parsed JSON, which is where Corvus.JsonSchema's text comes
+from, or a text checked once and matched many times. It reads bytes that are not UTF-8 a byte at a time as U+FFFD,
+so it stays memory-safe whatever it is given. The benchmarks check each text once, outside what they time, and time
+the `Unchecked` member. A UTF-16
 input can hold a lone surrogate, and it is matched as ECMA-262 matches it (a code unit without `u`, a code point
 of its own with `u`). Nothing is transcoded: there is no UTF-16 copy of a UTF-8 text and no UTF-8 copy of a
 string.
@@ -281,6 +290,22 @@ literal the matcher runs at the occurrence alone. Without this, such a pattern i
 search for LF and CR with the U+2028 and U+2029 scan done once a chunk ahead; and the range known to hold no form
 the program's search leaves out, so that the pass for the long s and the Kelvin sign is one over the text rather
 than one per match. A match on its own starts with nothing.
+
+**The walk back from a literal after loops.** A pattern that is runs of loops over sets that share no character, then
+a literal (`\b\w+n\b`, `\w+\s+Holmes`), is searched for by its literal, and each occurrence's runs are walked back
+to the earliest start, which is tried. Two positions move apart: the floor, below which no start is tried again, and
+where the next occurrence is looked for. An occurrence that no start reaches (a loop that needs a character finds
+none before it) moves the search on and leaves the floor alone, because a start before it can reach a later
+occurrence through it: the literal can be in a loop's set, as `n` is in `\w` over `a nation`. After a failed start
+the floor moves to the occurrence itself, which is not in the runs and may start a match, then past it. That a failed
+start fails for every later start of its runs holds because the loops reach from it every place a later start
+could; an assertion before the loops breaks it where a later start can pass it and the first not (`\B`, `^`, `$`,
+and `\b` when any loop's set holds a character that is not a word character), and then every start of the runs is
+tried (`Program.AfterLoopEveryStart`). A bounded loop before the literal opens a window of starts back from each
+occurrence, counted in units at the most a character takes (four bytes, two code units), and without `u` the starts
+step by code unit, so that a match that starts between the halves of a pair (the third byte of four over UTF-8) is
+tried. These rules were found wanting by the start-searches family of the test data and its fuzzer, after a
+benchmark's count (`\b\w+n\b` over Sherlock Holmes, 8,361 against V8's 8,366) showed the first of them.
 
 **What this cannot do.** A CJK literal over UTF-8 in a text that fits the cache runs at about 1.2 to 1.5 times
 .NET over UTF-16: every character is three bytes and no byte of it is rare, where UTF-16 has one rare unit per
@@ -467,7 +492,7 @@ and runs the `DatasetRunner` over it on every pull request, on every push to `ma
 encodings, with 0 wrong, 0 refused-valid, 0 accepted-invalid and 0 at a limit as the pass; a second job runs the same
 data on Windows under .NET Framework 4.8.1, over the `netstandard2.0` build. The same runner is run locally before a
 change is pushed, in Debug and Release and with every pattern as generated code (the generated pass compiles each
-pattern's emitted source with Roslyn and takes about six minutes). The current count is 26,950,829 answers right and 0
+pattern's emitted source with Roslyn and takes about six minutes). The current count is 26,953,709 answers right and 0
 wrong in each mode.
 
 ### 8.3 The other tests

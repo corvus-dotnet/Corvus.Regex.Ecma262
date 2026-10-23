@@ -2074,10 +2074,13 @@ internal static class TreeEmitter
             int i1 = indent + 1;
             RunEmitter.Line(find, i1, "TEncoding enc = default;");
             RunEmitter.Line(find, i1, "int c;");
+            // pos is the floor below which no start is tried again, and search where the next occurrence is looked
+            // for (see the interpreter's walk back in Matcher).
+            RunEmitter.Line(find, i1, "int search = pos + " + least + ";");
             RunEmitter.Line(find, i1, "while (true)");
             RunEmitter.Line(find, i1, "{");
             int i2 = i1 + 1;
-            RunEmitter.Line(find, i2, "if (pos + " + least + " > len - " + literal.Length + ")");
+            RunEmitter.Line(find, i2, "if (search > len - " + literal.Length + ")");
             RunEmitter.Line(find, i2, "{");
             RunEmitter.Line(find, i2 + 1, "return false;");
             RunEmitter.Line(find, i2, "}");
@@ -2085,14 +2088,14 @@ internal static class TreeEmitter
             string args16 = literal.Length == 1 ? Ch(literal[0]) : Call("AsSpan", Str(literal), string.Empty);
             string args8 = literal.Length == 1 ? "(byte)" + (int)literal[0] : "B0";
             RunEmitter.Line(find, i2, "int i = typeof(TUnit) == typeof(char)");
-            RunEmitter.Line(find, i2 + 1, "? " + Call("IndexOf", Chars + ".Slice(pos + " + least + ")", args16));
-            RunEmitter.Line(find, i2 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(pos + " + least + ")", args8) + ";");
+            RunEmitter.Line(find, i2 + 1, "? " + Call("IndexOf", Chars + ".Slice(search)", args16));
+            RunEmitter.Line(find, i2 + 1, ": " + Call("IndexOf", Bytes8 + ".Slice(search)", args8) + ";");
             RunEmitter.Line(find, i2, "if (i < 0)");
             RunEmitter.Line(find, i2, "{");
             RunEmitter.Line(find, i2 + 1, "return false;");
             RunEmitter.Line(find, i2, "}");
             sb_blank(find);
-            RunEmitter.Line(find, i2, "i += pos + " + least + ";");
+            RunEmitter.Line(find, i2, "i += search;");
             RunEmitter.Line(find, i2, "int s = i;");
             for (int k = sets.Length - 1; k >= 0; k--)
             {
@@ -2108,9 +2111,11 @@ internal static class TreeEmitter
                 sb_blank(find);
                 if (mins[k] == 1)
                 {
+                    // No start reaches this occurrence, but one before it can reach a later one through it (see the
+                    // interpreter's walk back in Matcher), so the floor stays, and the search goes on after it.
                     RunEmitter.Line(find, i2, "if (s == runEnd" + k + ")");
                     RunEmitter.Line(find, i2, "{");
-                    RunEmitter.Line(find, i2 + 1, "pos = i + 1;");
+                    RunEmitter.Line(find, i2 + 1, "search = i + 1;");
                     RunEmitter.Line(find, i2 + 1, "continue;");
                     RunEmitter.Line(find, i2, "}");
                     sb_blank(find);
@@ -2122,7 +2127,11 @@ internal static class TreeEmitter
             RunEmitter.Line(find, i2 + 1, "return false;");
             RunEmitter.Line(find, i2, "}");
             sb_blank(find);
-            RunEmitter.Line(find, i2, "scan.Next = i + 1;");
+            // After a failed start the floor moves to the next start where an assertion before the loops can hold at
+            // a later start of the run (see Program.AfterLoopEveryStart; the walk back is over ASCII alone, so the
+            // next start is one unit on), and otherwise to the occurrence itself, which is not in the run and may
+            // start a match, then past it once it has been tried.
+            RunEmitter.Line(find, i2, p.AfterLoopEveryStart ? "scan.Next = s + 1;" : "scan.Next = s < i ? i : i + 1;");
             RunEmitter.Line(find, i2, "start = s;");
             RunEmitter.Line(find, i2, "return true;");
             RunEmitter.Line(find, i1, "}");

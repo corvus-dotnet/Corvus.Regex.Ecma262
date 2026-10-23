@@ -595,6 +595,17 @@ public sealed class Program
     /// </summary>
     public bool LeadingWordBoundary { get; internal set; }
 
+    /// <summary>
+    /// Gets a value indicating whether, when a start the walk back from the literal after the loops gives fails, the
+    /// later starts of the same run must be tried too (see <see cref="AfterLoopUtf16"/>). From the run's first start
+    /// the loops reach every place a later start's could, so a later start can only succeed where an assertion before
+    /// the loops holds for it and not for the first: <c>\B</c>, <c>^</c> and <c>$</c> can, and so can <c>\b</c> when
+    /// any loop's set holds a character that is not a word character (a later start can be in any loop's run, as the
+    /// loops before it may be empty). With no assertion, or only <c>\b</c> with every loop over word characters (false
+    /// between two of them), the search goes on to the next occurrence.
+    /// </summary>
+    public bool AfterLoopEveryStart { get; internal set; }
+
     /// <summary>Decides <see cref="Shape"/> from the instructions.</summary>
     /// <param name="alternatives">The literals of an alternation that is the whole pattern, or empty.</param>
     /// <param name="caseAlternatives">The alternatives of an alternation that is the whole pattern as the forms of their characters (see <see cref="Compiler.CaseAlternatives"/>), or empty.</param>
@@ -1022,6 +1033,8 @@ internal sealed class Compiler
         Program program = new(insts, c.tracked.Count, c.loops, !unicode, anchored, prefix, need, [.. c.points], quick, first, [.. c.utf8Literals], [.. c.utf16Literals], required, requiredOffset, caseForms, requiredOffsetUtf8, loopSet, loopMin, afterLoop, skipRun, requiredCount, afterLoopMax, afterLoopAlternation, requiredCountMax, afterLoopSets, afterLoopMins, requiredAlternation, requiredAlternationLo, requiredAlternationHi);
         program.SetShape(LiteralAlternatives(root), CaseAlternatives(root));
         program.LeadingWordBoundary = insts.Length > 1 && insts[0].Op == Op.WordBoundary && first is not null && !first.HasNonAscii && IsWordSubset(first);
+        program.AfterLoopEveryStart = afterLoop.Length > 0 && program.AfterLoopSets.Length > 0 && LeadingAssertions(root).Any(kind =>
+            kind != EcmaRegexNodeKind.WordBoundary || program.AfterLoopSets.Any(set => set.HasNonAscii || !IsWordSubset(set)));
         program.Root = root;
         bool lineRest = false;
         foreach (Inst inst in insts)
@@ -2218,6 +2231,36 @@ internal sealed class Compiler
     }
 
     /// <summary>Whether every member of a set is an ASCII word character.</summary>
+    /// <summary>The kinds of the zero-width assertions a pattern begins with, before its first term (as <see cref="Compiler.LiteralAfterLoop"/> passes over them).</summary>
+    /// <param name="root">The pattern.</param>
+    /// <returns>The kinds, in order.</returns>
+    private static List<EcmaRegexNodeKind> LeadingAssertions(EcmaRegexNode root)
+    {
+        List<EcmaRegexNodeKind> kinds = [];
+        EcmaRegexNode n = root;
+        while (n.Kind == EcmaRegexNodeKind.Group)
+        {
+            n = n.Subs[0];
+        }
+
+        if (n.Kind != EcmaRegexNodeKind.Cat)
+        {
+            return kinds;
+        }
+
+        foreach (EcmaRegexNode sub in n.Subs)
+        {
+            if (sub.Kind is not (EcmaRegexNodeKind.WordBoundary or EcmaRegexNodeKind.NotWordBoundary or EcmaRegexNodeKind.LineStart or EcmaRegexNodeKind.LineEnd))
+            {
+                break;
+            }
+
+            kinds.Add(sub.Kind);
+        }
+
+        return kinds;
+    }
+
     private static bool IsWordSubset(CharSet set)
     {
         for (int c = 0; c < 128; c++)

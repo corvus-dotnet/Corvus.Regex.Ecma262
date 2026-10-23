@@ -50,6 +50,12 @@ jobs:
         mkdir -p out && chmod 777 out
         docker run --rm -e JOB=short -e CORVUS_REGEX_WORKLOADS='aei,zqj' -v "$PWD/workloads.json:/workloads.json:ro" -v "$PWD/texts:/texts:ro" -v "$PWD/out:/out" harness
         python3 -c "import json; d=json.load(open('out/industry.json')); assert len(d['schemas']) == 2 and len(d['impls']) >= 6, d['schemas']; print('smoke run wrote', len(d['impls']), 'engines over', len(d['schemas']), 'workloads')"
+    - name: "Count gate: every workload counted by this library beside V8, each count V8's"
+      # A count that differs from V8's is a wrong answer, which the central page shows as a wrong count: it fails here,
+      # on the pull request (tools/benchmarks/count-gate.py, run by run.sh with COUNT_GATE=1).
+      run: |
+        tools/benchmarks/texts.sh texts
+        docker run --rm -e COUNT_GATE=1 -v "$PWD/all.json:/workloads.json:ro" -v "$PWD/texts:/texts:ro" -v "$PWD/out:/out" harness
     - name: Publish the image
       if: github.ref == 'refs/heads/main' || github.ref_type == 'tag' || github.event_name == 'release' || inputs.tag != ''
       env:

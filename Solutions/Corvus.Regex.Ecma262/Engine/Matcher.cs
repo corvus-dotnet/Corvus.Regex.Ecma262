@@ -1315,7 +1315,7 @@ public static class Matcher
                             return false;
                         }
 
-                        s = enc.NextStart(input, s);
+                        s = NextPosition<TUnit, TEncoding>(input, s, units);
                     }
 
                     pos = enc.NextStart(input, e);
@@ -1349,7 +1349,11 @@ public static class Matcher
             // it from, which are tried in order, the earliest occurrence's first. A form the alternatives' search
             // leaves out is looked for apart, and the starts that could reach it come where it does.
             AlternationSearch? alternation = p.AfterLoopAlternation;
-            int most = p.AfterLoopMax;
+            // AfterLoopMax is in characters and the window back from an occurrence is in units: a character is up to
+            // four bytes of UTF-8 and two code units of UTF-16 (a pair, with u or v), so the window takes the most.
+            // A start the window takes too many of only costs a run; one it leaves out is a match missed.
+            int perCharacter = typeof(TUnit) == typeof(byte) ? 4 : 2;
+            int most = p.AfterLoopMax * perCharacter;
             int least = p.LoopMin;
             bool extras = alternation is not null && enc.HasAlternativeExtras(alternation);
             int window = extras ? enc.AlternativeWindow(alternation!) : 0;
@@ -1405,7 +1409,7 @@ public static class Matcher
                     }
 
                     tried = s;
-                    s = enc.NextStart(input, s);
+                    s = NextPosition<TUnit, TEncoding>(input, s, units);
                 }
 
                 next = enc.NextStart(input, lo);
@@ -1414,9 +1418,10 @@ public static class Matcher
 
         if (p.AfterLoopUtf16.Length != 0)
         {
-            // Every match is a run of the loop's set then the literal: the literal is searched for, and the run
-            // before it is walked back to the earliest start. A failed start fails for every later start of the
-            // same run (the loop ends at the same place), so the next literal occurrence is searched for next.
+            // Every match is a run of the loops' sets then the literal: the literal is searched for, and the run
+            // before it is walked back to the earliest start, which is tried. pos is the floor below which no start is
+            // tried again, and search where the next occurrence is looked for; they move apart, because a start
+            // before an occurrence can reach a later one through it (the literal can be in a loop's set).
             CharSet[] loopSets = p.AfterLoopSets;
             int[] loopMins = p.AfterLoopMins;
             int least = 0;
@@ -1425,9 +1430,10 @@ public static class Matcher
                 least += m;
             }
 
+            int search = pos + least;
             while (true)
             {
-                int i = enc.IndexOfAfterLoop(input, pos + least, p);
+                int i = enc.IndexOfAfterLoop(input, search, p);
                 if (i < 0)
                 {
                     return false;
@@ -1473,7 +1479,10 @@ public static class Matcher
 
                 if (short_)
                 {
-                    pos = enc.NextStart(input, i);
+                    // No start reaches this occurrence, but a start before it, or the occurrence itself, can be the
+                    // first character of the run before a later one (n is in \w for \b\w+n\b over "a nation"), so the
+                    // floor stays where it is, and the search goes on after the occurrence.
+                    search = enc.NextStart(input, i);
                     continue;
                 }
 
@@ -1493,7 +1502,15 @@ public static class Matcher
                     return false;
                 }
 
-                pos = enc.NextStart(input, i);
+                // From the run's first start the loops reach every place a later start of the run could, so those
+                // fail too, unless an assertion before the loops can hold at one of them (see AfterLoopEveryStart):
+                // then the floor moves one start on, and the walk back from the same occurrence gives the next.
+                // Otherwise the floor moves to the occurrence itself, which is not in the run and may start a match
+                // (\b[0-9a-f]*\u00e9t over "0a\u00e9t"), and past it once it has been tried.
+                pos = p.AfterLoopEveryStart ? NextPosition<TUnit, TEncoding>(input, s, units)
+                    : s < i ? i
+                    : enc.NextStart(input, i);
+                search = pos + least;
             }
         }
 #endif

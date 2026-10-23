@@ -81,7 +81,7 @@ public class CommonMembers
     public bool Corvus_Email_IsMatch() => this.email.IsMatch("yay.performance@dot.net");
 
     [Benchmark, BenchmarkCategory("Email_IsMatch")]
-    public bool Corvus_Email_IsMatch_Utf8() => this.email.IsMatch("yay.performance@dot.net"u8);
+    public bool Corvus_Email_IsMatch_Utf8() => this.email.IsMatchUnchecked("yay.performance@dot.net"u8);
 
     [Benchmark(Baseline = true), BenchmarkCategory("Email_IsNotMatch")]
     public bool Net_Email_IsNotMatch() => this.netEmail.IsMatch("yay.performance@dot.net#");
@@ -114,7 +114,7 @@ public class CommonMembers
     public int Corvus_MatchesSet() => this.set.Count(LoremIpsum);
 
     [Benchmark, BenchmarkCategory("MatchesSet")]
-    public int Corvus_MatchesSet_Utf8() => this.set.Count(LoremIpsumUtf8);
+    public int Corvus_MatchesSet_Utf8() => this.set.CountUnchecked(LoremIpsumUtf8);
 
     [Benchmark(Baseline = true), BenchmarkCategory("MatchesBoundary")]
     public int Net_MatchesBoundary() => this.netBoundary.Matches(LoremIpsum).Count;
