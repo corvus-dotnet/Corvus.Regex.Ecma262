@@ -4,7 +4,7 @@
 
 // Runs the library over the ECMA-262 regular expression test data (github.com/corvus-dotnet/ecma262-regex-test-data).
 //
-//   DatasetRunner <data directory> <wrong-cases output file> [file filter] [utf16|utf8|both]
+//   DatasetRunner <data directory> <wrong-cases output file> [file filter] [utf16|utf8|both] [--answers <file>]
 //
 // Each record is asked about under each grammar V8 found it valid in: the record's flags with u added (the
 // `unicode` answers) and the record's flags alone (the `legacy` answers). A text is matched as UTF-16 and as UTF-8.
@@ -12,13 +12,23 @@
 // left out. Any difference from V8 is a wrong answer; a refusal of a valid pattern, an acceptance of an invalid
 // one, and a match that reaches its limit are counted apart and listed too. ill-formed-utf8.jsonl holds bytes that
 // are not UTF-8, each one answer over UTF-8 under each grammar the pattern is valid in, whose right answer is a
-// refusal: the ArgumentException of the members that take UTF-8.
+// refusal: the ArgumentException of the members that take UTF-8. With --answers, the runner also writes its own
+// answers where they differ from the data's (Overlay.cs), from which the data's overlays for other versions of Unicode
+// are made.
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Corvus.Ecma262.RegularExpressions;
+
+int answersAt = Array.IndexOf(args, "--answers");
+string? answersPath = answersAt >= 0 ? args[answersAt + 1] : null;
+if (answersAt >= 0)
+{
+    args = [.. args.Take(answersAt), .. args.Skip(answersAt + 2)];
+    Overlay.Enabled = true;
+}
 
 string directory = args[0];
 string wrongPath = args[1];
@@ -46,8 +56,10 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
         Console.WriteLine($"{name,-24} generated {Factory.Count,10:N0} programs in {clock.Elapsed:mm\\:ss}");
     }
 
-    Parallel.ForEach(lines, new ParallelOptions { MaxDegreeOfParallelism = 4 }, line =>
+    Parallel.For(0, lines.Length, new ParallelOptions { MaxDegreeOfParallelism = 4 }, index =>
     {
+        string line = lines[index];
+        int lineNumber = index + 1;
         using JsonDocument doc = JsonDocument.Parse(line);
         JsonElement r = doc.RootElement;
         if (r.TryGetProperty("v8_deviation", out JsonElement dev) && dev.GetBoolean())
@@ -65,7 +77,7 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
                 return;
             }
 
-            int ok = Captures.Judge(r, pattern, limit, Unescape, wrongCases.Enqueue, out int bad, out int lim);
+            int ok = Captures.Judge(r, pattern, limit, Unescape, wrongCases.Enqueue, out int bad, out int lim, lineNumber);
             Interlocked.Add(ref fileRight, ok);
             Interlocked.Add(ref fileWrong, bad);
             Interlocked.Add(ref fileLimited, lim);
@@ -107,6 +119,20 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
                 Interlocked.Increment(ref errors);
             }
 
+            if (Overlay.Enabled && (regex is not null) != expectedValid)
+            {
+                Overlay.Valid(name, lineNumber, answerName, regex is not null);
+                if (regex is not null && tests.ValueKind == JsonValueKind.Array && name != "ill-formed-utf8.jsonl")
+                {
+                    // A pattern valid here and not in the data has no answers there: each test is answered here.
+                    int i = 0;
+                    foreach (JsonElement t in tests.EnumerateArray())
+                    {
+                        Overlay.Answer(name, lineNumber, answerName, i++, regex.IsMatch(Unescape(t.GetProperty("text").GetRawText())) ? "true" : "false");
+                    }
+                }
+            }
+
             if (regex is null)
             {
                 if (expectedValid)
@@ -145,8 +171,10 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
                 continue;
             }
 
+            int testIndex = -1;
             foreach (JsonElement t in tests.EnumerateArray())
             {
+                testIndex++;
                 if (!t.TryGetProperty(answerName, out JsonElement answer))
                 {
                     continue;
@@ -154,6 +182,21 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
 
                 string text = Unescape(t.GetProperty("text").GetRawText());
                 bool expected = answer.GetBoolean();
+                if (Overlay.Enabled)
+                {
+                    try
+                    {
+                        bool actual = regex.IsMatch(text);
+                        if (actual != expected)
+                        {
+                            Overlay.Answer(name, lineNumber, answerName, testIndex, actual ? "true" : "false");
+                        }
+                    }
+                    catch (RegexMatchTimeoutException)
+                    {
+                        // Counted as a limit below; a limit gives no answer to write.
+                    }
+                }
                 if (utf16)
                 {
                     Judge(regex, pattern, modeFlags, text, expected, name, "utf16", ref fileRight, ref fileWrong, ref fileLimited, () => regex.IsMatch(text));
@@ -175,6 +218,10 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
 }
 
 File.WriteAllLines(wrongPath, wrongCases.OrderBy(c => c, StringComparer.Ordinal));
+if (answersPath is not null)
+{
+    File.WriteAllLines(answersPath, Overlay.Written);
+}
 Console.WriteLine();
 Console.WriteLine($"records {records:N0} (skipped {skipped} deviations)  right {right:N0}  wrong {wrong:N0}  refused-valid {refusedValid}  accepted-invalid {acceptedInvalid}  limit {limited}  errors {errors}  in {clock.Elapsed}");
 return wrong + refusedValid + acceptedInvalid + errors == 0 ? 0 : 1;
