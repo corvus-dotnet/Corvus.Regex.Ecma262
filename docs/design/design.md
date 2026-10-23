@@ -282,6 +282,22 @@ search for LF and CR with the U+2028 and U+2029 scan done once a chunk ahead; an
 the program's search leaves out, so that the pass for the long s and the Kelvin sign is one over the text rather
 than one per match. A match on its own starts with nothing.
 
+**The walk back from a literal after loops.** A pattern that is runs of loops over sets that share no character, then
+a literal (`\b\w+n\b`, `\w+\s+Holmes`), is searched for by its literal, and each occurrence's runs are walked back
+to the earliest start, which is tried. Two positions move apart: the floor, below which no start is tried again, and
+where the next occurrence is looked for. An occurrence that no start reaches (a loop that needs a character finds
+none before it) moves the search on and leaves the floor alone, because a start before it can reach a later
+occurrence through it: the literal can be in a loop's set, as `n` is in `\w` over `a nation`. After a failed start
+the floor moves to the occurrence itself, which is not in the runs and may start a match, then past it. That a failed
+start fails for every later start of its runs holds because the loops reach from it every place a later start
+could; an assertion before the loops breaks it where a later start can pass it and the first not (`\B`, `^`, `$`,
+and `\b` when any loop's set holds a character that is not a word character), and then every start of the runs is
+tried (`Program.AfterLoopEveryStart`). A bounded loop before the literal opens a window of starts back from each
+occurrence, counted in units at the most a character takes (four bytes, two code units), and without `u` the starts
+step by code unit, so that a match that starts between the halves of a pair (the third byte of four over UTF-8) is
+tried. These rules were found wanting by the start-searches family of the test data and its fuzzer, after a
+benchmark's count (`\b\w+n\b` over Sherlock Holmes, 8,361 against V8's 8,366) showed the first of them.
+
 **What this cannot do.** A CJK literal over UTF-8 in a text that fits the cache runs at about 1.2 to 1.5 times
 .NET over UTF-16: every character is three bytes and no byte of it is rare, where UTF-16 has one rare unit per
 character for the span search to find alone. Over a text larger than the cache the smaller encoding wins back.

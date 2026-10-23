@@ -221,6 +221,137 @@ public class PrefilterTests
     }
 
     [TestMethod]
+    [DataRow(@"\b\w+n\b", "gu", "a nation", "2:nation", "an occurrence of the literal with no run before it is part of the run of the next")]
+    [DataRow(@"\b\w+n\b", "gu", "an nation", "0:an|3:nation", "")]
+    [DataRow(@"\b\w+n\b", "gu", "the nation", "4:nation", "")]
+    [DataRow(@"\b\w+n\b", "gu", "n nation", "2:nation", "")]
+    [DataRow(@"\b\w+n\b", "gu", "nn nan noon", "0:nn|3:nan|7:noon", "")]
+    [DataRow(@"\w+\s+Holmes", "gu", "Holmes Holmes", "0:Holmes Holmes", "with two loops the start is the first loop's, back to the ruled-out occurrence")]
+    [DataRow(@"\w+\s+Holmes", "gu", "a Holmes Holmes", "0:a Holmes", "")]
+    [DataRow(@"\w+n", "gu", "n xn", "2:xn", "")]
+    [DataRow(@"\d+n", "gu", "n 1n", "2:1n", "a literal outside the loop's set")]
+    [DataRow(@"[a-z]+x", "gu", "x x ax", "4:ax", "")]
+    [DataRow(@"\B\w+n", "gu", "xan", "1:an", "a later start of the run can pass an assertion the first start failed")]
+    [DataRow(@"\B\w+n", "gu", "xan an", "1:an", "")]
+    [DataRow(@"\b[^ ]+n", "gu", ".an", "1:an", "\\b over a set that holds a character that is not a word character")]
+    [DataRow(@"\b[^ ]+n", "gu", "x .an", "3:an", "")]
+    [DataRow(@"^[^ ]+n", "gmu", "a x\nan", "4:an", "a line start inside a run whose set holds the line terminator")]
+    [DataRow(@"\B[a-z]+\s+Holmes", "gu", "xa Holmes", "1:a Holmes", "")]
+    [DataRow(@"\b\d*\s*a\b", "g", " a", "1:a", "found by fuzz.js of the test data: a start in any loop's run, the occurrence itself, a floor that stays")]
+    [DataRow(@"\b\d*\W*x\b", "gs", " \u00e9\u00e9x", "3:x", "")]
+    [DataRow(@"\b\d*\W+\w+ab", "g", "ab0 aab", "3: aab", "")]
+    [DataRow(@"\b\w*[\u{1F600}-\u{1F64F}]*S\B", "gu", "\U0001F600S_n\U0001F600S", "2:S", "")]
+    [DataRow(@"\W+[a-z]*\W*a", "gm", " a", "0: a", "")]
+    [DataRow(@"[a-z\u00e9\u00e8]+\d*[a-z]+on", "gi", " ONaON", "1:ONaON", "")]
+    [DataRow(@"\w+?[^\w\s]*\d+?n", "gim", "000n", "0:000n", "")]
+    [DataRow(@"\w*\W+-$", "g", " a\u00a0-a--", "4:a--", "")]
+    [DataRow(@"\B\s+[a-z\u00e9\u00e8]+\n", "g", "a-\u000a \u000a\u00a0a\u000a", "2:\u000a \u000a\u00a0a\u000a", "")]
+    [DataRow(@"$\W+[a-z]+-", "gim", "-\u000a-ass-\u000a", "1:\u000a-ass-", "")]
+    [DataRow(@"\w*[^\w\s]+k$", "g", "---_-ka.k", "5:ka.k", "")]
+    [DataRow(@"\B\s+\p{L}+\u4e2d\w*", "gu", "\u000d\u000a\u4e2d\u0416\u00e9\u017f\u017f\u4e2d", "0:\u000d\u000a\u4e2d\u0416\u00e9\u017f\u017f\u4e2d", "")]
+    [DataRow(@"\b[A-Z]*\s+\n\B", "gi", " \u000a\u00a0 S\u000a\u000a", "4:S\u000a\u000a", "")]
+    [DataRow(@"\b[0-9a-f]*\u00e9t", "g", "\u000a\u00e9t0a\u00e9t", "5:\u00e9t", "")]
+    [DataRow(@"\s*\d*\n\b", "gim", "7\u000a\u000a0\u000a", "1:\u000a\u000a", "")]
+    [DataRow(@"^[^\w\s]+[a-z]+\ud83d\ude00\B", "gmu", "\U0001F600-\U0001F600qs\U0001F600-", "0:\U0001F600-\U0001F600qs\U0001F600", "")]
+    [DataRow(@"\b\d*\W*x", "g", "a1 x", "2: x", "")]
+    [DataRow(@".{1,3}(?:on|\.).", "gu", "\U0001F600\U0001F600\U0001F600ona on", "0:\U0001F600\U0001F600\U0001F600ona", "a bounded loop's window back from the literal is in characters, each up to 4 bytes or 2 code units")]
+    [DataRow(@"\b[^\n]{1,3}(?:k|\.)\b", "gimu", "k \U0001F600nk", "1: \U0001F600nk", "")]
+    [DataRow(@"[\u{1F600}-\u{1F64F}]{1,3}(?:-|\.)\B", "gmu", " \U0001F600.", "1:\U0001F600.", "")]
+    [DataRow(@"\b[^\n]{1,3}(?:k|\.)\b", "gimu", "\u00e9.k", "", "")]
+    [DataRow(@"\p{L}?(?:nn|-)\w*", "giu", "\U00010428NN\u0416", "0:\U00010428NN", "")]
+    [DataRow(@"[^\n]{1,3}(?:\u00e9|a)", "gu", "\u4e2d\u4e2d\u4e2da", "0:\u4e2d\u4e2d\u4e2da", "")]
+    public void TheWalkBackFromALiteralReachesTheStartOfARunThatBeginsWithIt(string pattern, string flags, string text, string expected, string why)
+    {
+        // V8's matches: each occurrence of the literal is searched for and the run before it walked back; an
+        // occurrence with no run before it is ruled out, but it can be the first character of a later occurrence's
+        // run, so the walk back from that one must be able to reach it.
+        (Regex interpreted, Regex generated) = Engines.Both(pattern, flags);
+        foreach ((Regex r, string engine) in new[] { (interpreted, "interpreted"), (generated, "generated") })
+        {
+            Assert.AreEqual(expected, string.Join("|", r.Matches(text).Select(m => m.Index + ":" + m.Value)), $"Matches {engine} {why}");
+            List<string> utf16 = [];
+            foreach (ValueMatch m in r.EnumerateMatches(text.AsSpan()))
+            {
+                utf16.Add(m.Index + ":" + text.Substring(m.Index, m.Length));
+            }
+
+            Assert.AreEqual(expected, string.Join("|", utf16), $"EnumerateMatches UTF-16 {engine} {why}");
+            // Over UTF-8 the positions are bytes: each expected index, in UTF-16 code units, becomes the byte offset of
+            // the text before it.
+            byte[] utf8 = Encoding.UTF8.GetBytes(text);
+            string[] matches = expected.Length == 0 ? [] : expected.Split('|');
+            string expected8 = string.Join("|", matches.Select(e =>
+            {
+                int colon = e.IndexOf(':');
+                int index = int.Parse(e.Substring(0, colon), System.Globalization.CultureInfo.InvariantCulture);
+                return Encoding.UTF8.GetByteCount(text.Substring(0, index)) + e.Substring(colon);
+            }));
+            List<string> eight = [];
+            foreach (ValueMatch m in r.EnumerateMatches(utf8))
+            {
+                eight.Add(m.Index + ":" + Encoding.UTF8.GetString(utf8, m.Index, m.Length));
+            }
+
+            Assert.AreEqual(expected8, string.Join("|", eight), $"EnumerateMatches UTF-8 {engine} {why}");
+            Assert.AreEqual(matches.Length, r.Count(text), $"Count {engine} {why}");
+        }
+    }
+
+    [TestMethod]
+    [DataRow(@"\B[^\w\s]{1,3}(?:a|n)", "g", "a\U0001F600a", "2:2", "without u a match can start between the halves of a pair, which a search must step to")]
+    [DataRow(@"[^\w\s]?(?:k|s)", "gi", "x\U0001F600s", "2:2", "")]
+    [DataRow(@".{1,3}(?:on|\.).", "g", "\U0001F600\U0001F600\U0001F600ona on", "3:6", "")]
+    [DataRow(@"\B[^\w\s]+a", "g", "a\U0001F600a", "2:2", "")]
+    public void TheSearchesTryAStartBetweenTheHalvesOfAPairWithoutU(string pattern, string flags, string text, string expected, string why)
+    {
+        // V8's matches as index:length in UTF-16 code units. Over UTF-8 a position between the halves of a pair is
+        // the third byte of the character's four.
+        static int ByteOffset(string s, int index)
+        {
+            int bytes = 0;
+            for (int k = 0; k < index; k++)
+            {
+                if (char.IsHighSurrogate(s[k]) && k + 1 < s.Length && char.IsLowSurrogate(s[k + 1]))
+                {
+                    bytes += k + 1 == index ? 2 : 4;
+                    k++;
+                }
+                else
+                {
+                    bytes += Encoding.UTF8.GetByteCount(s.Substring(k, 1));
+                }
+            }
+
+            return bytes;
+        }
+
+        string expected8 = string.Join("|", expected.Split('|').Select(e =>
+        {
+            int[] f = e.Split(':').Select(x => int.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            int from = ByteOffset(text, f[0]);
+            return from + ":" + (ByteOffset(text, f[0] + f[1]) - from);
+        }));
+        (Regex interpreted, Regex generated) = Engines.Both(pattern, flags);
+        foreach ((Regex r, string engine) in new[] { (interpreted, "interpreted"), (generated, "generated") })
+        {
+            List<string> utf16 = [];
+            foreach (ValueMatch m in r.EnumerateMatches(text.AsSpan()))
+            {
+                utf16.Add(m.Index + ":" + m.Length);
+            }
+
+            Assert.AreEqual(expected, string.Join("|", utf16), $"UTF-16 {engine} {why}");
+            List<string> eight = [];
+            foreach (ValueMatch m in r.EnumerateMatches(Encoding.UTF8.GetBytes(text)))
+            {
+                eight.Add(m.Index + ":" + m.Length);
+            }
+
+            Assert.AreEqual(expected8, string.Join("|", eight), $"UTF-8 {engine} {why}");
+        }
+    }
+
+    [TestMethod]
     public void WhatAnEnumerationLearnedOfOneTextDoesNotServeALaterMatchOnAnother()
     {
         // An enumeration carries the ranges it found clear of the long s and of the rare line terminators; a match
