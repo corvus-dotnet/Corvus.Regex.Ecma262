@@ -54,7 +54,7 @@ The shape of this repository, cut down to the engine:
   that claims the grammar, and "not ECMA-262" for one that does not (`System.Text.RegularExpressions`, `regex`,
   `java.util.regex`, Go's `regexp`, PCRE2, `re`); a reader sees what a fast engine is fast at.
 - **Benchmarks**: the Industry workloads (`tools/benchmarks/v8/workloads.py` is the list, from the benchmark
-  project's own definitions) run against the platform's standard engine and its ECMA-262 competitors, by a harness
+  project's own definitions) run against the platform's standard engine and its other ECMA-262 engines, by a harness
   in the language, writing the results-page data file (the `corvus-benchmark-results-page` skill's shape); the
   page on the repository's site, and the data sent to the central benchmark below.
 - **Release**: the port's existing release path (crates.io, Maven Central, Go modules, the Julia registry, PyPI,
@@ -66,12 +66,12 @@ There is one page of benchmark figures, the central benchmark site at `corvus-os
 (repository `corvus-regex-ecma262-benchmarks`). An engine repository publishes no page and no results of its own; it
 publishes **a harness image**, and the central site runs it.
 
-- **The harness**, `tools/benchmarks/run.sh <workloads.json> <texts dir> <out.json>`, builds the engine and its
-  platform's competitors, runs the Industry workloads, runs the ECMA-262 test data for the compliance figures, and
+- **The harness**, `tools/benchmarks/run.sh <workloads.json> <texts dir> <out.json>`, builds the engine and the
+  platform's other engines, runs the Industry workloads, runs the ECMA-262 test data for the compliance figures, and
   writes one data file in the results-page shape (the `corvus-benchmark-results-page` skill: `meta`, `impls`,
   `schemas`, `measures`, `results`). `meta` carries the repository, the commit, the run's time and the host as the
   harness recorded them (never typed in), and the engine versions; `impls` are the repository's engines, the
-  platform's competitors and V8, each with its `group` (the language) and its compliance (the counts, or
+  platform's other engines and V8, each with its `group` (the language) and its compliance (the counts, or
   "not ECMA-262"); `schemas` are the Industry workload ids, the same in every repository (the list comes from one
   place, `workloads.py`); `measures.time` is nanoseconds per `Count`.
 - **The image**, `ghcr.io/corvus-dotnet/corvus-regex-ecma262-<lang>`, has the harness as its entry point:
@@ -120,7 +120,7 @@ Each step is its own repository, its own pull requests and its own release, in t
 ## 5. Decisions taken here, and the ones that are yours
 
 Taken, unless you say otherwise: the repository and package names of section 1; V8 on every benchmark; GraalJS
-TRegex and goja as the ECMA-262 competitors on the Java and Go benchmarks, and PCRE2 on the C benchmark; each engine carrying its history out of the JSON Schema
+TRegex and goja as the other ECMA-262 engines on the Java and Go benchmarks, and PCRE2 on the C benchmark; each engine carrying its history out of the JSON Schema
 monorepo (a filtered history, as the Rust engine did); the C ABI living in the Rust repository; the central benchmark as its own repository with one job on one runner; the order
 of section 4.
 
