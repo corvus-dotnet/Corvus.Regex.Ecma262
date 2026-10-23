@@ -246,13 +246,27 @@ public sealed partial class Regex
     }
 
     /// <summary>The number of matches in a UTF-8 text, allocating nothing.</summary>
+    /// <param name="utf8">The text, which must be UTF-8.</param>
+    /// <returns>The number.</returns>
+    /// <exception cref="RegexMatchTimeoutException">A match reached its limit.</exception>
+    /// <exception cref="ArgumentException">The text is not UTF-8.</exception>
+    public int Count(ReadOnlySpan<byte> utf8)
+    {
+        Utf8Check.Check(utf8, nameof(utf8));
+        return this.CountUnchecked(utf8);
+    }
+
+    /// <summary>The number of matches in a UTF-8 text, allocating nothing.</summary>
+    /// <remarks>The text is not checked to be UTF-8: this is for text its caller knows to be UTF-8, such as the strings
+    /// of parsed JSON, or a text checked once and matched many times. Bytes that are not UTF-8 are read as U+FFFD one
+    /// at a time; the member without <c>Unchecked</c> refuses them.</remarks>
     /// <param name="utf8">The text.</param>
     /// <returns>The number.</returns>
     /// <exception cref="RegexMatchTimeoutException">A match reached its limit.</exception>
-    public int Count(ReadOnlySpan<byte> utf8)
+    public int CountUnchecked(ReadOnlySpan<byte> utf8)
     {
         int n = 0;
-        foreach (ValueMatch m in this.EnumerateMatches(utf8))
+        foreach (ValueMatch m in this.EnumerateMatchesUnchecked(utf8))
         {
             n++;
         }
@@ -276,15 +290,42 @@ public sealed partial class Regex
     }
 
     /// <summary>Enumerates the matches in a UTF-8 text, allocating nothing.</summary>
+    /// <param name="utf8">The text, which must be UTF-8.</param>
+    /// <returns>The enumerator.</returns>
+    /// <exception cref="ArgumentException">The text is not UTF-8.</exception>
+    public Utf8ValueMatchEnumerator EnumerateMatches(ReadOnlySpan<byte> utf8)
+    {
+        Utf8Check.Check(utf8, nameof(utf8));
+        return this.EnumerateMatchesUnchecked(utf8);
+    }
+
+    /// <summary>Enumerates the matches in a UTF-8 text, allocating nothing.</summary>
+    /// <remarks>The text is not checked to be UTF-8: this is for text its caller knows to be UTF-8, such as the strings
+    /// of parsed JSON, or a text checked once and matched many times. Bytes that are not UTF-8 are read as U+FFFD one
+    /// at a time; the member without <c>Unchecked</c> refuses them.</remarks>
     /// <param name="utf8">The text.</param>
     /// <returns>The enumerator.</returns>
-    public Utf8ValueMatchEnumerator EnumerateMatches(ReadOnlySpan<byte> utf8) => new(this, utf8, 0);
+    public Utf8ValueMatchEnumerator EnumerateMatchesUnchecked(ReadOnlySpan<byte> utf8) => new(this, utf8, 0);
 
     /// <summary>Enumerates the matches in a UTF-8 text at or after a position, allocating nothing.</summary>
+    /// <param name="utf8">The text, which must be UTF-8.</param>
+    /// <param name="startAt">The position, in bytes, at the start of a character.</param>
+    /// <returns>The enumerator.</returns>
+    /// <exception cref="ArgumentException">The text is not UTF-8.</exception>
+    public Utf8ValueMatchEnumerator EnumerateMatches(ReadOnlySpan<byte> utf8, int startAt)
+    {
+        Utf8Check.Check(utf8, nameof(utf8));
+        return this.EnumerateMatchesUnchecked(utf8, startAt);
+    }
+
+    /// <summary>Enumerates the matches in a UTF-8 text at or after a position, allocating nothing.</summary>
+    /// <remarks>The text is not checked to be UTF-8: this is for text its caller knows to be UTF-8, such as the strings
+    /// of parsed JSON, or a text checked once and matched many times. Bytes that are not UTF-8 are read as U+FFFD one
+    /// at a time; the member without <c>Unchecked</c> refuses them.</remarks>
     /// <param name="utf8">The text.</param>
     /// <param name="startAt">The position, in bytes, at the start of a character.</param>
     /// <returns>The enumerator.</returns>
-    public Utf8ValueMatchEnumerator EnumerateMatches(ReadOnlySpan<byte> utf8, int startAt)
+    public Utf8ValueMatchEnumerator EnumerateMatchesUnchecked(ReadOnlySpan<byte> utf8, int startAt)
     {
         ValidateStart(utf8.Length, startAt);
         return new(this, utf8, this.Normalize(utf8, startAt));
@@ -325,13 +366,33 @@ public sealed partial class Regex
     /// Finds the first match in a UTF-8 text at or after a position and reports what each group captured, allocating
     /// nothing.
     /// </summary>
+    /// <param name="utf8">The text, which must be UTF-8.</param>
+    /// <param name="startAt">The position, in bytes, at the start of a character.</param>
+    /// <param name="captures">Receives the match as element 0 and each group in order; its length must be at least <see cref="GroupCount"/> + 1.</param>
+    /// <param name="match">The match.</param>
+    /// <returns><see langword="true"/> when there is a match.</returns>
+    /// <exception cref="RegexMatchTimeoutException">The match reached its limit.</exception>
+    /// <exception cref="ArgumentException">The text is not UTF-8.</exception>
+    public bool TryMatch(ReadOnlySpan<byte> utf8, int startAt, Span<ValueCapture> captures, out ValueMatch match)
+    {
+        Utf8Check.Check(utf8, nameof(utf8));
+        return this.TryMatchUnchecked(utf8, startAt, captures, out match);
+    }
+
+    /// <summary>
+    /// Finds the first match in a UTF-8 text at or after a position and reports what each group captured, allocating
+    /// nothing.
+    /// </summary>
+    /// <remarks>The text is not checked to be UTF-8: this is for text its caller knows to be UTF-8, such as the strings
+    /// of parsed JSON, or a text checked once and matched many times. Bytes that are not UTF-8 are read as U+FFFD one
+    /// at a time; the member without <c>Unchecked</c> refuses them.</remarks>
     /// <param name="utf8">The text.</param>
     /// <param name="startAt">The position, in bytes, at the start of a character.</param>
     /// <param name="captures">Receives the match as element 0 and each group in order; its length must be at least <see cref="GroupCount"/> + 1.</param>
     /// <param name="match">The match.</param>
     /// <returns><see langword="true"/> when there is a match.</returns>
     /// <exception cref="RegexMatchTimeoutException">The match reached its limit.</exception>
-    public bool TryMatch(ReadOnlySpan<byte> utf8, int startAt, Span<ValueCapture> captures, out ValueMatch match)
+    public bool TryMatchUnchecked(ReadOnlySpan<byte> utf8, int startAt, Span<ValueCapture> captures, out ValueMatch match)
     {
         ValidateStart(utf8.Length, startAt);
         if (captures.Length < this.GroupCount + 1)

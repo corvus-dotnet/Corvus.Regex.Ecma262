@@ -234,7 +234,7 @@ public class IndustryCount
     /// <summary>This library over the UTF-8 bytes.</summary>
     /// <returns>The count.</returns>
     [Benchmark(Description = "Corvus UTF-8")]
-    public int CorvusUtf8() => this.corvus.Count(this.utf8);
+    public int CorvusUtf8() => this.corvus.CountUnchecked(this.utf8);
 }
 
 /// <summary>The Boost documentation's simple IsMatch set: short texts, anchored patterns.</summary>
@@ -318,5 +318,5 @@ public class BoostIsMatch
     /// <summary>This library over the UTF-8 bytes.</summary>
     /// <returns>The answer.</returns>
     [Benchmark(Description = "Corvus UTF-8")]
-    public bool CorvusUtf8() => this.corvus.IsMatch(this.utf8);
+    public bool CorvusUtf8() => this.corvus.IsMatchUnchecked(this.utf8);
 }

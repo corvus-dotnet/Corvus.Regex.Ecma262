@@ -87,7 +87,9 @@ Regex consonants = new(@"[[a-z]--[aeiou]]+", "v");                   // the v fl
 ### Over UTF-8
 
 Every member that takes `ReadOnlySpan<char>` has a twin that takes UTF-8 bytes. The bytes are matched as they are,
-and the positions are byte offsets.
+and the positions are byte offsets. Bytes that are not UTF-8 are refused with `ArgumentException` before any is read.
+A text that is UTF-8 already (the strings of parsed JSON, or a text checked once and matched many times) can skip
+that check: each of those members has a twin whose name ends in `Unchecked`, such as `CountUnchecked`.
 
 ```csharp
 Regex words = new(@"\p{L}+", "gu");

@@ -191,7 +191,8 @@ internal static class Driver
 
     private static Func<int> Counter(Regex re, string text) => () => re.Count(text);
 
-    private static Func<int> Counter(Regex re, byte[] utf8) => () => re.Count(utf8);
+    // The text is checked to be UTF-8 here, once, outside what is timed, which counts with the member that does not check.
+    private static Func<int> Counter(Regex re, byte[] utf8) => System.Text.Unicode.Utf8.IsValid(utf8) ? () => re.CountUnchecked(utf8) : throw new ArgumentException("the text is not UTF-8");
 
     private static Func<int> NetCounter(Net.Regex re, string text) => () => re.Count(text);
 

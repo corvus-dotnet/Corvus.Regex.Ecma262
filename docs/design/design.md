@@ -140,7 +140,16 @@ spans and a few more, every one of them allocation-free:
 
 `Index` and `Length` are in the unit of the input: chars for UTF-16, bytes for UTF-8.
 
-A UTF-8 input that is not valid UTF-8 is read a byte at a time as U+FFFD, as the Go engine reads it. A UTF-16
+A UTF-8 input must be UTF-8. Each member that takes `ReadOnlySpan<byte>` checks it before reading any of it and
+throws `ArgumentException` for bytes that are not (an overlong form, an encoded surrogate, a value beyond
+U+10FFFF, a sequence cut short or a stray byte), as the C library refuses them with `CRE_INVALID_UTF8` and the Rust
+crate by taking a `str`: such bytes are never matched, read in part or read as U+FFFD. Each of those members has a
+twin whose name ends in `Unchecked` (`IsMatchUnchecked`, `CountUnchecked`, `EnumerateMatchesUnchecked`,
+`TryMatchUnchecked`, `TryReplaceUnchecked`, `ReplaceUnchecked`, `EnumerateSplitsUnchecked`) that skips the check,
+for a caller whose text is UTF-8 already: the strings of parsed JSON, which is where Corvus.JsonSchema's text comes
+from, or a text checked once and matched many times. It reads bytes that are not UTF-8 a byte at a time as U+FFFD,
+so it stays memory-safe whatever it is given. The benchmarks check each text once, outside what they time, and time
+the `Unchecked` member. A UTF-16
 input can hold a lone surrogate, and it is matched as ECMA-262 matches it (a code unit without `u`, a code point
 of its own with `u`). Nothing is transcoded: there is no UTF-16 copy of a UTF-8 text and no UTF-8 copy of a
 string.
@@ -467,7 +476,7 @@ and runs the `DatasetRunner` over it on every pull request, on every push to `ma
 encodings, with 0 wrong, 0 refused-valid, 0 accepted-invalid and 0 at a limit as the pass; a second job runs the same
 data on Windows under .NET Framework 4.8.1, over the `netstandard2.0` build. The same runner is run locally before a
 change is pushed, in Debug and Release and with every pattern as generated code (the generated pass compiles each
-pattern's emitted source with Roslyn and takes about six minutes). The current count is 26,950,829 answers right and 0
+pattern's emitted source with Roslyn and takes about six minutes). The current count is 26,953,709 answers right and 0
 wrong in each mode.
 
 ### 8.3 The other tests

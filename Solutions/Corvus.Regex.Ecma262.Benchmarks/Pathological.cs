@@ -43,6 +43,7 @@ public class Pathological
     public void Setup()
     {
         (string pattern, this.text) = Cases[this.Id];
+        // UTF-8 by construction, so what is timed matches it with the member that does not check it.
         this.utf8 = System.Text.Encoding.UTF8.GetBytes(this.text);
         this.net = new Net.Regex(pattern, Net.RegexOptions.None, TimeSpan.FromSeconds(1));
         this.netCompiled = new Net.Regex(pattern, Net.RegexOptions.Compiled, TimeSpan.FromSeconds(1));
@@ -67,7 +68,7 @@ public class Pathological
     /// <summary>This library over the UTF-8 bytes.</summary>
     /// <returns>1 or 0.</returns>
     [Benchmark(Description = "Corvus UTF-8")]
-    public int CorvusUtf8() => this.corvus.IsMatch(this.utf8) ? 1 : 0;
+    public int CorvusUtf8() => this.corvus.IsMatchUnchecked(this.utf8) ? 1 : 0;
 
     private static int Timed(Net.Regex r, string text)
     {
