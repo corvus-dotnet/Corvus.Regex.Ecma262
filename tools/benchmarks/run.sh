@@ -31,6 +31,16 @@ for f in "$texts"/*.txt.gz; do [ -e "$cache/$(basename "$f")" ] || ln -s "$f" "$
 echo "== build"
 dotnet build "$here/Solutions/Corvus.Regex.Ecma262.Benchmarks/Corvus.Regex.Ecma262.Benchmarks.csproj" -c Release -m:4 -nr:false >/dev/null
 dotnet build "$here/Solutions/Corvus.Regex.Ecma262.DatasetRunner/Corvus.Regex.Ecma262.DatasetRunner.csproj" -c Release -f net10.0 -m:4 -nr:false >/dev/null
+# COUNT_GATE=1 (the harness-image job): every workload counted by this library's engines beside V8, one round of the
+# least timing, each count checked against V8's by count-gate.py; nothing else runs.
+if [ "${COUNT_GATE:-0}" = 1 ]; then
+  engines=corvus-utf16,corvus-utf8,corvus-generated-utf16,corvus-generated-utf8
+  ( cd "$here/Solutions/Corvus.Regex.Ecma262.Benchmarks" && CORVUS_REGEX_TEXTS="$texts" ./bin/Release/net10.0/Corvus.Regex.Ecma262.Benchmarks \
+      industry "$workloads" --v8 "$here/tools/benchmarks/v8/industry.mjs" --engines "$engines,v8" --rounds 1 --seconds 0.01 \
+      --passes 1 --out "$work/counts.json" 2> "$work/counts.log" ) || true
+  python3 "$here/tools/benchmarks/count-gate.py" "$workloads" "$work/counts.json" ${engines//,/ }
+  exit $?
+fi
 
 echo "== the ECMA-262 test data (interpreted, both encodings)"
 if [ -z "$data" ]; then git clone --quiet --depth 1 https://github.com/corvus-dotnet/ecma262-regex-test-data.git "$work/data"; data="$work/data/data"; fi

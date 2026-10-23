@@ -22,6 +22,20 @@ own record of itself; with --run, BenchmarkDotNet's GeneratedCount class under t
 import csv, string, glob, json, math, os, statistics, sys
 
 import argparse
+import re
+
+
+def failure(r):
+    """A figure the harness gave no time for, as the data file carries it: stopped at the harness's limit
+    ({"limit": s}), a count of matches that differs from V8's ({"wrongCount": {"counted": n, "v8": m}}), or another
+    failure with what the harness said ({"error": "..."})."""
+    if "limit" in r:
+        return {"limit": r["limit"]}
+    m = re.match(r"counted (\d+) where V8 counts (\d+)", str(r.get("error", "")))
+    if m:
+        return {"wrongCount": {"counted": int(m.group(1)), "v8": int(m.group(2))}}
+    return {"error": r["error"]} if "error" in r else None
+
 ap = argparse.ArgumentParser()
 ap.add_argument("--run")
 ap.add_argument("--interleaved", help="the run.json of the interleaved driver (Driver.cs), in place of --run and --v8")
@@ -147,7 +161,7 @@ if INTERLEAVED:
         figures = INTERLEAVED["results"].get(by_name[name], {})
         # A figure stopped at the limit is {"limit": 30}, which the page shows as giving no result within 30 s.
         results[name] = {w: ({"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if "median" in r
-                             else {"limit": r["limit"]} if "limit" in r else None)
+                             else failure(r))
                          for w, r in figures.items()}
 
 # V8 as an engine beside the .NET ones: its own harness, the same texts and workloads, the same flags as the Corvus rows.
@@ -158,7 +172,7 @@ if INTERLEAVED and "v8" in INTERLEAVED["results"]:
     V8 = ("V8 (Node " + node + ")", engine)
     ENGINES.append((V8[0], V8[0], "V8"))
     results[V8[0]] = {w: ({"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if "median" in r
-                          else {"limit": r["limit"]} if "limit" in r else None)
+                          else failure(r))
                       for w, r in INTERLEAVED["results"]["v8"].items()}
 elif v8_path:
     v8 = json.load(open(v8_path, encoding="utf-8"))
@@ -197,6 +211,7 @@ method_html = (
 )
 
 import re as _re
+
 def counts_of(line, encodings, note=""):
     """The counts of a data-set runner's last line, with the encodings its runner answers in (which the central page's
     figure is a share of: every answer the test data asks in those encodings)."""
