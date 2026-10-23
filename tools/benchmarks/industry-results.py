@@ -36,6 +36,7 @@ ap.add_argument("--out-dir", required=True)
 ap.add_argument("--base-path", default="")
 ap.add_argument("--run-url", default="")
 ap.add_argument("--compliance", default="", help="the data-set runner's last line for the Corvus engines (records ... right N wrong N refused-valid N accepted-invalid N ...)")
+ap.add_argument("--compliance-v8", default="", help="tools/benchmarks/v8/dataset.mjs's last line for V8, in the same shape")
 args = ap.parse_args()
 if not (args.run or args.interleaved):
     raise SystemExit("a run: --interleaved <run.json> or --run <BenchmarkDotNet artifacts>")
@@ -185,7 +186,7 @@ n = len(workloads)
 method_html = (
 "<p><b>Each figure is one <code>Count</code></b> over the whole text: every match found, as the benchmark of dotnet/performance measures it. The Corvus rows run under the <code>u</code> flag, which .NET has no mode for; counts agree on 53 of the 57 rows, and the four apart are <code>$</code> and <code>.</code> at CRLF, where ECMA-262 counts CR as a line terminator, and <code>\\w</code>, which .NET takes as Unicode letters and digits.</p>"
     + "<p><b>Where this library is slower, and why.</b> Four kinds of row read above 1.0, each the price of an ECMA-262 rule .NET does not apply: <code>.</code> and <code>$</code> at CRLF, where ECMA-262's <code>.</code> stops at CR as well as LF, so <code>.*</code> finds 36,491 matches to .NET's 26,105 at parity per match; case-insensitive patterns under the u flag, whose search must find the long s and the Kelvin sign as forms of <code>s</code> and <code>k</code>, which .NET's search ignores; a class that admits a supplementary character (two units) before a literal at a fixed distance, so the distance is not fixed (<code>[a-q][^u-z]{13}x</code>); and non-ASCII literals over UTF-8, where every Cyrillic or Chinese character is two or three bytes with no rare byte among them, against UTF-16's one rare unit per character. The other rows above 1.0 are within a few percent of parity and read either side of it from run to run.</p>"
-    + "<p><b>The engines</b> are .NET's interpreter (<code>RegexOptions.None</code>), .NET's source generator (<code>[GeneratedRegex]</code>), this library's interpreter over UTF-16, this library's source generator over UTF-16 and over UTF-8, and V8 (Node 24's <code>RegExp</code>, the oracle of the test data) over the same texts with the same flags as the Corvus rows, its matches counted by a <code>test</code> loop that advances <code>lastIndex</code> as <code>matchAll</code> does. The UTF-8 rows match the same text as bytes, with nothing transcoded.</p>"
+    + "<p><b>The engines</b> are .NET's interpreter (<code>RegexOptions.None</code>), .NET's source generator (<code>[GeneratedRegex]</code>), this library's interpreter over UTF-16, this library's source generator over UTF-16 and over UTF-8, and V8 (Node 24's <code>RegExp</code>, judged on the test data as every engine is) over the same texts with the same flags as the Corvus rows, its matches counted by a <code>test</code> loop that advances <code>lastIndex</code> as <code>matchAll</code> does. The UTF-8 rows match the same text as bytes, with nothing transcoded.</p>"
     + (f"<p><b>The bar is the median</b> of {JOB}. A row's ratio is read against its neighbours' rather than to the last few percent.</p>"
        if INTERLEAVED else
        f"<p><b>The bar is the mean</b> of {JOB} and the whisker one standard deviation of its iterations; a row's ratio is read against its neighbours' rather than to the last few percent. Allocated is the bytes the benchmark allocated per operation; the library allocates nothing per match once its working memory has grown.</p>")
@@ -193,17 +194,27 @@ method_html = (
 )
 
 import re as _re
-def compliance_of(group):
-    """What an engine answers on the ECMA-262 test data: counts for an engine held to it, the oracle for V8, or not ECMA-262."""
-    if group == "V8":
-        return "the oracle of the test data"
-    if group == ".NET":
-        return "not ECMA-262"
-    m = _re.search(r"right ([\d,]+)\s+wrong ([\d,]+)\s+refused-valid ([\d,]+)\s+accepted-invalid ([\d,]+)(?:\s+limit ([\d,]+))?", args.compliance)
+def counts_of(line, encodings, note=""):
+    """The counts of a data-set runner's last line, with the encodings its runner answers in (which the central page's
+    figure is a share of: every answer the test data asks in those encodings)."""
+    m = _re.search(r"right ([\d,]+)\s+wrong ([\d,]+)\s+refused-valid ([\d,]+)\s+accepted-invalid ([\d,]+)(?:\s+limit ([\d,]+))?", line)
     if not m:
         return None
     n = lambda k: int((m.group(k) or "0").replace(",", ""))
-    return {"right": n(1), "wrong": n(2), "refused": n(3), "acceptedInvalid": n(4), "limited": n(5)}
+    out = {"right": n(1), "wrong": n(2), "refused": n(3), "acceptedInvalid": n(4), "limited": n(5), "encodings": encodings}
+    if note:
+        out["note"] = note
+    return out
+
+
+def compliance_of(group):
+    """What an engine answers on the ECMA-262 test data: counts for an engine held to it (this library's over both
+    encodings; V8's over UTF-16, its one encoding), or not ECMA-262."""
+    if group == "V8":
+        return counts_of(args.compliance_v8, ["utf16"], "V8 over UTF-16, its one encoding, by tools/benchmarks/v8/dataset.mjs")
+    if group == ".NET":
+        return "not ECMA-262"
+    return counts_of(args.compliance, ["utf16", "utf8"])
 
 data = {
     "meta": {
@@ -277,7 +288,7 @@ The data of this run is `industry.json` beside this file, in the results-page sh
 
 The workloads are the Industry set of dotnet/performance (`Perf.Regex.Industry`: the Sherlock Holmes, Leipzig and mariomka texts and the rebar names), the set behind .NET's own "regex performance improvements in .NET N" tables. Each is run five ways: .NET's interpreter (`RegexOptions.None`), .NET's source generator (`[GeneratedRegex]`), this library's interpreter over UTF-16, and this library's source generator over UTF-16 and over UTF-8. `Count` over the text, one call per operation. A ratio below 1.0 is this library being faster.
 
-V8 is the sixth engine: Node 24's `RegExp`, the oracle of the test data, over the same texts with the same flags as the Corvus rows (`gu` added), the matches counted by a `test` loop that advances `lastIndex` as `matchAll` does, which is the cheapest count V8 offers; its harness is `tools/benchmarks/v8/industry.mjs`, run under the same procedure. V8 has no vectorised search for a literal, a set or an alternation beyond its first character, so the rows that such a search decides read tens to hundreds of times slower there; the rows it wins are short fixed literals over its one-byte strings.
+V8 is the sixth engine: Node 24's `RegExp`, whose answers the test data records, over the same texts with the same flags as the Corvus rows (`gu` added), the matches counted by a `test` loop that advances `lastIndex` as `matchAll` does, which is the cheapest count V8 offers; its harness is `tools/benchmarks/v8/industry.mjs`, run under the same procedure. V8 has no vectorised search for a literal, a set or an alternation beyond its first character, so the rows that such a search decides read tens to hundreds of times slower there; the rows it wins are short fixed literals over its one-byte strings.
 
 The Corvus rows run under the `u` flag, which .NET has no mode for, so the two engines answer by different rules on a few rows: counts agree on 53 of the 57, and the four apart are `$` and `.` at CRLF, where ECMA-262 counts CR as a line terminator, and `\\w`, which .NET takes as Unicode letters and digits. The UTF-8 rows match the same text as bytes, with nothing transcoded.
 
