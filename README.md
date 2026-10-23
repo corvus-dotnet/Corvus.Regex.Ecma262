@@ -198,7 +198,7 @@ safe to share between threads.
   the gates step by step, and what a pull request needs.
 - [docs/benchmarks/industry.md](docs/benchmarks/industry.md): what the Industry benchmarks measure against
   `System.Text.RegularExpressions` and V8, and where the library is slower and why; the figures are on
-  [the benchmark page](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/), beside every Corvus ECMA-262 engine, measured on one runner each night.
+  [the benchmark page](https://corvus-oss.org/corvus-regex-ecma262-benchmarks/), beside the engines of every other source, measured on one runner each night.
 
 ## Repository layout
 

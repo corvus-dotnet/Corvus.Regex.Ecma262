@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The runnable harness of the results contract: builds this library's benchmarks, runs the Industry workloads for the
-# five .NET-side engines and V8 (Node 24) under the interleaved protocol of every Corvus ECMA-262 engine's harness
+# five .NET-side engines and V8 (Node 24) under the interleaved protocol of every harness of the central benchmark page
 # (Corvus.Regex.Ecma262.Benchmarks industry, Driver.cs; its numbers in tools/benchmarks/protocol.sh), runs the ECMA-262
 # test data for the compliance figures (this library's and V8's), and writes the run as one data file in the
 # results-page shape.
