@@ -10,7 +10,9 @@
 // `unicode` answers) and the record's flags alone (the `legacy` answers). A text is matched as UTF-16 and as UTF-8.
 // A text with a lone surrogate has no UTF-8 form and is matched as UTF-16 alone. Records marked v8_deviation are
 // left out. Any difference from V8 is a wrong answer; a refusal of a valid pattern, an acceptance of an invalid
-// one, and a match that reaches its limit are counted apart and listed too.
+// one, and a match that reaches its limit are counted apart and listed too. ill-formed-utf8.jsonl holds bytes that
+// are not UTF-8, each one answer over UTF-8 under each grammar the pattern is valid in, whose right answer is a
+// refusal: the ArgumentException of the members that take UTF-8.
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -130,6 +132,19 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
                 continue;
             }
 
+            if (name == "ill-formed-utf8.jsonl")
+            {
+                if (utf8)
+                {
+                    foreach (JsonElement t in tests.EnumerateArray())
+                    {
+                        JudgeIllFormed(regex, pattern, modeFlags, t.GetProperty("bytes").GetString()!, name, ref fileRight, ref fileWrong, ref fileLimited);
+                    }
+                }
+
+                continue;
+            }
+
             foreach (JsonElement t in tests.EnumerateArray())
             {
                 if (!t.TryGetProperty(answerName, out JsonElement answer))
@@ -188,6 +203,36 @@ void Judge(Regex regex, string pattern, string modeFlags, string text, bool expe
     {
         Interlocked.Increment(ref errors);
         wrongCases.Enqueue($"ERROR\t{name}\t/{Escape(pattern)}/{modeFlags}\t{Escape(text)}\t{encoding}\t{e.GetType().Name}: {First(e.Message)}");
+    }
+}
+
+void JudgeIllFormed(Regex regex, string pattern, string modeFlags, string hex, string name, ref long fileRight, ref long fileWrong, ref long fileLimited)
+{
+    byte[] bytes = new byte[hex.Length / 2];
+    for (int k = 0; k < bytes.Length; k++)
+    {
+        bytes[k] = Convert.ToByte(hex.Substring(2 * k, 2), 16);
+    }
+
+    try
+    {
+        bool actual = regex.IsMatch(bytes);
+        Interlocked.Increment(ref fileWrong);
+        wrongCases.Enqueue($"WRONG\t{name}\t/{Escape(pattern)}/{modeFlags}\t{hex}\tutf8\tread as UTF-8 ({actual}), not refused");
+    }
+    catch (RegexMatchTimeoutException e)
+    {
+        Interlocked.Increment(ref fileLimited);
+        wrongCases.Enqueue($"LIMIT\t{name}\t/{Escape(pattern)}/{modeFlags}\t{hex}\tutf8\t{(e.ExceededMemory ? "memory" : "time")}");
+    }
+    catch (ArgumentException)
+    {
+        Interlocked.Increment(ref fileRight);
+    }
+    catch (Exception e)
+    {
+        Interlocked.Increment(ref errors);
+        wrongCases.Enqueue($"ERROR\t{name}\t/{Escape(pattern)}/{modeFlags}\t{hex}\tutf8\t{e.GetType().Name}: {First(e.Message)}");
     }
 }
 
