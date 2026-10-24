@@ -397,6 +397,9 @@ public enum SimpleShape : byte
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class Program
 {
+    /// <summary>The automata of the search, once built (see <see cref="Automata"/>).</summary>
+    private SearchAutomata? automata;
+
     /// <summary>Initializes a new instance of the <see cref="Program"/> class.</summary>
     /// <param name="insts">The instructions.</param>
     /// <param name="groups">The number of tracked groups.</param>
@@ -804,6 +807,32 @@ public sealed class Program
     /// <summary>Gets the tree the program was compiled from, after <see cref="Compiler.Simplify"/>, for the generator's structured code.</summary>
     internal EcmaRegexNode? Root { get; set; }
 
+    /// <summary>Gets or sets the tree the automata are built from (see <see cref="Automata"/>): a shallow one with no backreference, or null.</summary>
+    internal EcmaRegexNode? AutomatonRoot { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether the search tries every start the first set allows, which the forward automaton and the window of <see cref="Skip"/> speed (see <see cref="Adfa.BuildForward"/>).</summary>
+    internal bool ForwardSearch { get; set; }
+
+    /// <summary>Gets or sets, for the search of a literal so many to so many characters after the start (<see cref="RequiredCountMax"/>, or <see cref="RequiredAlternation"/> with <see cref="RequiredAlternationHi"/> above 0), the terms before each literal, which the reverse automaton reads back from an occurrence; null otherwise.</summary>
+    internal EcmaRegexNode[][]? WindowPrefixes { get; set; }
+
+    /// <summary>Gets or sets, for that search, the alternation of each literal and the terms after it, which the rest check reads from an occurrence; null where every literal ends its alternative.</summary>
+    internal EcmaRegexNode? WindowRest { get; set; }
+
+    /// <summary>Gets the automata of the program's search, built on the first call.</summary>
+    /// <returns>The automata.</returns>
+    internal SearchAutomata Automata()
+    {
+        SearchAutomata? a = System.Threading.Volatile.Read(ref this.automata);
+        if (a is null)
+        {
+            System.Threading.Interlocked.CompareExchange(ref this.automata, SearchAutomata.Build(this), null);
+            a = this.automata!;
+        }
+
+        return a;
+    }
+
     /// <summary>Gets the slot of each group the program keeps, by group number.</summary>
     internal IReadOnlyDictionary<int, int> TrackedGroups { get; set; } = new Dictionary<int, int>();
 
@@ -1049,7 +1078,58 @@ internal sealed class Compiler
         program.TrackedGroups = c.tracked;
         program.PointOf = c.pointOf;
         program.Unicode = unicode;
+
+        // The automata (see Adfa) are built from a tree with no backreference on the first search that wants them, on
+        // the thread that searches, whose stack may be small: only a shallow tree is kept.
+        if (referenced.Count == 0 && ShallowerThan(root, 64))
+        {
+            program.AutomatonRoot = root;
+
+            // The search that tries every start the first set allows: the forward automaton says where a match first
+            // ends, and the starts before it are tried.
+            program.ForwardSearch = !anchored && prefix.Length == 0 && caseForms.Length == 0 && required.Length == 0
+                && afterLoop.Length == 0 && afterLoopAlternation is null && requiredAlternation is null && program.Shape == SimpleShape.None;
+
+            // The search of a literal so many to so many characters after the start: the terms before it are read
+            // backwards from each occurrence, and the literal and the terms after it checked there first.
+            List<(EcmaRegexNode[] Prefix, EcmaRegexNode[] After, int Characters)>? parts =
+                requiredCountMax >= 0 && required.Length > 0 ? WindowParts(root, unicode, alternation: false)
+                : requiredAlternation is not null && requiredAlternationHi > 0 ? WindowParts(root, unicode, alternation: true)
+                : null;
+            if (parts is not null)
+            {
+                program.WindowPrefixes = [.. parts.Select(part => part.Prefix)];
+                if (parts.Any(part => part.After.Length > part.Characters))
+                {
+                    EcmaRegexNode rest = new(EcmaRegexNodeKind.Alt)
+                    {
+                        Subs = [.. parts.Select(part => new EcmaRegexNode(EcmaRegexNodeKind.Cat) { Subs = part.After })],
+                    };
+                    program.WindowRest = rest;
+                }
+            }
+        }
+
         return program;
+    }
+
+    /// <summary>Whether a tree is less than a number of levels deep.</summary>
+    private static bool ShallowerThan(EcmaRegexNode n, int limit)
+    {
+        if (limit <= 0)
+        {
+            return false;
+        }
+
+        foreach (EcmaRegexNode sub in n.Subs)
+        {
+            if (!ShallowerThan(sub, limit - 1))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -1567,6 +1647,103 @@ internal sealed class Compiler
     /// <param name="countMax">The greatest number of characters before the literal when it varies (a bounded repetition of one character among the terms before it), or -1 when it is fixed.</param>
     /// <returns>The literal, or empty.</returns>
     public static string RequiredLiteral(EcmaRegexNode root, bool unicode, out int offset, out int offsetUtf8, out int count, out int countMax)
+        => RequiredLiteralParts(root, unicode, out offset, out offsetUtf8, out count, out countMax, null);
+
+    /// <summary>
+    /// For a search for a literal so many to so many characters after the start of every match (see
+    /// <see cref="RequiredLiteral(EcmaRegexNode, bool, out int, out int, out int, out int)"/> and
+    /// <see cref="RequiredAlternation"/>): for each literal, the terms before it, the terms from it on to the end of the
+    /// pattern, and its number of characters; null when the pattern has no such literals.
+    /// </summary>
+    /// <param name="root">The root of the tree.</param>
+    /// <param name="unicode">Whether the pattern is matched by code point.</param>
+    /// <param name="alternation">Whether the literals are those of <see cref="RequiredAlternation"/>.</param>
+    /// <returns>The parts, or null.</returns>
+    internal static List<(EcmaRegexNode[] Prefix, EcmaRegexNode[] After, int Characters)>? WindowParts(EcmaRegexNode root, bool unicode, bool alternation)
+    {
+        List<(EcmaRegexNode[] Prefix, EcmaRegexNode[] After, int Characters)> parts = [];
+        if (!alternation)
+        {
+            return RequiredLiteralParts(root, unicode, out _, out _, out _, out _, parts).Length == 0 ? null : parts;
+        }
+
+        EcmaRegexNode n = root;
+        while (n.Kind == EcmaRegexNodeKind.Group)
+        {
+            n = n.Subs[0];
+        }
+
+        EcmaRegexNode[] following = [];
+        if (n.Kind == EcmaRegexNodeKind.Cat && n.Subs.Length >= 2)
+        {
+            following = n.Subs.AsSpan(1).ToArray();
+            n = n.Subs[0];
+            while (n.Kind == EcmaRegexNodeKind.Group)
+            {
+                n = n.Subs[0];
+            }
+        }
+
+        if (n.Kind != EcmaRegexNodeKind.Alt)
+        {
+            return null;
+        }
+
+        foreach (EcmaRegexNode alt in n.Subs)
+        {
+            EcmaRegexNode[] terms = alt.Kind == EcmaRegexNodeKind.Cat ? alt.Subs : [alt];
+
+            // The literal the alternative starts with, in its forms, as RequiredAlternation takes it.
+            int leading = 0;
+            while (leading < terms.Length && IsLeadingForm(terms[leading]))
+            {
+                leading++;
+            }
+
+            if (leading > 0)
+            {
+                parts.Add(([], [.. terms, .. following], leading));
+                continue;
+            }
+
+            int before = parts.Count;
+            string literal = RequiredLiteralParts(alt, unicode, out _, out _, out int count, out _, parts);
+            if (literal.Length == 0 || count < 0 || parts.Count != before + 1)
+            {
+                return null;
+            }
+
+            (EcmaRegexNode[] prefix, EcmaRegexNode[] rest, int characters) = parts[before];
+            parts[before] = (prefix, [.. rest, .. following], characters);
+        }
+
+        return parts;
+
+        static bool IsLeadingForm(EcmaRegexNode term)
+        {
+            if (term.Kind == EcmaRegexNodeKind.Char)
+            {
+                return !(term.CodePoint >= 0xD800 && term.CodePoint <= 0xDFFF) && IsLiteralRune(term.CodePoint);
+            }
+
+            if (term.Kind != EcmaRegexNodeKind.Set || term.Set.Length < 4 || term.Set.Length > 8)
+            {
+                return false;
+            }
+
+            for (int m = 0; m < term.Set.Length; m += 2)
+            {
+                if (term.Set[m] != term.Set[m + 1] || (term.Set[m] >= 0xD800 && term.Set[m] <= 0xDFFF))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    private static string RequiredLiteralParts(EcmaRegexNode root, bool unicode, out int offset, out int offsetUtf8, out int count, out int countMax, List<(EcmaRegexNode[] Prefix, EcmaRegexNode[] After, int Characters)>? parts)
     {
         offset = -1;
         offsetUtf8 = -1;
@@ -1584,7 +1761,7 @@ internal sealed class Compiler
             string shared = string.Empty;
             foreach (EcmaRegexNode alternative in n.Subs)
             {
-                string literal = RequiredLiteral(alternative, unicode, out int o, out int o8, out int c, out int cm);
+                string literal = RequiredLiteralParts(alternative, unicode, out int o, out int o8, out int c, out int cm, parts);
                 if (literal.Length == 0 || (shared.Length != 0 && (literal != shared || o != offset || o8 != offsetUtf8 || c != count || cm != countMax)))
                 {
                     offset = -1;
@@ -1630,6 +1807,7 @@ internal sealed class Compiler
                 // start it allows is tried once. At the very start one character would be a prefix.
                 if (j - k >= 2 || distance > 0 || spread > 0)
                 {
+                    parts?.Add((n.Subs.AsSpan(0, k).ToArray(), n.Subs.AsSpan(k).ToArray(), j - k));
                     count = distance;
                     if (spread > 0)
                     {
@@ -2388,7 +2566,7 @@ internal sealed class Compiler
     }
 
     /// <summary>Whether <paramref name="n"/> can match without consuming anything. It errs towards true.</summary>
-    private static bool Nullable(EcmaRegexNode n)
+    internal static bool Nullable(EcmaRegexNode n)
     {
         switch (n.Kind)
         {

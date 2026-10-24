@@ -20,7 +20,7 @@ namespace Corvus.Ecma262.RegularExpressions;
 public sealed class AlternationSearch
 {
     /// <summary>The cost of the multi-literal needle by its model (see <see cref="MultiNeedle{T}.Cost"/>) below which it beats the runtime's search for any of several strings over UTF-16.</summary>
-    private const double NeedleOverStrings = 0.35;
+    internal const double NeedleOverStrings = 0.35;
 
     private AlternationSearch(string[] literals, byte[][] utf8, int[][][]? forms, Needle<byte>[] needles8, Needle<ushort>[] needles16, int[] extras8, int[] extras16, int[] stringsExtras16, int window8, int window16)
     {

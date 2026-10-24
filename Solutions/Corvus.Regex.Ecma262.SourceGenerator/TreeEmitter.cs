@@ -1423,7 +1423,10 @@ internal static class TreeEmitter
                 return true;
             }
 
-            if (p.Shape == SimpleShape.None && p.First is not null && !p.First.HasNonAscii && !p.First.IsEmpty && !p.SkipRun && !p.LeadingWordBoundary && p.Utf16Prefix.Length == 0 && p.RequiredCount < 0 && p.RequiredCountMax < 0 && p.AfterLoopUtf16.Length == 0 && p.AfterLoopAlternation is null && p.AfterLoopMax < 0 && p.CaseNeedleUtf16 is null && p.RequiredAlternation is null)
+            // A search the forward automaton takes is the matcher's (see Matcher.ForwardScan): it tries only the starts
+            // before the place where a match first ends, where the scan of the first set would try every member.
+            if (p.Shape == SimpleShape.None && p.First is not null && !p.First.HasNonAscii && !p.First.IsEmpty && !p.SkipRun && !p.LeadingWordBoundary && p.Utf16Prefix.Length == 0 && p.RequiredCount < 0 && p.RequiredCountMax < 0 && p.AfterLoopUtf16.Length == 0 && p.AfterLoopAlternation is null && p.AfterLoopMax < 0 && p.CaseNeedleUtf16 is null && p.RequiredAlternation is null
+                && !(p.ForwardSearch && p.Automata().Forward is not null))
             {
                 EmitFirst(p, find, statics, indent);
                 return true;
@@ -1624,6 +1627,37 @@ internal static class TreeEmitter
                 RunEmitter.Line(find, i1, "return true;");
                 Tail(find, indent);
                 return;
+            }
+
+            if (alternation.MultiUtf8.Two && alternation.MultiUtf8.Cost < AlternationSearch.NeedleOverStrings)
+            {
+                // Over UTF-8 the needle compares two positions at every vector where no position's bytes are rare
+                // enough to search for alone (Huck|Saw: H or S, then c or w), which the code below would search for
+                // one of, and start again at every capital. Where the fingerprint search takes the literals instead,
+                // the code below keeps them, as it did.
+                RunEmitter.Line(find, i1, "if (typeof(TUnit) == typeof(byte))");
+                RunEmitter.Line(find, i1, "{");
+                RunEmitter.Line(find, i1 + 1, "int found = " + field + ".MultiUtf8.IndexOfNarrowPair(" + Bytes8 + ", pos, out int known);");
+                RunEmitter.Line(find, i1 + 1, "if (found < 0 || len - found < p.Need)");
+                RunEmitter.Line(find, i1 + 1, "{");
+                RunEmitter.Line(find, i1 + 2, "return false;");
+                RunEmitter.Line(find, i1 + 1, "}");
+                sb_blank(find);
+                RunEmitter.Line(find, i1 + 1, "start = found;");
+                if (p.Shape == SimpleShape.LiteralAlternation)
+                {
+                    // The needle verified the alternative and gives its length: the match, with no body to run.
+                    RunEmitter.Line(find, i1 + 1, "end = known >= 0 ? found + known : -1;");
+                }
+                else
+                {
+                    RunEmitter.Line(find, i1 + 1, "_ = known;");
+                }
+
+                RunEmitter.Line(find, i1 + 1, "scan.Next = found + 1;");
+                RunEmitter.Line(find, i1 + 1, "return true;");
+                RunEmitter.Line(find, i1, "}");
+                sb_blank(find);
             }
 
             // Exact: the position every alternative has whose distinct characters (up to three) are rarest in
