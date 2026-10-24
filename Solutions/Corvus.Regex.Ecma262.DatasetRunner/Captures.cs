@@ -440,7 +440,7 @@ internal static class Captures
     }
 
     /// <summary>For each UTF-16 code unit index of a text (and the index past its end), the byte offset in UTF-8; the low half of a pair is its character's third byte.</summary>
-    private static int[] ByteOffsets(string s)
+    internal static int[] ByteOffsets(string s)
     {
         int[] at = new int[s.Length + 1];
         int b = 0;
@@ -464,9 +464,9 @@ internal static class Captures
         return at;
     }
 
-    private static bool IsCharStart(byte[] utf8, int pos) => pos >= utf8.Length || (utf8[pos] & 0xC0) != 0x80;
+    internal static bool IsCharStart(byte[] utf8, int pos) => pos >= utf8.Length || (utf8[pos] & 0xC0) != 0x80;
 
-    private static bool HasLoneSurrogate(string s)
+    internal static bool HasLoneSurrogate(string s)
     {
         for (int k = 0; k < s.Length; k++)
         {
@@ -490,7 +490,7 @@ internal static class Captures
         return false;
     }
 
-    private static string Escape(string s)
+    internal static string Escape(string s)
     {
         StringBuilder sb = new();
         foreach (char c in s)

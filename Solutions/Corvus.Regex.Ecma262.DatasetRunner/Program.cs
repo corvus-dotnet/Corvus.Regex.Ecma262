@@ -217,6 +217,20 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
     Console.WriteLine($"{name,-24} right {fileRight,10:N0}  wrong {fileWrong,6:N0}  refused-valid {fileRefused,4}  accepted-invalid {fileAccepted,4}  limit {fileLimited,4}  {clock.Elapsed:mm\\:ss}");
 }
 
+// The exec calls of test262, in a directory of their own (Exec.cs): judged with the default filter, or when the filter
+// names them.
+string execPath = Path.Combine(directory, "exec", "test262.jsonl");
+if ((filter == "*.jsonl" || filter.StartsWith("exec", StringComparison.Ordinal)) && File.Exists(execPath))
+{
+    Exec.Counts exec = Exec.Judge(execPath, utf16, utf8, limit, Unescape, wrongCases.Enqueue);
+    right += exec.Right;
+    wrong += exec.Wrong;
+    refusedValid += exec.Refused;
+    limited += exec.Limited;
+    records += exec.Records;
+    Console.WriteLine($"{Exec.File,-24} right {exec.Right,10:N0}  wrong {exec.Wrong,6:N0}  refused-valid {exec.Refused,4}  accepted-invalid {0,4}  limit {exec.Limited,4}  {clock.Elapsed:mm\\:ss}");
+}
+
 File.WriteAllLines(wrongPath, wrongCases.OrderBy(c => c, StringComparer.Ordinal));
 if (answersPath is not null)
 {

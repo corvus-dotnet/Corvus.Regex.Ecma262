@@ -2,7 +2,9 @@
 // engine: each record under each grammar V8 found it valid in when the data was written (u, none, and v in the file
 // that has it), every text as a JavaScript string (UTF-16), records and tests marked v8_deviation left out.
 // captures.jsonl is judged on exec, the global search, the sticky flag, replace, replaceAll, split and split3, each
-// one answer, as the Rust runner judges an engine over UTF-16. With the Node the data was written with (24.22.0),
+// one answer, as the Rust runner judges an engine over UTF-16. exec/test262.jsonl, the exec calls of test262, is
+// judged last: each call one exec with the record's flags from its lastIndex, one answer. With the Node the data was
+// written with (24.22.0),
 // every answer is V8's own, so this is the check that the data and the V8 on the page agree; with another, a
 // difference is a place where its V8 differs.
 //
@@ -15,7 +17,7 @@
 // The last line has the counts in the shape of the Rust runner's: records, right, wrong, refused-valid,
 // accepted-invalid, limit, errors.
 import { spawnSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -23,6 +25,7 @@ const dir = process.argv[2];
 // node dataset.mjs <data directory> --file <name>: one file, its counts written as JSON (see the top).
 const only = process.argv[3] === "--file" ? process.argv[4] : null;
 const REPLACEMENT = "<$&|$1|$2|$10|$<a>|$$|$`|$'>";
+const EXEC = "exec/test262.jsonl";
 
 function captures(m) {
   if (m === null) return null;
@@ -53,6 +56,20 @@ function answers(pattern, flags, text) {
   a.split3 = text.split(new RegExp(pattern, flags), 3).map((s) => (s === undefined ? null : s));
   return a;
 }
+// The answer of a call of exec/test262.jsonl V8 gives, as test262-exec.js of the data writes it: exec from the call's
+// lastIndex on a RegExp of the record's flags with d. The named groups are built by definition, not assignment, since a
+// group may be called __proto__.
+function execAnswer(re, flags, text, lastIndex) {
+  const carries = flags.includes("g") || flags.includes("y");
+  re.lastIndex = lastIndex;
+  const m = re.exec(text);
+  if (m === null) return null;
+  const span = (x) => (x === undefined ? null : [x[0], x[1]]);
+  const a = { captures: Array.from(m.indices, span) };
+  if (m.indices.groups) a.groups = Object.fromEntries(Object.keys(m.indices.groups).map((k) => [k, span(m.indices.groups[k])]));
+  if (carries) a.lastIndex = re.lastIndex;
+  return a;
+}
 // For a run with a limit of time on each record (tools/benchmarks/tregex-compliance.py, for an engine that does not
 // answer some records): DATASET_FROM ("<file>\t<index>") starts at that record, DATASET_LIMITED (lines of
 // "<file>\t<index>") names records not asked, whose answers are counted at the limit, and DATASET_PROGRESS=1 writes
@@ -65,6 +82,7 @@ const progress = process.env.DATASET_PROGRESS === "1";
 // pattern valid (seven of them in captures.jsonl, six for an empty text). A verdict is counted only where it is wrong,
 // so a record not asked counts none.
 function answersOf(name, r, modes) {
+  if (name === EXEC) return (r.tests ?? []).filter((t) => !t.v8_deviation).length;
   let n = 0;
   for (const [, answer, valid] of modes) {
     if (!valid) continue;
@@ -90,6 +108,28 @@ function judgeFile(name) {
       continue;
     }
     records++;
+    if (name === EXEC) {
+      const before = [fr, fw, ff, fa, fl];
+      if (notAsked.has(`${name}\t${index}`)) {
+        fl += answersOf(name, r, []);
+      } else {
+        let re = null;
+        try { re = new RegExp(r.pattern, r.flags.includes("d") ? r.flags : r.flags + "d"); } catch { re = null; }
+        if (re === null) {
+          ff++;
+        } else {
+          for (const t of r.tests ?? []) {
+            if (t.v8_deviation) continue;
+            if (JSON.stringify(execAnswer(re, r.flags, t.text, t.lastIndex)) === JSON.stringify(t.answer)) fr++; else fw++;
+          }
+        }
+      }
+      if (progress) {
+        const d = [fr, fw, ff, fa, fl].map((v, k) => v - before[k]);
+        process.stderr.write(`P\t${name}\t${index}\t${d.join("\t")}\t1\t0\n`);
+      }
+      continue;
+    }
     const modes = [["u", "unicode", r.valid.unicode], ["", "legacy", r.valid.legacy]];
     if ("unicode_sets" in r.valid) modes.push(["v", "unicode_sets", r.valid.unicode_sets]);
     const before = [fr, fw, ff, fa, fl];
@@ -130,8 +170,10 @@ if (only) {
 } else {
   let records = 0, skipped = 0, right = 0, wrong = 0, refused = 0, accepted = 0, limited = 0;
   const start = Date.now();
-  for (const name of readdirSync(dir).filter(f => f.endsWith(".jsonl")).sort()) {
-    if (from && name < from[0]) continue;
+  const files = readdirSync(dir).filter(f => f.endsWith(".jsonl")).sort();
+  if (existsSync(join(dir, EXEC))) files.push(EXEC);
+  for (const name of files) {
+    if (from && name !== EXEC && (from[0] === EXEC || name < from[0])) continue;
     // Progress goes to this process's stderr as it is written; the counts come back on stdout.
     const child = spawnSync(process.execPath, [...process.execArgv, fileURLToPath(import.meta.url), dir, "--file", name],
       { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], maxBuffer: 1 << 26 });
