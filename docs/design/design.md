@@ -456,25 +456,30 @@ protected by a ruleset in the same shape as Corvus.JsonSchema's.
 `s` flags where a family exercises them. It is the oracle for every Corvus port, and this library is held to all
 of it, over both encodings, interpreted and as generated code:
 
-| File | Patterns | Tests | For |
-|---|---|---|---|
-| `hand-written.jsonl` | 783 | 194,649 | The grammar by hand |
-| `flags.jsonl` | 600 | 163,800 | `i`, `m`, `s` |
-| `generated.jsonl` | 60,000 | 182,000 | Validity and matching, generated from the grammar |
-| `anchored-lists.jsonl` | 6,000 | 342,200 | Anchored alternations |
-| `empty-loops.jsonl` | 6,838 | 341,900 | Loops over empty bodies |
-| `line-terminators.jsonl` | 3,000 | 300,000 | `^`, `$`, `.` at every terminator |
-| `word-boundaries.jsonl` | 2,000 | 542,000 | `\b`, `\B` |
-| `backreferences.jsonl` | 3,871 | 514,843 | Every form of backreference |
-| `lookarounds.jsonl` | 4,499 | 590,167 | Lookahead and lookbehind |
-| `case-folding.jsonl` | 2,863 | 408,326 | The two case rules |
-| `code-units.jsonl` | 3,000 | 296,940 | Matching by code unit without `u` |
-| `lone-surrogates.jsonl` | 1,500 | 69,000 | Lone surrogates on UTF-16 input |
-| `engine-faults.jsonl` | 3,885 | 377,812 | Families built around faults found in the engines |
-| `unicode-sets.jsonl` | 5,520 | 795,300 | The v flag: each pattern with `v`, with `u` and with neither |
-| `test262.jsonl` | 4,907 | 547,818 | The patterns and texts of test262's regular expression tests, with `v`, `u` and neither |
-| `test262-lone-surrogates.jsonl` | 3,435 | 10,326 | Those of test262 that hold a lone surrogate, on UTF-16 input |
-| `captures.jsonl` | 5,188 | 207,485 | `exec`, the global search, `y`, `replace`, `replaceAll`, `split` |
+| File | For |
+|---|---|
+| `hand-written.jsonl` | The grammar by hand |
+| `flags.jsonl` | `i`, `m`, `s` |
+| `generated.jsonl` | Validity and matching, generated from the grammar |
+| `anchored-lists.jsonl` | Anchored alternations |
+| `empty-loops.jsonl` | Loops over empty bodies |
+| `line-terminators.jsonl` | `^`, `$`, `.` at every terminator |
+| `word-boundaries.jsonl` | `\b`, `\B` |
+| `backreferences.jsonl` | Every form of backreference |
+| `lookarounds.jsonl` | Lookahead and lookbehind |
+| `case-folding.jsonl` | The two case rules |
+| `code-units.jsonl` | Matching by code unit without `u` |
+| `lone-surrogates.jsonl` | Lone surrogates on UTF-16 input |
+| `engine-faults.jsonl` | Families built around faults found in the engines |
+| `unicode-sets.jsonl` | The v flag: each pattern with `v`, with `u` and with neither |
+| `test262.jsonl` | The patterns and texts of test262's regular expression tests, with `v`, `u` and neither |
+| `test262-lone-surrogates.jsonl` | Those of test262 that hold a lone surrogate, on UTF-16 input |
+| `start-searches.jsonl` | Where a match can start: an assertion before loops, then a literal or an alternation |
+| `captures.jsonl` | `exec`, the global search, `y`, `replace`, `replaceAll`, `split` |
+| `ill-formed-utf8.jsonl` | Bytes that are not UTF-8, which the UTF-8 members refuse |
+| `exec/test262.jsonl` | Every `exec` call of test262's tests, whole: the match, each group, the named groups and `lastIndex` before and after, with `g`, `y` and `d` |
+
+The counts of each file are in the data's `manifest.json`.
 
 `captures.jsonl` is what the drop-in surface needs beyond "does it match anywhere": the match's `[start, end]` and
 each group's, the sequence of `exec` results of a `g` loop with the ECMA-262 `lastIndex` advance, `exec` with `y`
@@ -488,12 +493,12 @@ gets right and asking it again, and the runner skips it.
 ### 8.2 How the tests read the data
 
 The data set is not vendored. The engine repository's `dataset.yml` checks out the data repository at a pinned commit
-and runs the `DatasetRunner` over it on every pull request, on every push to `main`, nightly and on demand, both
+and runs the `DatasetRunner` over it (the files of records, then `exec/test262.jsonl`) on every pull request, on every push to `main`, nightly and on demand, both
 encodings, with 0 wrong, 0 refused-valid, 0 accepted-invalid and 0 at a limit as the pass; a second job runs the same
 data on Windows under .NET Framework 4.8.1, over the `netstandard2.0` build. The same runner is run locally before a
 change is pushed, in Debug and Release and with every pattern as generated code (the generated pass compiles each
-pattern's emitted source with Roslyn and takes about six minutes). The current count is 29,689,063 answers right and 0
-wrong in each mode.
+pattern's emitted source with Roslyn and takes about six minutes). Every answer the data asks is right in
+each mode, with none wrong.
 
 ### 8.3 The other tests
 

@@ -6,7 +6,7 @@ Title: "Features"
 ---
 ## The answers of ECMAScript
 
-The grammar and the semantics of ECMAScript 2025: lookbehind, named groups, modifier groups, Unicode property escapes on Unicode 17 data, and the `u` and `v` flags with set notation and strings in classes. Tested against V8's answers for 112,701 patterns and 5.7 million texts, test262's among them, at 0 wrong.
+The grammar and the semantics of ECMAScript 2025: lookbehind, named groups, modifier groups, Unicode property escapes on Unicode 17 data, and the `u` and `v` flags with set notation and strings in classes. Tested against V8's answers for every pattern of the ECMA-262 regular expression test data, test262's patterns and exec calls among them, with none wrong.
 
 ## Two encodings, one matcher
 

@@ -43,7 +43,9 @@ jobs:
     - name: "The record of a run with figures that have no time: stopped at the limit, an error, a differing count"
       # tools/benchmarks/record-check/README.md. The smoke run below never gives such a figure.
       run: |
-        c="records 1 right 1 wrong 0 refused-valid 0 accepted-invalid 0 limit 0 errors 0"
+        mkdir -p record-check
+        c=record-check/compliance.json
+        echo '{"right": 1, "wrong": 0, "refused": 0, "acceptedInvalid": 0, "limited": 0, "judge": {"runner": "https://example.com/runner", "calls": {"utf16": ["a"], "utf8": ["b"]}}, "excludes": []}' > "$c"
         python3 tools/benchmarks/industry-results.py --interleaved tools/benchmarks/record-check/run.json --commit check --date 2026-10-23 --host ci --out-dir record-check --compliance "$c" --compliance-v8 "$c"
         python3 - <<'PY'
         import json
@@ -52,12 +54,12 @@ jobs:
         assert r["Corvus generated UTF-8"]["sherlock: aei"] == {"error": "a round gave no figure"}, r["Corvus generated UTF-8"]["sherlock: aei"]
         assert "time" in r[".NET generated"]["sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m"]
         print("the record keeps a stopped figure, an error and a differing count")
-        # An engine with no time on any workload, and a data-set runner that gave no counts line.
+        # An engine with no time on any workload, and a data-set runner that wrote no compliance file.
         d = json.load(open("tools/benchmarks/record-check/run.json"))
         d["results"]["net-generated"] = {w: {"error": "no workload of this harness has the pattern"} for w in d["results"]["net-generated"]}
         json.dump(d, open("record-check/run-untimed.json", "w"))
         PY
-        python3 tools/benchmarks/industry-results.py --interleaved record-check/run-untimed.json --commit check --date 2026-10-23 --host ci --out-dir record-check/untimed --compliance "Unhandled exception." --compliance-v8 "$c"
+        python3 tools/benchmarks/industry-results.py --interleaved record-check/run-untimed.json --commit check --date 2026-10-23 --host ci --out-dir record-check/untimed --compliance record-check/no-such-file.json --compliance-v8 "$c"
         python3 - <<'PY'
         import json
         d = json.load(open("record-check/untimed/industry.json"))

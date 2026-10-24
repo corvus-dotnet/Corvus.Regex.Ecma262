@@ -45,14 +45,15 @@ fi
 echo "== the ECMA-262 test data (interpreted, both encodings)"
 if [ -z "$data" ]; then git clone --quiet --depth 1 https://github.com/corvus-dotnet/ecma262-regex-test-data.git "$work/data"; data="$work/data/data"; fi
 # The runner exits 1 on any answer that is not right; here its counts are a figure of the page, not a gate, so neither
-# that nor a runner that fails stops the timing: an engine with no counts line is shown with no compliance figure.
-compliance="$( { dotnet "$here/Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll" "$data" "$work/wrong.tsv" || true; } | tail -1)"
-echo "$compliance"
-case "$compliance" in records*) ;; *) echo "WARNING: the data-set runner gave no counts line; this library's engines will have no compliance figure" ;; esac
+# that nor a runner that fails stops the timing: an engine whose runner wrote no compliance file is shown with no
+# compliance figure.
+compliance="$work/compliance.json"
+compliance_v8="$work/compliance-v8.json"
+{ dotnet "$here/Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll" "$data" "$work/wrong.tsv" --compliance "$compliance" || true; } | tail -1
+[ -s "$compliance" ] || echo "WARNING: the data-set runner wrote no compliance file; this library's engines will have no compliance figure"
 # V8 judged as every engine is, over UTF-16, its one encoding (tools/benchmarks/v8/dataset.mjs).
-compliance_v8="$( { node "$here/tools/benchmarks/v8/dataset.mjs" "$data" || true; } | tail -1)"
-echo "$compliance_v8"
-case "$compliance_v8" in records*) ;; *) echo "WARNING: V8's data-set run gave no counts line; V8 will have no compliance figure" ;; esac
+{ node "$here/tools/benchmarks/v8/dataset.mjs" "$data" --compliance "$compliance_v8" || true; } | tail -1
+[ -s "$compliance_v8" ] || echo "WARNING: V8's data-set run wrote no compliance file; V8 will have no compliance figure"
 
 echo "== the .NET and Corvus engines and V8 (Node $(node --version)), interleaved: $rounds rounds of $seconds s, $passes passes"
 ( cd "$here/Solutions/Corvus.Regex.Ecma262.Benchmarks" && CORVUS_REGEX_TEXTS="$texts" timed ./bin/Release/net10.0/Corvus.Regex.Ecma262.Benchmarks industry "$workloads" \
