@@ -15,3 +15,10 @@ updates:
   directory: /
   schedule:
     interval: monthly
+  ignore:
+    # Node is the V8 the test data was written with (manifest.json, "node"): its version moves with the data, by hand.
+    - dependency-name: "node"
+      update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+    # A new major version of a compiler or runtime is a decision, not a monthly refresh.
+    - dependency-name: "*"
+      update-types: ["version-update:semver-major"]
