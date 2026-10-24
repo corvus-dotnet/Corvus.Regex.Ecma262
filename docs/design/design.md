@@ -37,6 +37,7 @@ from nothing:
 | Compiler (tree to flat program), instruction set | The Go and Rust `ecmaregex` compilers | Characters, sets, literals, anchors, splits, captures, lookarounds, counted loops, backreferences in four forms. |
 | Backtracking matcher: explicit stack, memo of failed places, counted loops, first sets, time and memory limits | The Go and Rust virtual machines | The Rust form (per-thread state, retained capacity) is the closer model for .NET. |
 | ASCII automaton for linear patterns | The Go and Rust automata | 256 states, built on first use. |
+| Anchored, forward and reverse automata, and the window of positions read one unit at a time | `adfa.rs` of the Rust engine (corvus-regex-ecma262-rs), from the `regex` crate's automata and V8's Boyer-Moore lookahead | Up to 2,048 states, built on the first search that wants them (section 4.4). |
 | Matching by UTF-16 code unit over UTF-8 text | The Go and Rust `units` cursors | The position between the halves of a four-byte character is the offset of its third byte. |
 | Resource limits | The Rust parser's limits and cost model | Pattern nesting, program size, construction cost, match time, backtracking memory. |
 
@@ -258,7 +259,14 @@ chosen, or two, by a cost model (the comparisons at every vector against the ful
 units let through); one position is the span search for any of several values, two are a straight-line loop over
 up to six distinct units at each, and over UTF-8 two adjacent positions are compared as one sixteen-bit value,
 which admits only the literals' own pairs of bytes rather than every pairing of a unit of one position with a
-unit of the other.
+unit of the other. Over UTF-8 one position is searched for alone only where its bytes are among the rarest in text
+(`ZXQKVJzqjx`) or it holds one rare byte (a capital, a digit, punctuation), as the Rust engine searches by memchr;
+otherwise, where two positions hold at most two values each, those two are compared at every vector, four
+comparisons a vector and two vectors at a time, as PCRE2's and the Rust engine's pair search do. Each occurrence of
+a commoner byte would return from the span search and start it again: `Huck|Saw` over the Leipzig text finds H or S
+50,000 times, where H or S then c or w lets 3,600 starts through (the search alone 1.37 ms against 0.76). The cost the
+other searches are weighed against (the fingerprints, below) stays the model's, so that rule moves no pattern from
+one of them to the other.
 
 **Fingerprints** (`Teddy`). Where no position is rare enough for the needle (the cost model puts it at 0.35 or
 more: three or more literals, or any case-insensitive alternation, where a letter's two cases are common
@@ -284,6 +292,26 @@ alternatives each start with a literal or hold one at a fixed or bounded distanc
 the i flag) is searched for by all those literals at once; each occurrence opens the window of starts from which
 some alternative could reach it, tried in order and never twice, and where every alternative starts with its
 literal the matcher runs at the occurrence alone. Without this, such a pattern is tried at every letter.
+
+**The terms before a literal, read backwards.** Where the window before a literal or an alternation's literals is
+62 characters or fewer and the terms before each literal hold no assertion (`\s[a-zA-Z]{0,12}ing\s`,
+`.{2,4}(Tom|Sawyer|Huckleberry|Finn)`), the reverse automaton of those terms is read back from each occurrence and
+gives the starts from which they reach it, the reverse search of the `regex` crate: one start for `ing` where the
+window held thirteen. Before that, the rest check (the anchored automaton of each literal and the terms after it)
+rules out an occurrence from which nothing can match, `ing` with no space after it; it is dropped for good where,
+after 64 checks, fewer than one in eight ruled their occurrence out. A start waits until no later occurrence could
+allow an earlier one, so the starts are tried in order across occurrences and the first match is the leftmost. Over
+ASCII a character is a unit; a unit beyond it makes the search again the plain way. `\s[a-zA-Z]{0,12}ing\s` over
+Sherlock Holmes went from 451 to 185 us with generated code.
+
+**The forward search.** A pattern with no literal to search for, whose search tries every start its first set allows
+(the IPv4 pattern, a start at each of its text's digits), reads its forward automaton from a start: the anchored
+automaton with a new start joined at every unit, behind every thread already alive. One pass says where the first
+match ends, or that none starts before a place where no thread of an earlier start is alive, and only then are the
+starts before that place tried. Before the first set is looked for, the window of positions no match can end within,
+V8's Boyer-Moore lookahead, rules out several starts for each unit it reads where the window's units are rare in
+text. The generator leaves such a pattern's search to the matcher. The IPv4 pattern went from 1.90 to 0.94 ms with
+generated code and from 4.86 to 0.91 ms with the interpreter.
 
 **What an enumeration carries.** An enumeration holds the thread's match state across its matches and a cursor
 (`ScanCursor`): the range of the text it knows to hold no rare line terminator, so that a run of `.` is one
@@ -311,7 +339,7 @@ benchmark's count (`\b\w+n\b` over Sherlock Holmes, 8,361 against V8's 8,366) sh
 .NET over UTF-16: every character is three bytes and no byte of it is rare, where UTF-16 has one rare unit per
 character for the span search to find alone. Over a text larger than the cache the smaller encoding wins back.
 
-### 4.4 The ASCII automaton
+### 4.4 The ASCII automata
 
 For a pattern that needs no backtracking, every state set an ASCII text can lead to is worked out once, lazily,
 into a table of at most 256 states, and a match is then one table read per unit, for both encodings alike: an
@@ -322,7 +350,21 @@ the next unit is known, so a pattern such as `\b\d{1,2}/\d{1,2}/\d{2,4}\b` is de
 than the backtracker, which halved its time. The automaton is built on the first match, not when the pattern is
 compiled, so a program pays nothing for the patterns it never matches, and the steps of building it are bounded
 so that a pattern too large for one costs little before that is known. An automaton over full Unicode is not
-built; the benchmarks have not asked for it.
+built; the benchmarks have not asked for it. That automaton answers whether a text matches.
+
+Where a match is found, the anchored automaton (`Adfa`, ported from the Rust engine) finds where the match from a
+start ends. A state is an ordered list of the pattern's threads, the most preferred first, as the backtracking
+matcher would try them; where the match state is among them a match ends there, the threads after it are dropped,
+and the threads before it may still find a longer match, so the last match found before the threads run out is the
+backtracking matcher's match, for a pattern with no lookaround, no backreference, no line anchor, no boundary that
+folds and no repetition whose body can match the empty string. The program that finds a match's bounds tracks no
+group unless a backreference names one, so most patterns have one. The interpreter runs it at each start ahead of
+the instructions (`\b\w+n\b` at 0.63 of its time); the generated code, whose loops over sets are vectorised, does
+not. A state that loops on a large set of units (24 or more) is accelerated, as the `regex` crate's automata are:
+once four units have been read in it, the rest of its run is found by one vectorised search, which keeps a pattern
+whose matches are long runs (the URL workload) at the interpreter's speed rather than a table read a unit. The
+forward and reverse automata of section 4.3 are built the same way, all on the first search that wants them and
+only from a tree less than 64 levels deep, since they are built on the thread that searches.
 
 ## 5. The source generator
 
