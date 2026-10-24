@@ -496,6 +496,10 @@ public sealed partial class Regex
         }
     }
 
+    /// <summary>The programs of the pattern, the one that finds a match's bounds and the one that tracks every group, for the tests.</summary>
+    /// <returns>The two.</returns>
+    internal (Program Bounds, Program Captures) Programs() => (this.program, this.CaptureProgram());
+
     private RegexMatchTimeoutException Abandoned(MatchStop stop) => new(this.Pattern, this.MatchTimeout, stop == MatchStop.Memory);
 
     /// <summary>The program that tracks every group, for the members that report captures.</summary>

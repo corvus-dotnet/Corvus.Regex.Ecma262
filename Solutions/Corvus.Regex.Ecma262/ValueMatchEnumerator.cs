@@ -13,6 +13,7 @@ public ref struct ValueMatchEnumerator
     private readonly ReadOnlySpan<char> input;
     private readonly Span<ValueCapture> captures;
     private readonly bool resumes;
+    private readonly bool simple;
     private MatchState? state;
     private ScanCursor cursor;
     private CandidateScan scan;
@@ -30,6 +31,7 @@ public ref struct ValueMatchEnumerator
         this.input = input;
         this.captures = captures;
         this.resumes = captures.Length == 0 && regex.ResumesEmitted;
+        this.simple = captures.Length == 0 && regex.BoundsWithoutState;
         this.next = startAt;
         this.Current = default;
     }
@@ -66,6 +68,15 @@ public ref struct ValueMatchEnumerator
             from = match.Index;
             to = from + match.Length;
         }
+        else if (this.simple)
+        {
+            // A simple shape: its search alone, which takes none of the thread's state.
+            if (!this.regex.TrySimpleBounds(this.input, this.next, out from, out to))
+            {
+                this.done = true;
+                return false;
+            }
+        }
         else if (this.resumes && this.scan.Kind == CandidateScan.Emitted)
         {
             if (!this.regex.TryResumeEmitted(this.state!, ref this.cursor, ref this.scan, this.input, this.next, out from, out to))
@@ -93,6 +104,7 @@ public ref struct Utf8ValueMatchEnumerator
     private readonly ReadOnlySpan<byte> input;
     private readonly Span<ValueCapture> captures;
     private readonly bool resumes;
+    private readonly bool simple;
     private MatchState? state;
     private ScanCursor cursor;
     private CandidateScan scan;
@@ -110,6 +122,7 @@ public ref struct Utf8ValueMatchEnumerator
         this.input = input;
         this.captures = captures;
         this.resumes = captures.Length == 0 && regex.ResumesEmitted;
+        this.simple = captures.Length == 0 && regex.BoundsWithoutState;
         this.next = startAt;
         this.Current = default;
     }
@@ -145,6 +158,15 @@ public ref struct Utf8ValueMatchEnumerator
 
             from = match.Index;
             to = from + match.Length;
+        }
+        else if (this.simple)
+        {
+            // A simple shape: its search alone, which takes none of the thread's state.
+            if (!this.regex.TrySimpleBounds(this.input, this.next, out from, out to))
+            {
+                this.done = true;
+                return false;
+            }
         }
         else if (this.resumes && this.scan.Kind == CandidateScan.Emitted)
         {

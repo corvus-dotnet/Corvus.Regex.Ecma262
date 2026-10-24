@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Corvus.Ecma262.RegularExpressions;
@@ -236,6 +237,11 @@ public sealed partial class Regex
     /// <exception cref="RegexMatchTimeoutException">A match reached its limit.</exception>
     public int Count(ReadOnlySpan<char> input)
     {
+        if (this.BoundsWithoutState)
+        {
+            return this.CountSimple(input);
+        }
+
         int n = 0;
         foreach (ValueMatch m in this.EnumerateMatches(input))
         {
@@ -265,6 +271,11 @@ public sealed partial class Regex
     /// <exception cref="RegexMatchTimeoutException">A match reached its limit.</exception>
     public int CountUnchecked(ReadOnlySpan<byte> utf8)
     {
+        if (this.BoundsWithoutState)
+        {
+            return this.CountSimple(utf8);
+        }
+
         int n = 0;
         foreach (ValueMatch m in this.EnumerateMatchesUnchecked(utf8))
         {
@@ -677,6 +688,49 @@ public sealed partial class Regex
 
     /// <summary>Gets a value indicating whether an enumeration's later matches can resume the generated code's loop directly (see <see cref="Matcher.ResumeEmitted{TUnit, TEncoding}"/>): not sticky, no group tracked, and the generated code finding the starts.</summary>
     internal bool ResumesEmitted => !this.Sticky && this.program.Groups == 0 && this.program.Runner is { OwnsSearch: true };
+
+    /// <summary>Gets a value indicating whether a match's bounds are found by the search for a simple shape alone, with no state (see <see cref="Matcher.Simple"/>): an enumeration then takes none of the thread's.</summary>
+    internal bool BoundsWithoutState => this.program.Shape != SimpleShape.None && this.program.Runner is not { OwnsSearch: true } && !this.program.UsesCursor;
+
+    /// <summary>Where the first match of a simple shape at or after a position is, over UTF-16 (see <see cref="BoundsWithoutState"/>).</summary>
+    /// <remarks>A call of its own, never inlined, so that the enumerator's loop stays as small as it was: inlined, the search for a literal by generated code took 8 ns more a match.</remarks>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal bool TrySimpleBounds(ReadOnlySpan<char> input, int startAt, out int from, out int to) => Matcher.Simple<char, Utf16Encoding>(this.program, null, input, startAt, this.Sticky, out from, out to);
+
+    /// <summary>Where the first match of a simple shape at or after a position is, over UTF-8 (see <see cref="BoundsWithoutState"/>).</summary>
+    /// <remarks>Never inlined, as the UTF-16 one.</remarks>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal bool TrySimpleBounds(ReadOnlySpan<byte> input, int startAt, out int from, out int to) => Matcher.Simple<byte, Utf8Encoding>(this.program, null, input, startAt, this.Sticky, out from, out to);
+
+    /// <summary>The number of matches of a simple shape in a UTF-16 text: its search, match after match, with no enumerator.</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private int CountSimple(ReadOnlySpan<char> input)
+    {
+        int count = 0;
+        int next = 0;
+        while (next <= input.Length && Matcher.Simple<char, Utf16Encoding>(this.program, null, input, next, this.Sticky, out int from, out int to))
+        {
+            count++;
+            next = to > from ? to : this.AdvanceAfterEmptyMatch(input, to);
+        }
+
+        return count;
+    }
+
+    /// <summary>The number of matches of a simple shape in a UTF-8 text: its search, match after match, with no enumerator.</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private int CountSimple(ReadOnlySpan<byte> utf8)
+    {
+        int count = 0;
+        int next = 0;
+        while (next <= utf8.Length && Matcher.Simple<byte, Utf8Encoding>(this.program, null, utf8, next, this.Sticky, out int from, out int to))
+        {
+            count++;
+            next = to > from ? to : this.AdvanceAfterEmptyMatch(utf8, to);
+        }
+
+        return count;
+    }
 
     /// <summary>The next match of an enumeration in UTF-16, resuming the generated code's loop (see <see cref="ResumesEmitted"/>).</summary>
     internal bool TryResumeEmitted(MatchState st, ref ScanCursor cursor, ref CandidateScan scan, ReadOnlySpan<char> input, int startAt, out int from, out int to)

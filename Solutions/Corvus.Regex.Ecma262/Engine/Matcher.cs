@@ -433,6 +433,9 @@ public static class Matcher
     /// <summary>The number of steps for each position of the text that a match makes before it takes the memory into use.</summary>
     public const int MemoStepsPerPosition = 64;
 
+    /// <summary>The most characters before a literal the reverse search takes: its waiting starts are the bits of a word.</summary>
+    private const int ReverseWindow = 62;
+
     /// <summary>
     /// The depth of the backtracking stack beyond which a memo point is not marked. A mark is an entry of the stack,
     /// and a pattern that keeps no choice for a character still marks a place for each, so on a long text the marks
@@ -696,9 +699,13 @@ public static class Matcher
                 int pos = start;
                 if (min == 0)
                 {
-                    // The match is the run from the start, empty or not.
+                    // The match is the run from the start, empty or not: where the set holds every character (the dot
+                    // with the s flag), the rest of the text, with no search, as the Rust engine's RunEnd::All.
                     from = pos;
-                    to = pos < len ? (set.IsLineRest ? EndOfLine<TUnit, TEncoding>(st, input, pos) : EndOfRun<TUnit, TEncoding>(set, input, pos, units)) : pos;
+                    to = pos >= len ? pos
+                        : set.Ascii0 == ulong.MaxValue && set.Ascii1 == ulong.MaxValue && set.HoldsAllNonAscii(units) ? len
+                        : set.IsLineRest ? EndOfLine<TUnit, TEncoding>(st, input, pos)
+                        : EndOfRun<TUnit, TEncoding>(set, input, pos, units);
                     return true;
                 }
 
@@ -1534,6 +1541,15 @@ public static class Matcher
                 return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
             }
 
+            if (hi > 0 && !extras && p.WindowPrefixes is not null && p.RequiredAlternationHi <= ReverseWindow)
+            {
+                int found = SearchReverse<TUnit, TEncoding>(p, st, input, pos, p.RequiredAlternationLo, p.RequiredAlternationHi, alternation, out from, out to);
+                if (found >= 0)
+                {
+                    return found == 1;
+                }
+            }
+
             while (true)
             {
                 int i = enc.IndexOfAlternation(input, next, alternation);
@@ -1608,6 +1624,15 @@ public static class Matcher
             // order from the farthest.
             int lo = p.RequiredCount;
             int hi = p.RequiredCountMax;
+            if (p.WindowPrefixes is not null && hi <= ReverseWindow)
+            {
+                int found = SearchReverse<TUnit, TEncoding>(p, st, input, pos, lo, hi, null, out from, out to);
+                if (found >= 0)
+                {
+                    return found == 1;
+                }
+            }
+
             // One slot for each character before the literal: on the stack only when there are few, and rented beyond.
             int backsLength = hi + 1;
             using StackBuffer.Pooled<int> backsPool = new(backsLength);
@@ -1720,6 +1745,11 @@ public static class Matcher
             }
         }
 
+        if (p.ForwardSearch && p.Automata().Forward is { } forward)
+        {
+            return ForwardScan<TUnit, TEncoding>(p, st, input, pos, forward, p.Automata().Skip, out from, out to);
+        }
+
         if (p.Runner is not null)
         {
             scan = new() { Kind = CandidateScan.First, Next = pos, Floor = len, Last = -1 };
@@ -1727,6 +1757,265 @@ public static class Matcher
         }
 
         return ScanStarts<TUnit, TEncoding>(p, st, input, pos, len, out from, out to);
+    }
+
+    /// <summary>
+    /// The search of a literal (or of one of the literals of an alternation) so many to so many characters after the
+    /// start of every match, with the terms before it read backwards from each occurrence by the reverse automaton, so
+    /// that only the starts they allow are tried; an occurrence the rest check rules out allows none. A start is tried
+    /// only once no later occurrence could allow an earlier one (it is before the next occurrence's window), so the
+    /// starts are tried in order across occurrences and the first match is the leftmost. Over ASCII a character is a
+    /// unit; where a unit beyond ASCII is reached the search is made again the plain way.
+    /// </summary>
+    /// <returns>1 for a match, 0 for none, or -1 where the search is to be made again the plain way.</returns>
+    private static int SearchReverse<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int start, int lo, int hi, AlternationSearch? alternation, out int from, out int to)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        from = -1;
+        to = -1;
+        SearchAutomata automata = p.Automata();
+        if (automata.Reverse is not { } rev)
+        {
+            return -1;
+        }
+
+        TEncoding enc = default;
+        RestCheck? rest = automata.Rest;
+        int len = input.Length;
+
+        // The most units of a literal, which an occurrence that starts within a window can reach beyond it: a form of
+        // a character of an alternation's literal can be longer than the pattern's own (the Kelvin sign for k), so
+        // the bound is three bytes or two code units for each code unit of the pattern's own.
+        int longest = 0;
+        if (alternation is null)
+        {
+            longest = typeof(TUnit) == typeof(byte) ? p.RequiredUtf8.Length : p.RequiredUtf16.Length;
+        }
+        else
+        {
+            foreach (string literal in alternation.Literals)
+            {
+                longest = Math.Max(longest, (typeof(TUnit) == typeof(byte) ? 3 : 2) * literal.Length);
+            }
+        }
+
+        // The starts waiting to be tried: bit k is the position at + k.
+        ulong pending = 0;
+        int at = start;
+
+        // Every start at or before this has been tried, or can no longer be allowed.
+        int tried = start - 1;
+        int q = Find(input, start);
+        if (q < 0)
+        {
+            return 0;
+        }
+
+        while (true)
+        {
+            // The starts this occurrence's terms allow join those waiting.
+            int newAt = Math.Max(q - hi, start);
+            if (newAt > at)
+            {
+                int shift = newAt - at;
+                pending = shift >= 64 ? 0 : pending >> shift;
+                at = newAt;
+            }
+
+            // An occurrence from which nothing can match allows no start.
+            ulong mask = 0;
+            if (rest is null || !rest.RulesOut<TUnit, TEncoding>(input, q))
+            {
+                if (!rev.Starts<TUnit, TEncoding>(input, q, hi, start, out mask))
+                {
+                    return -1;
+                }
+            }
+
+            mask &= ~((1UL << lo) - 1);
+            while (mask != 0)
+            {
+                int d = Adfa.TrailingZeros(mask);
+                mask &= mask - 1;
+                int s = q - d;
+                if (s >= at && s > tried)
+                {
+                    pending |= 1UL << (s - at);
+                }
+            }
+
+            int after = enc.NextStart(input, q);
+
+            // The earliest waiting start is tried once no occurrence before it plus the window could allow an earlier
+            // one: an occurrence within that reach is taken in first, which looks no further than the reach.
+            bool taken = false;
+            while (pending != 0)
+            {
+                int k = Adfa.TrailingZeros(pending);
+                int s = at + k;
+                if (after <= s + hi)
+                {
+                    int reach = Math.Min(len, s + hi + longest);
+                    int q2 = Find(input.Slice(0, reach), after);
+                    if (q2 >= 0 && q2 <= s + hi)
+                    {
+                        q = q2;
+                        taken = true;
+                        break;
+                    }
+                }
+
+                pending &= pending - 1;
+                tried = s;
+                if (len - s < p.Need)
+                {
+                    return 0;
+                }
+
+                from = s;
+                if (Run<TUnit, TEncoding>(p, st, input, s, out to))
+                {
+                    return 1;
+                }
+
+                if (st.Stop != MatchStop.None)
+                {
+                    return 0;
+                }
+            }
+
+            if (!taken)
+            {
+                q = Find(input, after);
+                if (q < 0)
+                {
+                    return 0;
+                }
+            }
+        }
+
+        int Find(ReadOnlySpan<TUnit> text, int position)
+        {
+            TEncoding e = default;
+            return alternation is null ? e.IndexOfRequired(text, position, p) : e.IndexOfAlternation(text, position, alternation);
+        }
+    }
+
+    /// <summary>
+    /// The search that tries every start the first set allows, with the forward automaton: one pass of it from a start
+    /// says where a match first ends, or that none starts before a place where no thread is alive; only then are
+    /// starts tried, from the start to there. The window of <see cref="Skip"/> passes over the places no match can
+    /// start at before the first set is looked for.
+    /// </summary>
+    private static bool ForwardScan<TUnit, TEncoding>(Program p, MatchState st, ReadOnlySpan<TUnit> input, int pos, AnchoredAutomaton forward, Skip? skip, out int from, out int to)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+    {
+        TEncoding enc = default;
+        int len = input.Length;
+        CharSet? first = p.First;
+        bool units = p.Units;
+        from = -1;
+        to = -1;
+        int at = pos;
+        while (true)
+        {
+            if (skip is not null)
+            {
+                at = skip.Ahead<TUnit, TEncoding>(input, at);
+            }
+
+#if NET
+            if (first is not null)
+            {
+                // Every match starts with a member of the first set; the scan for one is vectorised.
+                int i = enc.IndexOfCandidate(input, at, first, p.FirstIsSmall);
+                if (i < 0)
+                {
+                    return false;
+                }
+
+                at = enc.AlignStart(input, i, units);
+            }
+#endif
+            if (len - at < p.Need)
+            {
+                return false;
+            }
+
+            if (at == len)
+            {
+                from = at;
+                return first is null && Run<TUnit, TEncoding>(p, st, input, at, out to);
+            }
+
+            if (p.LeadingWordBoundary && Adfa.WordBefore<TUnit, TEncoding>(input, at))
+            {
+                // Inside a word, where \b cannot hold: the rest of the word is passed over.
+                int end = EndOfRun<TUnit, TEncoding>(first!, input, at, units);
+                at = end > at ? end : NextPosition<TUnit, TEncoding>(input, at, units);
+                continue;
+            }
+
+            int kind = forward.Scan<TUnit, TEncoding>(input, at, out int place);
+            if (kind == Adfa.ScanNone)
+            {
+                return false;
+            }
+
+            if (kind == Adfa.ScanIdle)
+            {
+                at = place;
+                continue;
+            }
+
+            // A match ends at the place, or a unit beyond ASCII is there: the starts from here to there are tried in
+            // order, as the plain search would.
+            while (at <= place && at <= len)
+            {
+#if NET
+                if (at < len)
+                {
+                    at = enc.AlignStart(input, at, units);
+                    if (at > place)
+                    {
+                        break;
+                    }
+                }
+#endif
+
+                from = at;
+                if (len - at < p.Need)
+                {
+                    return false;
+                }
+
+                if (at == len)
+                {
+                    return first is null && Run<TUnit, TEncoding>(p, st, input, at, out to);
+                }
+
+                int c = enc.Unit(input, at);
+                int w = 1;
+                if (c >= 0x80)
+                {
+                    c = units ? enc.UnitAt(input, at, out w) : enc.Decode(input, at, out w);
+                }
+
+                if ((first is null || first.Contains(c)) && Run<TUnit, TEncoding>(p, st, input, at, out to))
+                {
+                    return true;
+                }
+
+                if (st.Stop != MatchStop.None)
+                {
+                    return false;
+                }
+
+                at += w;
+            }
+        }
     }
 
     /// <summary>
@@ -2695,12 +2984,26 @@ public static class Matcher
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
+        // The generated code where there is any: its loops over sets are vectorised, which the automaton's table is
+        // not (\w+\s+Holmes and [a-zA-Z]+ing at 1.2 times with the automaton ahead of it).
         GeneratedRunner? runner = p.Runner;
         if (runner is not null)
         {
             return typeof(TUnit) == typeof(byte)
                 ? runner.Run(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, byte>(input), start, out end)
                 : runner.Run(p, st, System.Runtime.InteropServices.MemoryMarshal.Cast<TUnit, char>(input), start, out end);
+        }
+
+        // A program that tracks no group and needs no backtracking: the anchored automaton finds where the match ends
+        // over ASCII text, and hands a unit beyond it back to the interpreter.
+        AnchoredAutomaton? dfa = p.Automata().Anchored;
+        if (dfa is not null)
+        {
+            end = dfa.Find<TUnit, TEncoding>(input, start);
+            if (end != Adfa.Bail)
+            {
+                return end >= 0;
+            }
         }
 
         return Interpret<TUnit, TEncoding>(p, st, input, start, out end);

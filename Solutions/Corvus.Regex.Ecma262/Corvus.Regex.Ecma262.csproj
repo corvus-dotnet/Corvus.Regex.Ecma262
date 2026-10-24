@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Engine\Adfa.cs" />
     <Compile Include="Engine\CaseFolding.cs" />
     <Compile Include="Engine\CharSet.cs" />
     <Compile Include="Engine\Dfa.cs" />

@@ -21,6 +21,7 @@
     <Compile Include="RunEmitter.cs" />
     <Compile Include="TreeEmitter.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\GeneratedRunner.cs" Link="Shared\GeneratedRunner.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Engine\Adfa.cs" Link="Shared\Engine\Adfa.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Engine\CaseFolding.cs" Link="Shared\Engine\CaseFolding.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Engine\CharSet.cs" Link="Shared\Engine\CharSet.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Engine\Matcher.cs" Link="Shared\Engine\Matcher.cs" />
