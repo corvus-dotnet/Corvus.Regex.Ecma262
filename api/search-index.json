@@ -1,0 +1,919 @@
+[
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-capture.html",
+    "Title": "Capture",
+    "Description": "A piece of the input text that a match or a group captured.",
+    "Keywords": "Capture class Corvus.Ecma262.RegularExpressions",
+    "Body": "A piece of the input text that a match or a group captured.\nIndex: Gets the position of the piece in the input, in UTF-16 code units. 0 for a group that did not take part.\nLength: Gets the length of the piece, in UTF-16 code units. 0 for a group that did not take part.\nValue: Gets the piece. The empty string for a group that did not take part.\nValueSpan: Gets the piece as a span of the input, allocating nothing.\nToString: The piece."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-capture.index.html",
+    "Title": "Capture.Index",
+    "Description": "Gets the position of the piece in the input, in UTF-16 code units. 0 for a group that did not take part.",
+    "Keywords": "Capture Index property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the position of the piece in the input, in UTF-16 code units. 0 for a group that did not take part."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-capture.length.html",
+    "Title": "Capture.Length",
+    "Description": "Gets the length of the piece, in UTF-16 code units. 0 for a group that did not take part.",
+    "Keywords": "Capture Length property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the length of the piece, in UTF-16 code units. 0 for a group that did not take part."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-capture.value.html",
+    "Title": "Capture.Value",
+    "Description": "Gets the piece. The empty string for a group that did not take part.",
+    "Keywords": "Capture Value property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the piece. The empty string for a group that did not take part."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-capture.valuespan.html",
+    "Title": "Capture.ValueSpan",
+    "Description": "Gets the piece as a span of the input, allocating nothing.",
+    "Keywords": "Capture ValueSpan property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the piece as a span of the input, allocating nothing."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-capture.tostring.html",
+    "Title": "Capture.ToString",
+    "Description": "The piece.",
+    "Keywords": "Capture ToString method Corvus.Ecma262.RegularExpressions",
+    "Body": "The piece."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-capturecollection.html",
+    "Title": "CaptureCollection",
+    "Description": "The captures of a group: one when the group took part, none otherwise.",
+    "Keywords": "CaptureCollection class Corvus.Ecma262.RegularExpressions",
+    "Body": "The captures of a group: one when the group took part, none otherwise."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-capturecollection.count.html",
+    "Title": "CaptureCollection.Count",
+    "Description": "",
+    "Keywords": "CaptureCollection Count property Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-capturecollection.item.html",
+    "Title": "CaptureCollection.this[int]",
+    "Description": "",
+    "Keywords": "CaptureCollection this[int] property Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-capturecollection.getenumerator.html",
+    "Title": "CaptureCollection.GetEnumerator",
+    "Description": "",
+    "Keywords": "CaptureCollection GetEnumerator method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-generatedregexattribute.html",
+    "Title": "GeneratedRegexAttribute",
+    "Description": "Marks a `static partial` method or property that returns a [`Regex`](/api/corvus-ecma262-regularexpressions-regex.html) for the source generator, which checks the pattern at build time (a pattern that is not valid is a build error with the ECMA-262 message) and emits the member, as .NET's `GeneratedRegexAttribute` does.",
+    "Keywords": "GeneratedRegexAttribute class Corvus.Ecma262.RegularExpressions",
+    "Body": "Marks a `static partial` method or property that returns a [`Regex`](/api/corvus-ecma262-regularexpressions-regex.html) for the source generator, which checks the pattern at build time (a pattern that is not valid is a build error with the ECMA-262 message) and emits the member, as .NET's `GeneratedRegexAttribute` does.\nPattern: Gets the pattern.\nFlags: Gets the flags.\nFlagsText: Gets the flags as given in letters, or null when they were given as [`RegexFlags`](/api/corvus-ecma262-regularexpressions-regexflags.html).\nMatchTimeoutMilliseconds: Gets the limit of time on a match in milliseconds, or -1 for none."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-generatedregexattribute.ctor.html",
+    "Title": "GeneratedRegexAttribute Constructor",
+    "Description": "Initializes a new instance of the [`GeneratedRegexAttribute`](/api/corvus-ecma262-regularexpressions-generatedregexattribute.html) class: the regular expression has the [`DefaultMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.defaultmatchtimeout.html).",
+    "Keywords": "GeneratedRegexAttribute constructor new Corvus.Ecma262.RegularExpressions",
+    "Body": "Initializes a new instance of the [`GeneratedRegexAttribute`](/api/corvus-ecma262-regularexpressions-generatedregexattribute.html) class: the regular expression has the [`DefaultMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.defaultmatchtimeout.html). Initializes a new instance of the [`GeneratedRegexAttribute`](/api/corvus-ecma262-regularexpressions-generatedregexattribute.html) class: the regular expression has the [`DefaultMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.defaultmatchtimeout.html). Initializes a new instance of the [`GeneratedRegexAttribute`](/api/corvus-ecma262-regularexpressions-generatedregexattribute.html) class. Initializes a new instance of the [`GeneratedRegexAttribute`](/api/corvus-ecma262-regularexpressions-generatedregexattribute.html) class: the regular expression has the [`DefaultMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.defaultmatchtimeout.html). Initializes a new instance of the [`GeneratedRegexAttribute`](/api/corvus-ecma262-regularexpressions-generatedregexattribute.html) class."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-generatedregexattribute.pattern.html",
+    "Title": "GeneratedRegexAttribute.Pattern",
+    "Description": "Gets the pattern.",
+    "Keywords": "GeneratedRegexAttribute Pattern property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the pattern."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-generatedregexattribute.flags.html",
+    "Title": "GeneratedRegexAttribute.Flags",
+    "Description": "Gets the flags.",
+    "Keywords": "GeneratedRegexAttribute Flags property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the flags."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-generatedregexattribute.flagstext.html",
+    "Title": "GeneratedRegexAttribute.FlagsText",
+    "Description": "Gets the flags as given in letters, or null when they were given as [`RegexFlags`](/api/corvus-ecma262-regularexpressions-regexflags.html).",
+    "Keywords": "GeneratedRegexAttribute FlagsText property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the flags as given in letters, or null when they were given as [`RegexFlags`](/api/corvus-ecma262-regularexpressions-regexflags.html)."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-generatedregexattribute.matchtimeoutmilliseconds.html",
+    "Title": "GeneratedRegexAttribute.MatchTimeoutMilliseconds",
+    "Description": "Gets the limit of time on a match in milliseconds, or -1 for none.",
+    "Keywords": "GeneratedRegexAttribute MatchTimeoutMilliseconds property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the limit of time on a match in milliseconds, or -1 for none."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-group.html",
+    "Title": "Group",
+    "Description": "What one capturing group of a match captured.",
+    "Keywords": "Group class Corvus.Ecma262.RegularExpressions",
+    "Body": "What one capturing group of a match captured.\nSuccess: Gets a value indicating whether the group took part in the match. ECMA-262 does not tell an empty capture from a group that did not take part by the text alone; this does.\nName: Gets the name of the group, or its number as text when it has no name.\nCaptures: Gets the captures of the group: one, when the group took part, and none otherwise. ECMA-262 keeps only the last iteration's capture of a group under a quantifier, so there is never more than one."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-group.success.html",
+    "Title": "Group.Success",
+    "Description": "Gets a value indicating whether the group took part in the match. ECMA-262 does not tell an empty capture from a group that did not take part by the text alone; this does.",
+    "Keywords": "Group Success property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets a value indicating whether the group took part in the match. ECMA-262 does not tell an empty capture from a group that did not take part by the text alone; this does."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-group.name.html",
+    "Title": "Group.Name",
+    "Description": "Gets the name of the group, or its number as text when it has no name.",
+    "Keywords": "Group Name property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the name of the group, or its number as text when it has no name."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-group.captures.html",
+    "Title": "Group.Captures",
+    "Description": "Gets the captures of the group: one, when the group took part, and none otherwise. ECMA-262 keeps only the last iteration's capture of a group under a quantifier, so there is never more than one.",
+    "Keywords": "Group Captures property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the captures of the group: one, when the group took part, and none otherwise. ECMA-262 keeps only the last iteration's capture of a group under a quantifier, so there is never more than one."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-groupcollection.html",
+    "Title": "GroupCollection",
+    "Description": "The groups of a match: the whole match as group 0, then each capturing group in the order of its opening parenthesis.",
+    "Keywords": "GroupCollection class Corvus.Ecma262.RegularExpressions",
+    "Body": "The groups of a match: the whole match as group 0, then each capturing group in the order of its opening parenthesis.\nthis[string]: Gets the group of a name. When several groups share the name (in separate alternatives), it is the one that took part, or the first of them when none did. A name the pattern does not have gives a group that did not take part, as .NET does.\nContainsKey: Whether the pattern has a group of the name.\nTryGetValue: Gets the group of a name (see the indexer)."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-groupcollection.count.html",
+    "Title": "GroupCollection.Count",
+    "Description": "",
+    "Keywords": "GroupCollection Count property Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-groupcollection.item.html",
+    "Title": "GroupCollection.this[int]",
+    "Description": "",
+    "Keywords": "GroupCollection this[int] property Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-groupcollection.item.html",
+    "Title": "GroupCollection.this[string]",
+    "Description": "Gets the group of a name. When several groups share the name (in separate alternatives), it is the one that took part, or the first of them when none did. A name the pattern does not have gives a group that did not take part, as .NET does.",
+    "Keywords": "GroupCollection this[string] property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the group of a name. When several groups share the name (in separate alternatives), it is the one that took part, or the first of them when none did. A name the pattern does not have gives a group that did not take part, as .NET does."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-groupcollection.containskey.html",
+    "Title": "GroupCollection.ContainsKey",
+    "Description": "Whether the pattern has a group of the name.",
+    "Keywords": "GroupCollection ContainsKey method Corvus.Ecma262.RegularExpressions",
+    "Body": "Whether the pattern has a group of the name."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-groupcollection.trygetvalue.html",
+    "Title": "GroupCollection.TryGetValue",
+    "Description": "Gets the group of a name (see the indexer).",
+    "Keywords": "GroupCollection TryGetValue method Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the group of a name (see the indexer)."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-groupcollection.getenumerator.html",
+    "Title": "GroupCollection.GetEnumerator",
+    "Description": "",
+    "Keywords": "GroupCollection GetEnumerator method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-match.html",
+    "Title": "Match",
+    "Description": "One match of a pattern in a text, with what each of its groups captured.",
+    "Keywords": "Match class Corvus.Ecma262.RegularExpressions",
+    "Body": "One match of a pattern in a text, with what each of its groups captured.\nEmpty: Gets the match that is no match: [`Success`](/api/corvus-ecma262-regularexpressions-group.success.html) is false, and every group is empty.\nGroups: Gets the groups of the match: the whole match as group 0, then each capturing group.\nNextMatch: The next match in the input after this one, as ECMA-262 continues a global search: from the end of this match, or one character on when this match is empty. [`Empty`](/api/corvus-ecma262-regularexpressions-match.empty.html) when there is none.\nResult: Expands a replacement for this match as ECMA-262's GetSubstitution does: `$$`, `$&`, `$``, `$'`, `$n`, `$nn` and `$<name>`. Anything else is left as it is."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-match.empty.html",
+    "Title": "Match.Empty",
+    "Description": "Gets the match that is no match: [`Success`](/api/corvus-ecma262-regularexpressions-group.success.html) is false, and every group is empty.",
+    "Keywords": "Match Empty property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the match that is no match: [`Success`](/api/corvus-ecma262-regularexpressions-group.success.html) is false, and every group is empty."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-match.groups.html",
+    "Title": "Match.Groups",
+    "Description": "Gets the groups of the match: the whole match as group 0, then each capturing group.",
+    "Keywords": "Match Groups property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the groups of the match: the whole match as group 0, then each capturing group."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-match.nextmatch.html",
+    "Title": "Match.NextMatch",
+    "Description": "The next match in the input after this one, as ECMA-262 continues a global search: from the end of this match, or one character on when this match is empty. [`Empty`](/api/corvus-ecma262-regularexpressions-match.empty.html) when there is none.",
+    "Keywords": "Match NextMatch method Corvus.Ecma262.RegularExpressions",
+    "Body": "The next match in the input after this one, as ECMA-262 continues a global search: from the end of this match, or one character on when this match is empty. [`Empty`](/api/corvus-ecma262-regularexpressions-match.empty.html) when there is none."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-match.result.html",
+    "Title": "Match.Result",
+    "Description": "Expands a replacement for this match as ECMA-262's GetSubstitution does: `$$`, `$&`, `$``, `$'`, `$n`, `$nn` and `$<name>`. Anything else is left as it is.",
+    "Keywords": "Match Result method Corvus.Ecma262.RegularExpressions",
+    "Body": "Expands a replacement for this match as ECMA-262's GetSubstitution does: `$$`, `$&`, `$``, `$'`, `$n`, `$nn` and `$<name>`. Anything else is left as it is."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-matchcollection.html",
+    "Title": "MatchCollection",
+    "Description": "Every match of a pattern in a text, found as they are asked for: a global search as ECMA-262 makes one.",
+    "Keywords": "MatchCollection class Corvus.Ecma262.RegularExpressions",
+    "Body": "Every match of a pattern in a text, found as they are asked for: a global search as ECMA-262 makes one.\nCount: Gets the number of matches, which finds them all."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-matchcollection.count.html",
+    "Title": "MatchCollection.Count",
+    "Description": "Gets the number of matches, which finds them all.",
+    "Keywords": "MatchCollection Count property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the number of matches, which finds them all."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-matchcollection.item.html",
+    "Title": "MatchCollection.this[int]",
+    "Description": "",
+    "Keywords": "MatchCollection this[int] property Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-matchcollection.getenumerator.html",
+    "Title": "MatchCollection.GetEnumerator",
+    "Description": "",
+    "Keywords": "MatchCollection GetEnumerator method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-matchevaluator.html",
+    "Title": "MatchEvaluator",
+    "Description": "Gives the replacement for one match.",
+    "Keywords": "MatchEvaluator delegate Corvus.Ecma262.RegularExpressions",
+    "Body": "Gives the replacement for one match."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-matchevaluator.ctor.html",
+    "Title": "MatchEvaluator Constructor",
+    "Description": "",
+    "Keywords": "MatchEvaluator constructor new Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-matchevaluator.invoke.html",
+    "Title": "MatchEvaluator.Invoke",
+    "Description": "",
+    "Keywords": "MatchEvaluator Invoke method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-matchevaluator.begininvoke.html",
+    "Title": "MatchEvaluator.BeginInvoke",
+    "Description": "",
+    "Keywords": "MatchEvaluator BeginInvoke method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-matchevaluator.endinvoke.html",
+    "Title": "MatchEvaluator.EndInvoke",
+    "Description": "",
+    "Keywords": "MatchEvaluator EndInvoke method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.html",
+    "Title": "Regex",
+    "Description": "An ECMA-262 regular expression: the grammar and the answers of ECMAScript 2025, with the shape of `System.Text.RegularExpressions.Regex`. It matches UTF-16 text ([`String`](https://learn.microsoft.com/dotnet/api/system.string) and [`ReadOnlySpan`](https://learn.microsoft.com/dotnet/api/system.readonlyspan-1) of [`Char`](https://learn.microsoft.com/dotnet/api/system.char)) and UTF-8 text ([`ReadOnlySpan`](https://learn.microsoft.com/dotnet/api/system.readonlyspan-1) of [`Byte`](https://learn.microsoft.com/dotnet/api/system.byte)) natively, with no transcoding either way. An instance is immutable and safe to share between threads.",
+    "Keywords": "Regex class Corvus.Ecma262.RegularExpressions",
+    "Body": "An ECMA-262 regular expression: the grammar and the answers of ECMAScript 2025, with the shape of `System.Text.RegularExpressions.Regex`. It matches UTF-16 text ([`String`](https://learn.microsoft.com/dotnet/api/system.string) and [`ReadOnlySpan`](https://learn.microsoft.com/dotnet/api/system.readonlyspan-1) of [`Char`](https://learn.microsoft.com/dotnet/api/system.char)) and UTF-8 text ([`ReadOnlySpan`](https://learn.microsoft.com/dotnet/api/system.readonlyspan-1) of [`Byte`](https://learn.microsoft.com/dotnet/api/system.byte)) natively, with no transcoding either way. An instance is immutable and safe to share between threads.\nPattern: Gets the pattern.\nFlags: Gets the flags.\nDefaultMatchTimeout: Gets the match timeout of every instance made without one of its own: the `REGEX_DEFAULT_MATCH_TIMEOUT` data of the [`AppContext`](https://learn.microsoft.com/dotnet/api/system.appcontext), which `System.Text.RegularExpressions` reads too, as a [`TimeSpan`](https://learn.microsoft.com/dotnet/api/system.timespan), or [`InfiniteMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.infinitematchtimeout.html) when it is not set. It is read once, when it is first needed, so a program sets it when it starts (with `AppContext.SetData`, or `AppDomain.CurrentDomain.SetData` on .NET Framework, or in its runtimeconfig.json).\nMatchTimeout: Gets the time a match may take before it is abandoned, or [`InfiniteMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.infinitematchtimeout.html).\nGroupCount: Gets the number of capturing groups of the pattern.\nFlagsString: Gets the flags as the string `RegExp.prototype.flags` gives: the letters in alphabetical order.\nIsUnicode: Gets a value indicating whether the pattern is matched by code point (the `u` or `v` flag) rather than by UTF-16 code unit.\nTryCreate: Creates a regular expression without throwing for a pattern that is not valid.\nIsValid: Whether a pattern is a valid ECMA-262 pattern in the grammar of the flags.\nIsMatch: Whether a pattern matches anywhere in a text, with no flags.\nIsMatch: Whether a pattern matches anywhere in a text.\nIsMatch: Whether the pattern matches anywhere in a text (at its start alone with [`Sticky`](/api/corvus-ecma262-regularexpressions-regexflags.sticky.html)).\nIsMatch: Whether the pattern matches anywhere in a text from a position (at that position alone with [`Sticky`](/api/corvus-ecma262-regularexpressions-regexflags.sticky.html)).\nIsMatch: Whether the pattern matches anywhere in a UTF-16 text.\nIsMatch: Whether the pattern matches anywhere in a UTF-16 text from a position.\nIsMatch: Whether the pattern matches anywhere in a UTF-8 text.\nIsMatchUnchecked: Whether the pattern matches anywhere in a UTF-8 text.\nIsMatch: Whether the pattern matches anywhere in a UTF-8 text from a position.\nIsMatchUnchecked: Whether the pattern matches anywhere in a UTF-8 text from a position.\nParseFlags: Reads the flags as the string `new RegExp(pattern, flags)` takes.\nMatch: The first match of a pattern in a text, with no flags.\nMatch: The first match of a pattern in a text.\nMatches: Every match of a pattern in a text.\nReplace: Replaces the matches of a pattern in a text (every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise).\nSplit: Splits a text at the matches of a pattern, as `String.prototype.split` does.\nEscape: Escapes a text so that it matches itself as a pattern, as `RegExp.escape` of ECMAScript 2025 does: a first character that is a letter or a digit, the syntax characters, the other punctuators, white space, line terminators and lone surrogates are written as escapes.\nUnescape: Reverses [`Escape`](/api/corvus-ecma262-regularexpressions-regex.escape.html): reads the escapes it writes, and a backslash before any other character as that character.\nMatch: The first match in a text.\nMatch: The first match in a text at or after a position (at that position alone with [`Sticky`](/api/corvus-ecma262-regularexpressions-regexflags.sticky.html)).\nMatches: Every match in a text, as a global search finds them.\nMatches: Every match in a text at or after a position.\nCount: The number of matches in a text.\nCount: The number of matches in a UTF-16 text, allocating nothing.\nCount: The number of matches in a UTF-8 text, allocating nothing.\nCountUnchecked: The number of matches in a UTF-8 text, allocating nothing.\nEnumerateMatches: Enumerates the matches in a UTF-16 text, allocating nothing.\nEnumerateMatches: Enumerates the matches in a UTF-16 text at or after a position, allocating nothing.\nEnumerateMatches: Enumerates the matches in a UTF-8 text, allocating nothing.\nEnumerateMatchesUnchecked: Enumerates the matches in a UTF-8 text, allocating nothing.\nEnumerateMatches: Enumerates the matches in a UTF-8 text at or after a position, allocating nothing.\nEnumerateMatchesUnchecked: Enumerates the matches in a UTF-8 text at or after a position, allocating nothing.\nTryMatch: Finds the first match in a UTF-16 text at or after a position and reports what each group captured, allocating nothing.\nTryMatch: Finds the first match in a UTF-8 text at or after a position and reports what each group captured, allocating nothing.\nTryMatchUnchecked: Finds the first match in a UTF-8 text at or after a position and reports what each group captured, allocating nothing.\nReplace: Replaces the matches in a text: every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise, as `String.prototype.replace` does. The replacement is expanded as [`Result`](/api/corvus-ecma262-regularexpressions-match.result.html) expands it.\nReplace: Replaces the matches in a text (every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise) with what an evaluator gives for each, used as it is.\nSplit: Splits a text at the matches, as `String.prototype.split` does: the captures of each match are put between the pieces (null for a group that did not take part), and an empty match at the start or the end of the text splits nothing.\nSplit: Splits a text at the matches, up to a number of pieces (the `limit` of `String.prototype.split`).\nGetGroupNames: The names of the named groups, in the order the pattern first uses them.\nGroupNumberFromName: The number of the first group of a name, or -1 when the pattern has no group of that name.\nGroupNameFromNumber: The name of a group, or its number as text when it has none.\nEnumerateMatches: Enumerates the matches in a UTF-16 text, allocating nothing, and reports what each group captured: after each `MoveNext` the span holds the match as element 0 and each group in order.\nEnumerateMatches: Enumerates the matches in a UTF-16 text at or after a position, allocating nothing, and reports what each group captured.\nEnumerateMatches: Enumerates the matches in a UTF-8 text, allocating nothing, and reports what each group captured.\nEnumerateMatchesUnchecked: Enumerates the matches in a UTF-8 text, allocating nothing, and reports what each group captured.\nEnumerateMatches: Enumerates the matches in a UTF-8 text at or after a position, allocating nothing, and reports what each group captured.\nEnumerateMatchesUnchecked: Enumerates the matches in a UTF-8 text at or after a position, allocating nothing, and reports what each group captured.\nTryReplace: Replaces the matches in a UTF-16 text (every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise) and writes the result to a span, allocating nothing. The replacement is expanded as [`Result`](/api/corvus-ecma262-regularexpressions-match.result.html) expands it.\nTryReplace: Replaces the matches in a UTF-8 text and writes the result to a span, allocating nothing (see [`TryReplace`](/api/corvus-ecma262-regularexpressions-regex.tryreplace.html)).\nTryReplaceUnchecked: Replaces the matches in a UTF-8 text and writes the result to a span, allocating nothing (see [`TryReplace`](/api/corvus-ecma262-regularexpressions-regex.tryreplace.html)).\nReplace: Replaces the matches in a UTF-16 text and writes the result to a buffer writer, allocating nothing itself (see [`TryReplace`](/api/corvus-ecma262-regularexpressions-regex.tryreplace.html)).\nReplace: Replaces the matches in a UTF-8 text and writes the result to a buffer writer, allocating nothing itself.\nReplaceUnchecked: Replaces the matches in a UTF-8 text and writes the result to a buffer writer, allocating nothing itself.\nReplace: Replaces the matches in a UTF-16 text (every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise) with what an evaluator writes for each, and writes the result to a buffer writer, allocating nothing itself.\nReplace: Replaces the matches in a UTF-8 text with what an evaluator writes for each, and writes the result to a buffer writer, allocating nothing itself.\nReplaceUnchecked: Replaces the matches in a UTF-8 text with what an evaluator writes for each, and writes the result to a buffer writer, allocating nothing itself.\nEnumerateSplits: Enumerates the pieces a UTF-16 text splits into at the matches, as positions, allocating nothing. The pieces are those of [`Split`](/api/corvus-ecma262-regularexpressions-regex.split.html) without the captures of the matches, which it puts between them.\nEnumerateSplits: Enumerates the pieces a UTF-16 text splits into at the matches, up to a number of pieces, allocating nothing.\nEnumerateSplits: Enumerates the pieces a UTF-8 text splits into at the matches, as positions, allocating nothing (see [`EnumerateSplits`](/api/corvus-ecma262-regularexpressions-regex.enumeratesplits.html)).\nEnumerateSplitsUnchecked: Enumerates the pieces a UTF-8 text splits into at the matches, as positions, allocating nothing (see [`EnumerateSplits`](/api/corvus-ecma262-regularexpressions-regex.enumeratesplits.html)).\nEnumerateSplits: Enumerates the pieces a UTF-8 text splits into at the matches, up to a number of pieces, allocating nothing.\nEnumerateSplitsUnchecked: Enumerates the pieces a UTF-8 text splits into at the matches, up to a number of pieces, allocating nothing."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.ctor.html",
+    "Title": "Regex Constructor",
+    "Description": "Initializes a new instance of the [`Regex`](/api/corvus-ecma262-regularexpressions-regex.html) class with no flags and the [`DefaultMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.defaultmatchtimeout.html).",
+    "Keywords": "Regex constructor new Corvus.Ecma262.RegularExpressions",
+    "Body": "Initializes a new instance of the [`Regex`](/api/corvus-ecma262-regularexpressions-regex.html) class with no flags and the [`DefaultMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.defaultmatchtimeout.html). Initializes a new instance of the [`Regex`](/api/corvus-ecma262-regularexpressions-regex.html) class with the [`DefaultMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.defaultmatchtimeout.html). Initializes a new instance of the [`Regex`](/api/corvus-ecma262-regularexpressions-regex.html) class, with the flags as `new RegExp(pattern, flags)` takes them and the [`DefaultMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.defaultmatchtimeout.html). Initializes a new instance of the [`Regex`](/api/corvus-ecma262-regularexpressions-regex.html) class with a match timeout: the time each match may take before it is abandoned with [`RegexMatchTimeoutException`](/api/corvus-ecma262-regularexpressions-regexmatchtimeoutexception.html). A match with a timeout is also abandoned, with [`ExceededMemory`](/api/corvus-ecma262-regularexpressions-regexmatchtimeoutexception.exceededmemory.html), when its backtracking stack reaches its cap. Every member that matches gives each of its matches the timeout, whatever the pattern. Without one a match has no limit of time or of memory, so a pattern or a text from outside should be given one, here or for every instance with [`DefaultMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.defaultmatchtimeout.html). Initializes a new instance of the [`Regex`](/api/corvus-ecma262-regularexpressions-regex.html) class whose programs run as the generated code given rather than the interpreter: the seam for the source generator, not for use by hand."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.pattern.html",
+    "Title": "Regex.Pattern",
+    "Description": "Gets the pattern.",
+    "Keywords": "Regex Pattern property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the pattern."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.flags.html",
+    "Title": "Regex.Flags",
+    "Description": "Gets the flags.",
+    "Keywords": "Regex Flags property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the flags."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.defaultmatchtimeout.html",
+    "Title": "Regex.DefaultMatchTimeout",
+    "Description": "Gets the match timeout of every instance made without one of its own: the `REGEX_DEFAULT_MATCH_TIMEOUT` data of the [`AppContext`](https://learn.microsoft.com/dotnet/api/system.appcontext), which `System.Text.RegularExpressions` reads too, as a [`TimeSpan`](https://learn.microsoft.com/dotnet/api/system.timespan), or [`InfiniteMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.infinitematchtimeout.html) when it is not set. It is read once, when it is first needed, so a program sets it when it starts (with `AppContext.SetData`, or `AppDomain.CurrentDomain.SetData` on .NET Framework, or in its runtimeconfig.json).",
+    "Keywords": "Regex DefaultMatchTimeout property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the match timeout of every instance made without one of its own: the `REGEX_DEFAULT_MATCH_TIMEOUT` data of the [`AppContext`](https://learn.microsoft.com/dotnet/api/system.appcontext), which `System.Text.RegularExpressions` reads too, as a [`TimeSpan`](https://learn.microsoft.com/dotnet/api/system.timespan), or [`InfiniteMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.infinitematchtimeout.html) when it is not set. It is read once, when it is first needed, so a program sets it when it starts (with `AppContext.SetData`, or `AppDomain.CurrentDomain.SetData` on .NET Framework, or in its runtimeconfig.json)."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.matchtimeout.html",
+    "Title": "Regex.MatchTimeout",
+    "Description": "Gets the time a match may take before it is abandoned, or [`InfiniteMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.infinitematchtimeout.html).",
+    "Keywords": "Regex MatchTimeout property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the time a match may take before it is abandoned, or [`InfiniteMatchTimeout`](/api/corvus-ecma262-regularexpressions-regex.infinitematchtimeout.html)."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.groupcount.html",
+    "Title": "Regex.GroupCount",
+    "Description": "Gets the number of capturing groups of the pattern.",
+    "Keywords": "Regex GroupCount property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the number of capturing groups of the pattern."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.flagsstring.html",
+    "Title": "Regex.FlagsString",
+    "Description": "Gets the flags as the string `RegExp.prototype.flags` gives: the letters in alphabetical order.",
+    "Keywords": "Regex FlagsString property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the flags as the string `RegExp.prototype.flags` gives: the letters in alphabetical order."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.isunicode.html",
+    "Title": "Regex.IsUnicode",
+    "Description": "Gets a value indicating whether the pattern is matched by code point (the `u` or `v` flag) rather than by UTF-16 code unit.",
+    "Keywords": "Regex IsUnicode property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets a value indicating whether the pattern is matched by code point (the `u` or `v` flag) rather than by UTF-16 code unit."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.trycreate.html",
+    "Title": "Regex.TryCreate",
+    "Description": "Creates a regular expression without throwing for a pattern that is not valid.",
+    "Keywords": "Regex TryCreate method Corvus.Ecma262.RegularExpressions",
+    "Body": "Creates a regular expression without throwing for a pattern that is not valid."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.isvalid.html",
+    "Title": "Regex.IsValid",
+    "Description": "Whether a pattern is a valid ECMA-262 pattern in the grammar of the flags.",
+    "Keywords": "Regex IsValid method Corvus.Ecma262.RegularExpressions",
+    "Body": "Whether a pattern is a valid ECMA-262 pattern in the grammar of the flags."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.ismatch.html",
+    "Title": "Regex.IsMatch",
+    "Description": "Whether a pattern matches anywhere in a text, with no flags.",
+    "Keywords": "Regex IsMatch method Corvus.Ecma262.RegularExpressions",
+    "Body": "Whether a pattern matches anywhere in a text, with no flags. Whether a pattern matches anywhere in a text. Whether the pattern matches anywhere in a text (at its start alone with [`Sticky`](/api/corvus-ecma262-regularexpressions-regexflags.sticky.html)). Whether the pattern matches anywhere in a text from a position (at that position alone with [`Sticky`](/api/corvus-ecma262-regularexpressions-regexflags.sticky.html)). Whether the pattern matches anywhere in a UTF-16 text. Whether the pattern matches anywhere in a UTF-16 text from a position. Whether the pattern matches anywhere in a UTF-8 text. Whether the pattern matches anywhere in a UTF-8 text from a position."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.ismatchunchecked.html",
+    "Title": "Regex.IsMatchUnchecked",
+    "Description": "Whether the pattern matches anywhere in a UTF-8 text.",
+    "Keywords": "Regex IsMatchUnchecked method Corvus.Ecma262.RegularExpressions",
+    "Body": "Whether the pattern matches anywhere in a UTF-8 text. Whether the pattern matches anywhere in a UTF-8 text from a position."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.tostring.html",
+    "Title": "Regex.ToString",
+    "Description": "",
+    "Keywords": "Regex ToString method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.parseflags.html",
+    "Title": "Regex.ParseFlags",
+    "Description": "Reads the flags as the string `new RegExp(pattern, flags)` takes.",
+    "Keywords": "Regex ParseFlags method Corvus.Ecma262.RegularExpressions",
+    "Body": "Reads the flags as the string `new RegExp(pattern, flags)` takes."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.match.html",
+    "Title": "Regex.Match",
+    "Description": "The first match of a pattern in a text, with no flags.",
+    "Keywords": "Regex Match method Corvus.Ecma262.RegularExpressions",
+    "Body": "The first match of a pattern in a text, with no flags. The first match of a pattern in a text. The first match in a text. The first match in a text at or after a position (at that position alone with [`Sticky`](/api/corvus-ecma262-regularexpressions-regexflags.sticky.html))."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.matches.html",
+    "Title": "Regex.Matches",
+    "Description": "Every match of a pattern in a text.",
+    "Keywords": "Regex Matches method Corvus.Ecma262.RegularExpressions",
+    "Body": "Every match of a pattern in a text. Every match in a text, as a global search finds them. Every match in a text at or after a position."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.replace.html",
+    "Title": "Regex.Replace",
+    "Description": "Replaces the matches of a pattern in a text (every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise).",
+    "Keywords": "Regex Replace method Corvus.Ecma262.RegularExpressions",
+    "Body": "Replaces the matches of a pattern in a text (every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise). Replaces the matches in a text: every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise, as `String.prototype.replace` does. The replacement is expanded as [`Result`](/api/corvus-ecma262-regularexpressions-match.result.html) expands it. Replaces the matches in a text (every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise) with what an evaluator gives for each, used as it is. Replaces the matches in a UTF-16 text and writes the result to a buffer writer, allocating nothing itself (see [`TryReplace`](/api/corvus-ecma262-regularexpressions-regex.tryreplace.html)). Replaces the matches in a UTF-8 text and writes the result to a buffer writer, allocating nothing itself. Replaces the matches in a UTF-16 text (every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise) with what an evaluator writes for each, and writes the result to a buffer writer, allocating nothing itself. Replaces the matches in a UTF-8 text with what an evaluator writes for each, and writes the result to a buffer writer, allocating nothing itself."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.split.html",
+    "Title": "Regex.Split",
+    "Description": "Splits a text at the matches of a pattern, as `String.prototype.split` does.",
+    "Keywords": "Regex Split method Corvus.Ecma262.RegularExpressions",
+    "Body": "Splits a text at the matches of a pattern, as `String.prototype.split` does. Splits a text at the matches, as `String.prototype.split` does: the captures of each match are put between the pieces (null for a group that did not take part), and an empty match at the start or the end of the text splits nothing. Splits a text at the matches, up to a number of pieces (the `limit` of `String.prototype.split`)."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.escape.html",
+    "Title": "Regex.Escape",
+    "Description": "Escapes a text so that it matches itself as a pattern, as `RegExp.escape` of ECMAScript 2025 does: a first character that is a letter or a digit, the syntax characters, the other punctuators, white space, line terminators and lone surrogates are written as escapes.",
+    "Keywords": "Regex Escape method Corvus.Ecma262.RegularExpressions",
+    "Body": "Escapes a text so that it matches itself as a pattern, as `RegExp.escape` of ECMAScript 2025 does: a first character that is a letter or a digit, the syntax characters, the other punctuators, white space, line terminators and lone surrogates are written as escapes."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.unescape.html",
+    "Title": "Regex.Unescape",
+    "Description": "Reverses [`Escape`](/api/corvus-ecma262-regularexpressions-regex.escape.html): reads the escapes it writes, and a backslash before any other character as that character.",
+    "Keywords": "Regex Unescape method Corvus.Ecma262.RegularExpressions",
+    "Body": "Reverses [`Escape`](/api/corvus-ecma262-regularexpressions-regex.escape.html): reads the escapes it writes, and a backslash before any other character as that character."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.count.html",
+    "Title": "Regex.Count",
+    "Description": "The number of matches in a text.",
+    "Keywords": "Regex Count method Corvus.Ecma262.RegularExpressions",
+    "Body": "The number of matches in a text. The number of matches in a UTF-16 text, allocating nothing. The number of matches in a UTF-8 text, allocating nothing."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.countunchecked.html",
+    "Title": "Regex.CountUnchecked",
+    "Description": "The number of matches in a UTF-8 text, allocating nothing.",
+    "Keywords": "Regex CountUnchecked method Corvus.Ecma262.RegularExpressions",
+    "Body": "The number of matches in a UTF-8 text, allocating nothing."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.enumeratematches.html",
+    "Title": "Regex.EnumerateMatches",
+    "Description": "Enumerates the matches in a UTF-16 text, allocating nothing.",
+    "Keywords": "Regex EnumerateMatches method Corvus.Ecma262.RegularExpressions",
+    "Body": "Enumerates the matches in a UTF-16 text, allocating nothing. Enumerates the matches in a UTF-16 text at or after a position, allocating nothing. Enumerates the matches in a UTF-8 text, allocating nothing. Enumerates the matches in a UTF-8 text at or after a position, allocating nothing. Enumerates the matches in a UTF-16 text, allocating nothing, and reports what each group captured: after each `MoveNext` the span holds the match as element 0 and each group in order. Enumerates the matches in a UTF-16 text at or after a position, allocating nothing, and reports what each group captured. Enumerates the matches in a UTF-8 text, allocating nothing, and reports what each group captured. Enumerates the matches in a UTF-8 text at or after a position, allocating nothing, and reports what each group captured."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.enumeratematchesunchecked.html",
+    "Title": "Regex.EnumerateMatchesUnchecked",
+    "Description": "Enumerates the matches in a UTF-8 text, allocating nothing.",
+    "Keywords": "Regex EnumerateMatchesUnchecked method Corvus.Ecma262.RegularExpressions",
+    "Body": "Enumerates the matches in a UTF-8 text, allocating nothing. Enumerates the matches in a UTF-8 text at or after a position, allocating nothing. Enumerates the matches in a UTF-8 text, allocating nothing, and reports what each group captured. Enumerates the matches in a UTF-8 text at or after a position, allocating nothing, and reports what each group captured."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.trymatch.html",
+    "Title": "Regex.TryMatch",
+    "Description": "Finds the first match in a UTF-16 text at or after a position and reports what each group captured, allocating nothing.",
+    "Keywords": "Regex TryMatch method Corvus.Ecma262.RegularExpressions",
+    "Body": "Finds the first match in a UTF-16 text at or after a position and reports what each group captured, allocating nothing. Finds the first match in a UTF-8 text at or after a position and reports what each group captured, allocating nothing."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.trymatchunchecked.html",
+    "Title": "Regex.TryMatchUnchecked",
+    "Description": "Finds the first match in a UTF-8 text at or after a position and reports what each group captured, allocating nothing.",
+    "Keywords": "Regex TryMatchUnchecked method Corvus.Ecma262.RegularExpressions",
+    "Body": "Finds the first match in a UTF-8 text at or after a position and reports what each group captured, allocating nothing."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.getgroupnames.html",
+    "Title": "Regex.GetGroupNames",
+    "Description": "The names of the named groups, in the order the pattern first uses them.",
+    "Keywords": "Regex GetGroupNames method Corvus.Ecma262.RegularExpressions",
+    "Body": "The names of the named groups, in the order the pattern first uses them."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.groupnumberfromname.html",
+    "Title": "Regex.GroupNumberFromName",
+    "Description": "The number of the first group of a name, or -1 when the pattern has no group of that name.",
+    "Keywords": "Regex GroupNumberFromName method Corvus.Ecma262.RegularExpressions",
+    "Body": "The number of the first group of a name, or -1 when the pattern has no group of that name."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.groupnamefromnumber.html",
+    "Title": "Regex.GroupNameFromNumber",
+    "Description": "The name of a group, or its number as text when it has none.",
+    "Keywords": "Regex GroupNameFromNumber method Corvus.Ecma262.RegularExpressions",
+    "Body": "The name of a group, or its number as text when it has none."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.tryreplace.html",
+    "Title": "Regex.TryReplace",
+    "Description": "Replaces the matches in a UTF-16 text (every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise) and writes the result to a span, allocating nothing. The replacement is expanded as [`Result`](/api/corvus-ecma262-regularexpressions-match.result.html) expands it.",
+    "Keywords": "Regex TryReplace method Corvus.Ecma262.RegularExpressions",
+    "Body": "Replaces the matches in a UTF-16 text (every match with [`Global`](/api/corvus-ecma262-regularexpressions-regexflags.global.html), the first otherwise) and writes the result to a span, allocating nothing. The replacement is expanded as [`Result`](/api/corvus-ecma262-regularexpressions-match.result.html) expands it. Replaces the matches in a UTF-8 text and writes the result to a span, allocating nothing (see [`TryReplace`](/api/corvus-ecma262-regularexpressions-regex.tryreplace.html))."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.tryreplaceunchecked.html",
+    "Title": "Regex.TryReplaceUnchecked",
+    "Description": "Replaces the matches in a UTF-8 text and writes the result to a span, allocating nothing (see [`TryReplace`](/api/corvus-ecma262-regularexpressions-regex.tryreplace.html)).",
+    "Keywords": "Regex TryReplaceUnchecked method Corvus.Ecma262.RegularExpressions",
+    "Body": "Replaces the matches in a UTF-8 text and writes the result to a span, allocating nothing (see [`TryReplace`](/api/corvus-ecma262-regularexpressions-regex.tryreplace.html))."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.replaceunchecked.html",
+    "Title": "Regex.ReplaceUnchecked",
+    "Description": "Replaces the matches in a UTF-8 text and writes the result to a buffer writer, allocating nothing itself.",
+    "Keywords": "Regex ReplaceUnchecked method Corvus.Ecma262.RegularExpressions",
+    "Body": "Replaces the matches in a UTF-8 text and writes the result to a buffer writer, allocating nothing itself. Replaces the matches in a UTF-8 text with what an evaluator writes for each, and writes the result to a buffer writer, allocating nothing itself."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.enumeratesplits.html",
+    "Title": "Regex.EnumerateSplits",
+    "Description": "Enumerates the pieces a UTF-16 text splits into at the matches, as positions, allocating nothing. The pieces are those of [`Split`](/api/corvus-ecma262-regularexpressions-regex.split.html) without the captures of the matches, which it puts between them.",
+    "Keywords": "Regex EnumerateSplits method Corvus.Ecma262.RegularExpressions",
+    "Body": "Enumerates the pieces a UTF-16 text splits into at the matches, as positions, allocating nothing. The pieces are those of [`Split`](/api/corvus-ecma262-regularexpressions-regex.split.html) without the captures of the matches, which it puts between them. Enumerates the pieces a UTF-16 text splits into at the matches, up to a number of pieces, allocating nothing. Enumerates the pieces a UTF-8 text splits into at the matches, as positions, allocating nothing (see [`EnumerateSplits`](/api/corvus-ecma262-regularexpressions-regex.enumeratesplits.html)). Enumerates the pieces a UTF-8 text splits into at the matches, up to a number of pieces, allocating nothing."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regex.enumeratesplitsunchecked.html",
+    "Title": "Regex.EnumerateSplitsUnchecked",
+    "Description": "Enumerates the pieces a UTF-8 text splits into at the matches, as positions, allocating nothing (see [`EnumerateSplits`](/api/corvus-ecma262-regularexpressions-regex.enumeratesplits.html)).",
+    "Keywords": "Regex EnumerateSplitsUnchecked method Corvus.Ecma262.RegularExpressions",
+    "Body": "Enumerates the pieces a UTF-8 text splits into at the matches, as positions, allocating nothing (see [`EnumerateSplits`](/api/corvus-ecma262-regularexpressions-regex.enumeratesplits.html)). Enumerates the pieces a UTF-8 text splits into at the matches, up to a number of pieces, allocating nothing."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexflags.html",
+    "Title": "RegexFlags",
+    "Description": "The flags of an ECMA-262 regular expression: those of `RegExp`, by name.",
+    "Keywords": "RegexFlags enum Corvus.Ecma262.RegularExpressions",
+    "Body": "The flags of an ECMA-262 regular expression: those of `RegExp`, by name."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexmatchtimeoutexception.html",
+    "Title": "RegexMatchTimeoutException",
+    "Description": "The error of a match that was abandoned at its limit: it ran for longer than the match timeout, or it needed more backtracking memory than a match may hold. Neither is an answer.",
+    "Keywords": "RegexMatchTimeoutException class Corvus.Ecma262.RegularExpressions",
+    "Body": "The error of a match that was abandoned at its limit: it ran for longer than the match timeout, or it needed more backtracking memory than a match may hold. Neither is an answer.\nPattern: Gets the pattern.\nMatchTimeout: Gets the timeout.\nExceededMemory: Gets a value indicating whether the match was abandoned for its memory, which .NET has no exception of its own for, rather than its time."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexmatchtimeoutexception.ctor.html",
+    "Title": "RegexMatchTimeoutException Constructor",
+    "Description": "Initializes a new instance of the [`RegexMatchTimeoutException`](/api/corvus-ecma262-regularexpressions-regexmatchtimeoutexception.html) class.",
+    "Keywords": "RegexMatchTimeoutException constructor new Corvus.Ecma262.RegularExpressions",
+    "Body": "Initializes a new instance of the [`RegexMatchTimeoutException`](/api/corvus-ecma262-regularexpressions-regexmatchtimeoutexception.html) class."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexmatchtimeoutexception.pattern.html",
+    "Title": "RegexMatchTimeoutException.Pattern",
+    "Description": "Gets the pattern.",
+    "Keywords": "RegexMatchTimeoutException Pattern property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the pattern."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexmatchtimeoutexception.matchtimeout.html",
+    "Title": "RegexMatchTimeoutException.MatchTimeout",
+    "Description": "Gets the timeout.",
+    "Keywords": "RegexMatchTimeoutException MatchTimeout property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the timeout."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexmatchtimeoutexception.exceededmemory.html",
+    "Title": "RegexMatchTimeoutException.ExceededMemory",
+    "Description": "Gets a value indicating whether the match was abandoned for its memory, which .NET has no exception of its own for, rather than its time.",
+    "Keywords": "RegexMatchTimeoutException ExceededMemory property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets a value indicating whether the match was abandoned for its memory, which .NET has no exception of its own for, rather than its time."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexparseexception.html",
+    "Title": "RegexParseException",
+    "Description": "The error of a pattern that is not a valid ECMA-262 pattern in the grammar of its flags.",
+    "Keywords": "RegexParseException class Corvus.Ecma262.RegularExpressions",
+    "Body": "The error of a pattern that is not a valid ECMA-262 pattern in the grammar of its flags.\nReason: Gets what is wrong.\nOffset: Gets where it is, as an offset in the pattern in UTF-16 code units."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexparseexception.ctor.html",
+    "Title": "RegexParseException Constructor",
+    "Description": "Initializes a new instance of the [`RegexParseException`](/api/corvus-ecma262-regularexpressions-regexparseexception.html) class.",
+    "Keywords": "RegexParseException constructor new Corvus.Ecma262.RegularExpressions",
+    "Body": "Initializes a new instance of the [`RegexParseException`](/api/corvus-ecma262-regularexpressions-regexparseexception.html) class."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexparseexception.reason.html",
+    "Title": "RegexParseException.Reason",
+    "Description": "Gets what is wrong.",
+    "Keywords": "RegexParseException Reason property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets what is wrong."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexparseexception.offset.html",
+    "Title": "RegexParseException.Offset",
+    "Description": "Gets where it is, as an offset in the pattern in UTF-16 code units.",
+    "Keywords": "RegexParseException Offset property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets where it is, as an offset in the pattern in UTF-16 code units."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexpatterntoolargeexception.html",
+    "Title": "RegexPatternTooLargeException",
+    "Description": "The error of a pattern that is over one of the limits of size, which bound the time and the memory that reading and compiling a pattern take whatever the pattern holds. It is not the error of a pattern that is not valid, which is [`RegexParseException`](/api/corvus-ecma262-regularexpressions-regexparseexception.html): a pattern over a limit may or may not be valid, and a caller must not report it as one that is not.",
+    "Keywords": "RegexPatternTooLargeException class Corvus.Ecma262.RegularExpressions",
+    "Body": "The error of a pattern that is over one of the limits of size, which bound the time and the memory that reading and compiling a pattern take whatever the pattern holds. It is not the error of a pattern that is not valid, which is [`RegexParseException`](/api/corvus-ecma262-regularexpressions-regexparseexception.html): a pattern over a limit may or may not be valid, and a caller must not report it as one that is not.\nLimit: Gets what the pattern is over, with the limit and its value, as a sentence.\nRead: Gets a value indicating whether the whole pattern was read, and found to be a valid ECMA-262 pattern, before the limit was met. A limit met while reading leaves the rest of the pattern unread."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexpatterntoolargeexception.ctor.html",
+    "Title": "RegexPatternTooLargeException Constructor",
+    "Description": "Initializes a new instance of the [`RegexPatternTooLargeException`](/api/corvus-ecma262-regularexpressions-regexpatterntoolargeexception.html) class.",
+    "Keywords": "RegexPatternTooLargeException constructor new Corvus.Ecma262.RegularExpressions",
+    "Body": "Initializes a new instance of the [`RegexPatternTooLargeException`](/api/corvus-ecma262-regularexpressions-regexpatterntoolargeexception.html) class. Initializes a new instance of the [`RegexPatternTooLargeException`](/api/corvus-ecma262-regularexpressions-regexpatterntoolargeexception.html) class, for a limit met while reading."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexpatterntoolargeexception.limit.html",
+    "Title": "RegexPatternTooLargeException.Limit",
+    "Description": "Gets what the pattern is over, with the limit and its value, as a sentence.",
+    "Keywords": "RegexPatternTooLargeException Limit property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets what the pattern is over, with the limit and its value, as a sentence."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-regexpatterntoolargeexception.read.html",
+    "Title": "RegexPatternTooLargeException.Read",
+    "Description": "Gets a value indicating whether the whole pattern was read, and found to be a valid ECMA-262 pattern, before the limit was met. A limit met while reading leaves the rest of the pattern unread.",
+    "Keywords": "RegexPatternTooLargeException Read property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets a value indicating whether the whole pattern was read, and found to be a valid ECMA-262 pattern, before the limit was met. A limit met while reading leaves the rest of the pattern unread."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-spanmatchevaluator.html",
+    "Title": "SpanMatchEvaluator",
+    "Description": "Gives the replacement for one match in a UTF-16 text by writing it.",
+    "Keywords": "SpanMatchEvaluator delegate Corvus.Ecma262.RegularExpressions",
+    "Body": "Gives the replacement for one match in a UTF-16 text by writing it."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-spanmatchevaluator.ctor.html",
+    "Title": "SpanMatchEvaluator Constructor",
+    "Description": "",
+    "Keywords": "SpanMatchEvaluator constructor new Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-spanmatchevaluator.invoke.html",
+    "Title": "SpanMatchEvaluator.Invoke",
+    "Description": "",
+    "Keywords": "SpanMatchEvaluator Invoke method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-spanmatchevaluator.begininvoke.html",
+    "Title": "SpanMatchEvaluator.BeginInvoke",
+    "Description": "",
+    "Keywords": "SpanMatchEvaluator BeginInvoke method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-spanmatchevaluator.endinvoke.html",
+    "Title": "SpanMatchEvaluator.EndInvoke",
+    "Description": "",
+    "Keywords": "SpanMatchEvaluator EndInvoke method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8matchevaluator.html",
+    "Title": "Utf8MatchEvaluator",
+    "Description": "Gives the replacement for one match in a UTF-8 text by writing it.",
+    "Keywords": "Utf8MatchEvaluator delegate Corvus.Ecma262.RegularExpressions",
+    "Body": "Gives the replacement for one match in a UTF-8 text by writing it."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8matchevaluator.ctor.html",
+    "Title": "Utf8MatchEvaluator Constructor",
+    "Description": "",
+    "Keywords": "Utf8MatchEvaluator constructor new Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8matchevaluator.invoke.html",
+    "Title": "Utf8MatchEvaluator.Invoke",
+    "Description": "",
+    "Keywords": "Utf8MatchEvaluator Invoke method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8matchevaluator.begininvoke.html",
+    "Title": "Utf8MatchEvaluator.BeginInvoke",
+    "Description": "",
+    "Keywords": "Utf8MatchEvaluator BeginInvoke method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8matchevaluator.endinvoke.html",
+    "Title": "Utf8MatchEvaluator.EndInvoke",
+    "Description": "",
+    "Keywords": "Utf8MatchEvaluator EndInvoke method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8valuematchenumerator.html",
+    "Title": "Utf8ValueMatchEnumerator",
+    "Description": "Enumerates the matches of a pattern in a UTF-8 text as a global search, allocating nothing.",
+    "Keywords": "Utf8ValueMatchEnumerator struct Corvus.Ecma262.RegularExpressions",
+    "Body": "Enumerates the matches of a pattern in a UTF-8 text as a global search, allocating nothing.\nCurrent: Gets the current match.\nGetEnumerator: This enumerator, for `foreach`.\nMoveNext: Finds the next match."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8valuematchenumerator.current.html",
+    "Title": "Utf8ValueMatchEnumerator.Current",
+    "Description": "Gets the current match.",
+    "Keywords": "Utf8ValueMatchEnumerator Current property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the current match."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8valuematchenumerator.getenumerator.html",
+    "Title": "Utf8ValueMatchEnumerator.GetEnumerator",
+    "Description": "This enumerator, for `foreach`.",
+    "Keywords": "Utf8ValueMatchEnumerator GetEnumerator method Corvus.Ecma262.RegularExpressions",
+    "Body": "This enumerator, for `foreach`."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8valuematchenumerator.movenext.html",
+    "Title": "Utf8ValueMatchEnumerator.MoveNext",
+    "Description": "Finds the next match.",
+    "Keywords": "Utf8ValueMatchEnumerator MoveNext method Corvus.Ecma262.RegularExpressions",
+    "Body": "Finds the next match."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8valuesplitenumerator.html",
+    "Title": "Utf8ValueSplitEnumerator",
+    "Description": "Enumerates the pieces a UTF-8 text splits into at the matches of a pattern, as positions, allocating nothing (see [`EnumerateSplits`](/api/corvus-ecma262-regularexpressions-regex.enumeratesplits.html)).",
+    "Keywords": "Utf8ValueSplitEnumerator struct Corvus.Ecma262.RegularExpressions",
+    "Body": "Enumerates the pieces a UTF-8 text splits into at the matches of a pattern, as positions, allocating nothing (see [`EnumerateSplits`](/api/corvus-ecma262-regularexpressions-regex.enumeratesplits.html)).\nCurrent: Gets the current piece.\nGetEnumerator: This enumerator, for `foreach`.\nMoveNext: Finds the next piece."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8valuesplitenumerator.current.html",
+    "Title": "Utf8ValueSplitEnumerator.Current",
+    "Description": "Gets the current piece.",
+    "Keywords": "Utf8ValueSplitEnumerator Current property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the current piece."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8valuesplitenumerator.getenumerator.html",
+    "Title": "Utf8ValueSplitEnumerator.GetEnumerator",
+    "Description": "This enumerator, for `foreach`.",
+    "Keywords": "Utf8ValueSplitEnumerator GetEnumerator method Corvus.Ecma262.RegularExpressions",
+    "Body": "This enumerator, for `foreach`."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-utf8valuesplitenumerator.movenext.html",
+    "Title": "Utf8ValueSplitEnumerator.MoveNext",
+    "Description": "Finds the next piece.",
+    "Keywords": "Utf8ValueSplitEnumerator MoveNext method Corvus.Ecma262.RegularExpressions",
+    "Body": "Finds the next piece."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuecapture.html",
+    "Title": "ValueCapture",
+    "Description": "What one group captured, with nothing allocated: the position and the length in the units of the text, or that the group did not take part.",
+    "Keywords": "ValueCapture struct Corvus.Ecma262.RegularExpressions",
+    "Body": "What one group captured, with nothing allocated: the position and the length in the units of the text, or that the group did not take part.\nIndex: Gets the position of the capture, in the units of the text, or -1 when the group did not take part.\nLength: Gets the length of the capture, in the units of the text, or 0 when the group did not take part.\nSuccess: Gets a value indicating whether the group took part in the match."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuecapture.index.html",
+    "Title": "ValueCapture.Index",
+    "Description": "Gets the position of the capture, in the units of the text, or -1 when the group did not take part.",
+    "Keywords": "ValueCapture Index property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the position of the capture, in the units of the text, or -1 when the group did not take part."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuecapture.length.html",
+    "Title": "ValueCapture.Length",
+    "Description": "Gets the length of the capture, in the units of the text, or 0 when the group did not take part.",
+    "Keywords": "ValueCapture Length property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the length of the capture, in the units of the text, or 0 when the group did not take part."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuecapture.success.html",
+    "Title": "ValueCapture.Success",
+    "Description": "Gets a value indicating whether the group took part in the match.",
+    "Keywords": "ValueCapture Success property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets a value indicating whether the group took part in the match."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuecapture.equals.html",
+    "Title": "ValueCapture.Equals",
+    "Description": "",
+    "Keywords": "ValueCapture Equals method Corvus.Ecma262.RegularExpressions",
+    "Body": " "
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuecapture.gethashcode.html",
+    "Title": "ValueCapture.GetHashCode",
+    "Description": "",
+    "Keywords": "ValueCapture GetHashCode method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuecapture.op-equality.html",
+    "Title": "ValueCapture Equality Operator",
+    "Description": "Whether two values are the same.",
+    "Keywords": "ValueCapture Equality operator Corvus.Ecma262.RegularExpressions",
+    "Body": "Whether two values are the same."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuecapture.op-inequality.html",
+    "Title": "ValueCapture Inequality Operator",
+    "Description": "Whether two values differ.",
+    "Keywords": "ValueCapture Inequality operator Corvus.Ecma262.RegularExpressions",
+    "Body": "Whether two values differ."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematch.html",
+    "Title": "ValueMatch",
+    "Description": "Where a match is in a text, with nothing allocated: the position and the length, in the units of the text.",
+    "Keywords": "ValueMatch struct Corvus.Ecma262.RegularExpressions",
+    "Body": "Where a match is in a text, with nothing allocated: the position and the length, in the units of the text.\nIndex: Gets the position of the match, in the units of the text.\nLength: Gets the length of the match, in the units of the text."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematch.index.html",
+    "Title": "ValueMatch.Index",
+    "Description": "Gets the position of the match, in the units of the text.",
+    "Keywords": "ValueMatch Index property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the position of the match, in the units of the text."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematch.length.html",
+    "Title": "ValueMatch.Length",
+    "Description": "Gets the length of the match, in the units of the text.",
+    "Keywords": "ValueMatch Length property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the length of the match, in the units of the text."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematch.equals.html",
+    "Title": "ValueMatch.Equals",
+    "Description": "",
+    "Keywords": "ValueMatch Equals method Corvus.Ecma262.RegularExpressions",
+    "Body": " "
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematch.gethashcode.html",
+    "Title": "ValueMatch.GetHashCode",
+    "Description": "",
+    "Keywords": "ValueMatch GetHashCode method Corvus.Ecma262.RegularExpressions",
+    "Body": ""
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematch.op-equality.html",
+    "Title": "ValueMatch Equality Operator",
+    "Description": "Whether two values are the same.",
+    "Keywords": "ValueMatch Equality operator Corvus.Ecma262.RegularExpressions",
+    "Body": "Whether two values are the same."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematch.op-inequality.html",
+    "Title": "ValueMatch Inequality Operator",
+    "Description": "Whether two values differ.",
+    "Keywords": "ValueMatch Inequality operator Corvus.Ecma262.RegularExpressions",
+    "Body": "Whether two values differ."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematchenumerator.html",
+    "Title": "ValueMatchEnumerator",
+    "Description": "Enumerates the matches of a pattern in a UTF-16 text as a global search, allocating nothing.",
+    "Keywords": "ValueMatchEnumerator struct Corvus.Ecma262.RegularExpressions",
+    "Body": "Enumerates the matches of a pattern in a UTF-16 text as a global search, allocating nothing.\nCurrent: Gets the current match.\nGetEnumerator: This enumerator, for `foreach`.\nMoveNext: Finds the next match."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematchenumerator.current.html",
+    "Title": "ValueMatchEnumerator.Current",
+    "Description": "Gets the current match.",
+    "Keywords": "ValueMatchEnumerator Current property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the current match."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematchenumerator.getenumerator.html",
+    "Title": "ValueMatchEnumerator.GetEnumerator",
+    "Description": "This enumerator, for `foreach`.",
+    "Keywords": "ValueMatchEnumerator GetEnumerator method Corvus.Ecma262.RegularExpressions",
+    "Body": "This enumerator, for `foreach`."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuematchenumerator.movenext.html",
+    "Title": "ValueMatchEnumerator.MoveNext",
+    "Description": "Finds the next match.",
+    "Keywords": "ValueMatchEnumerator MoveNext method Corvus.Ecma262.RegularExpressions",
+    "Body": "Finds the next match."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuesplitenumerator.html",
+    "Title": "ValueSplitEnumerator",
+    "Description": "Enumerates the pieces a UTF-16 text splits into at the matches of a pattern, as positions, allocating nothing (see [`EnumerateSplits`](/api/corvus-ecma262-regularexpressions-regex.enumeratesplits.html)).",
+    "Keywords": "ValueSplitEnumerator struct Corvus.Ecma262.RegularExpressions",
+    "Body": "Enumerates the pieces a UTF-16 text splits into at the matches of a pattern, as positions, allocating nothing (see [`EnumerateSplits`](/api/corvus-ecma262-regularexpressions-regex.enumeratesplits.html)).\nCurrent: Gets the current piece.\nGetEnumerator: This enumerator, for `foreach`.\nMoveNext: Finds the next piece."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuesplitenumerator.current.html",
+    "Title": "ValueSplitEnumerator.Current",
+    "Description": "Gets the current piece.",
+    "Keywords": "ValueSplitEnumerator Current property Corvus.Ecma262.RegularExpressions",
+    "Body": "Gets the current piece."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuesplitenumerator.getenumerator.html",
+    "Title": "ValueSplitEnumerator.GetEnumerator",
+    "Description": "This enumerator, for `foreach`.",
+    "Keywords": "ValueSplitEnumerator GetEnumerator method Corvus.Ecma262.RegularExpressions",
+    "Body": "This enumerator, for `foreach`."
+  },
+  {
+    "Url": "/Corvus.Regex.Ecma262/api/corvus-ecma262-regularexpressions-valuesplitenumerator.movenext.html",
+    "Title": "ValueSplitEnumerator.MoveNext",
+    "Description": "Finds the next piece.",
+    "Keywords": "ValueSplitEnumerator MoveNext method Corvus.Ecma262.RegularExpressions",
+    "Body": "Finds the next piece."
+  }
+]
