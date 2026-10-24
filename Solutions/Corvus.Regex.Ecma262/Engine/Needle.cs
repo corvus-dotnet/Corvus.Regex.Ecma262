@@ -1384,6 +1384,15 @@ public sealed class MultiNeedle<T>
     private readonly ushort[] pairs = [];
     private readonly SearchValues<byte>? anyBytes;
     private readonly SearchValues<char>? anyChars;
+
+    // The scan of two positions of at most two values each over UTF-8, for the generated code (see
+    // IndexOfNarrowPair): its vectors made once, and the literals compared as bytes.
+    private readonly bool narrowPair;
+    private readonly Vector256<byte> pairA0;
+    private readonly Vector256<byte> pairA1;
+    private readonly Vector256<byte> pairB0;
+    private readonly Vector256<byte> pairB1;
+    private readonly byte[][] literals8 = [];
 #endif
 
     /// <summary>Initializes a new instance of the <see cref="MultiNeedle{T}"/> class.</summary>
@@ -1553,6 +1562,20 @@ public sealed class MultiNeedle<T>
         }
 
 #if NET
+        if (typeof(T) == typeof(byte) && this.exact && this.two && !this.pair && this.values1.Length <= 2 && this.values2.Length <= 2 && Vector256.IsHardwareAccelerated)
+        {
+            this.narrowPair = true;
+            this.pairA0 = Vector256.Create(Unsafe.As<T, byte>(ref this.values1[0]));
+            this.pairA1 = Vector256.Create(Unsafe.As<T, byte>(ref this.values1[this.values1.Length - 1]));
+            this.pairB0 = Vector256.Create(Unsafe.As<T, byte>(ref this.values2[0]));
+            this.pairB1 = Vector256.Create(Unsafe.As<T, byte>(ref this.values2[this.values2.Length - 1]));
+            this.literals8 = new byte[needles.Length][];
+            for (int j = 0; j < needles.Length; j++)
+            {
+                this.literals8[j] = MemoryMarshal.Cast<T, byte>(needles[j].Rows[0]).ToArray();
+            }
+        }
+
         if (!this.two && this.exact)
         {
             // One position, exact: the span search for any of several values is the best there is.
@@ -1570,6 +1593,75 @@ public sealed class MultiNeedle<T>
 
     /// <summary>Gets the cost of the search by the model, per unit of text, in the units of a vector operation (see <see cref="StartCost"/>).</summary>
     public double Cost { get; }
+
+#if NET
+    /// <summary>
+    /// The earliest position at or after a position where one of the literals is, over UTF-8, and its length: for the
+    /// generated code, which calls it at every start it needs. Never inlined, nor its scan: inlined into the generated
+    /// code's search, the scan's vectors and state did not stay in registers, and it ran at twice to four times its
+    /// time. Where the needle compares two positions of at most two
+    /// values each, its scan runs with the vectors it made once and the literals are compared as bytes, so that a
+    /// start found costs no more than the generated code's own comparison of the literals (Sher[a-z]+|Hol[a-z]+ over
+    /// the Sherlock Holmes text, whose names put a start every 700 bytes); otherwise, the needle's search.
+    /// </summary>
+    /// <param name="input">The text.</param>
+    /// <param name="from">The position.</param>
+    /// <param name="length">The length of the literal found, or -1.</param>
+    /// <returns>The position, or -1.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public int IndexOfNarrowPair(ReadOnlySpan<byte> input, int from, out int length)
+    {
+        if (!this.narrowPair)
+        {
+            return this.IndexOf(MemoryMarshal.Cast<byte, T>(input), from, out length);
+        }
+
+        length = -1;
+        int last = input.Length - this.minLength;
+        if (from > last)
+        {
+            return -1;
+        }
+
+        ref byte s = ref MemoryMarshal.GetReference(input);
+        int i = from;
+        int lastVector = last - Vector256<byte>.Count + 1;
+        while (i <= lastVector)
+        {
+            i = MultiNeedle<byte>.FindTwo256(ref s, i, lastVector, this.o1, this.o2, this.pairA0, this.pairA1, this.pairB0, this.pairB1, out uint mask);
+            if (mask == 0)
+            {
+                break;
+            }
+
+            do
+            {
+                int start = i + System.Numerics.BitOperations.TrailingZeroCount(mask);
+                length = this.LiteralAt(input, start);
+                if (length >= 0)
+                {
+                    return start;
+                }
+
+                mask &= mask - 1;
+            }
+            while (mask != 0);
+
+            i += Vector256<byte>.Count;
+        }
+
+        for (; i <= last; i++)
+        {
+            length = this.LiteralAt(input, i);
+            if (length >= 0)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+#endif
 
     /// <summary>
     /// Whether a span search for the bytes of a position alone pays, as the Rust engine finds them: each is among the
@@ -1877,6 +1969,7 @@ public sealed class MultiNeedle<T>
         static T At(T[] values, int k) => k < values.Length ? values[k] : values[0];
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static int FindTwo256(ref T s, int i, int lastVector, int o1, int o2, Vector256<T> a0, Vector256<T> a1, Vector256<T> b0, Vector256<T> b1, out uint mask)
     {
         int n = Vector256<T>.Count;
@@ -2115,6 +2208,23 @@ public sealed class MultiNeedle<T>
         values.Add(value);
         masks.Add(mask);
     }
+
+#if NET
+    /// <summary>The length of the first literal, in the pattern's order, at a position of UTF-8 text, or -1.</summary>
+    private int LiteralAt(ReadOnlySpan<byte> input, int start)
+    {
+        ReadOnlySpan<byte> rest = input.Slice(start);
+        foreach (byte[] literal in this.literals8)
+        {
+            if (rest.StartsWith(literal))
+            {
+                return literal.Length;
+            }
+        }
+
+        return -1;
+    }
+#endif
 
     /// <summary>The length of the first literal, in the pattern's order, that is at a start, or -1.</summary>
     private int VerifyAny(ReadOnlySpan<T> input, int start)

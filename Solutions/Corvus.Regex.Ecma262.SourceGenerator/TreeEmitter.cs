@@ -1637,8 +1637,7 @@ internal static class TreeEmitter
                 // the code below keeps them, as it did.
                 RunEmitter.Line(find, i1, "if (typeof(TUnit) == typeof(byte))");
                 RunEmitter.Line(find, i1, "{");
-                RunEmitter.Line(find, i1 + 1, "TEncoding needle = default;");
-                RunEmitter.Line(find, i1 + 1, "int found = needle.IndexOfAlternation(input, pos, " + field + ", out int known);");
+                RunEmitter.Line(find, i1 + 1, "int found = " + field + ".MultiUtf8.IndexOfNarrowPair(" + Bytes8 + ", pos, out int known);");
                 RunEmitter.Line(find, i1 + 1, "if (found < 0 || len - found < p.Need)");
                 RunEmitter.Line(find, i1 + 1, "{");
                 RunEmitter.Line(find, i1 + 2, "return false;");

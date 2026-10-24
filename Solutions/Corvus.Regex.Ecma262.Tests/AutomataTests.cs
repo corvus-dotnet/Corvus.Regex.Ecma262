@@ -151,9 +151,24 @@ public class AutomataTests
         Assert.AreEqual(12, common.IndexOf("x Huc Sa Hu Sawyer"u8, 0, out int length), "neither Huc nor Sa nor Hu is a literal");
         Assert.AreEqual(3, length);
 
+#if NET
+        Assert.AreEqual(12, common.IndexOfNarrowPair("x Huc Sa Hu Sawyer"u8, 0, out length), "the generated code's entry, over a text shorter than a vector");
+        Assert.AreEqual(3, length);
+        byte[] longText = Encoding.UTF8.GetBytes(new string('x', 100) + "Hu Sa Hxc Swxw Huck Saw");
+        Assert.AreEqual(115, common.IndexOfNarrowPair(longText, 0, out length), "and over vectors: H then c at +2 lets Hxc through, which no literal is");
+        Assert.AreEqual(4, length);
+        Assert.AreEqual(120, common.IndexOfNarrowPair(longText, 116, out length));
+        Assert.AreEqual(3, length);
+        Assert.AreEqual(-1, common.IndexOfNarrowPair(longText, 121, out _));
+#endif
+
         MultiNeedle<byte> rare = new([Needles.Utf8("Zap"), Needles.Utf8("Xen")]);
         Assert.IsFalse(rare.Two, "Z or X, rare enough to search for alone");
         Assert.AreEqual(5, rare.IndexOf("a Za Xen Zap"u8, 0));
+#if NET
+        Assert.AreEqual(5, rare.IndexOfNarrowPair("a Za Xen Zap"u8, 0, out length), "a needle with no narrow pair searches as it does");
+        Assert.AreEqual(3, length);
+#endif
 
         MultiNeedle<byte> one = new([Needles.Utf8("Ha"), Needles.Utf8("S")]);
         Assert.IsFalse(one.Two, "a literal of one byte leaves one position, searched for alone");
