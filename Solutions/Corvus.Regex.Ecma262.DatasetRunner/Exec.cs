@@ -53,7 +53,7 @@ internal static class Exec
                 return;
             }
 
-            bool carries = flags.Contains('g') || flags.Contains('y');
+            bool carries = flags.IndexOf('g') >= 0 || flags.IndexOf('y') >= 0;
             int i = -1;
             foreach (JsonElement t in r.GetProperty("tests").EnumerateArray())
             {
@@ -123,7 +123,7 @@ internal static class Exec
     }
 
     /// <summary>The grammar of a record's flags, for the overlay's lines: v, u, or neither.</summary>
-    private static string GrammarOf(string flags) => flags.Contains('v') ? "unicode_sets" : flags.Contains('u') ? "unicode" : "legacy";
+    private static string GrammarOf(string flags) => flags.IndexOf('v') >= 0 ? "unicode_sets" : flags.IndexOf('u') >= 0 ? "unicode" : "legacy";
 
     /// <summary>Whether a position is between the halves of a surrogate pair, where UTF-8 has no position.</summary>
     private static bool InsidePair(string s, int at) =>
