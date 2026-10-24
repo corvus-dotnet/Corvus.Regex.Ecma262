@@ -12,18 +12,26 @@
 // patterns with a word boundary in a case-insensitive modifier group, (?i:\Bs) and (?i:\bk\b), otherwise once a
 // process has compiled a great many patterns, and in one process for every file it gets them wrong.
 //
-//   node dataset.mjs <data directory>
+//   node dataset.mjs <data directory> [--compliance <file>]
 //
 // The last line has the counts in the shape of the Rust runner's: records, right, wrong, refused-valid,
-// accepted-invalid, limit, errors.
+// accepted-invalid, limit, errors. With --compliance, the engine's compliance object is written to the file, as the
+// benchmark page reads it (docs/implementing-a-source.md in corvus-regex-ecma262-benchmarks): the counts, the runner
+// and the calls it makes, and what it leaves out (UTF-8, since a JavaScript string is UTF-16).
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const dir = process.argv[2];
 // node dataset.mjs <data directory> --file <name>: one file, its counts written as JSON (see the top).
 const only = process.argv[3] === "--file" ? process.argv[4] : null;
+const compliancePath = process.argv[3] === "--compliance" ? process.argv[4] : null;
+// What the compliance says of how the engine was judged: this file (each repository's copy is this one) and the calls.
+const JUDGE = {
+  runner: "https://github.com/corvus-dotnet/Corvus.Regex.Ecma262/blob/main/tools/benchmarks/v8/dataset.mjs",
+  calls: { utf16: ["RegExp.prototype.test", "RegExp.prototype.exec", "String.prototype.matchAll", "String.prototype.replace", "String.prototype.split"] },
+};
 const REPLACEMENT = "<$&|$1|$2|$10|$<a>|$$|$`|$'>";
 const EXEC = "exec/test262.jsonl";
 
@@ -182,6 +190,10 @@ if (only) {
     records += c.records; skipped += c.skipped;
     right += c.right; wrong += c.wrong; refused += c.refused; accepted += c.accepted; limited += c.limited;
     console.log(`${name.padEnd(24)} right ${String(c.right).padStart(10)}  wrong ${String(c.wrong).padStart(6)}  refused-valid ${String(c.refused).padStart(4)}  accepted-invalid ${String(c.accepted).padStart(4)}${c.limited ? `  limit ${c.limited}` : ""}`);
+  }
+  if (compliancePath) {
+    writeFileSync(compliancePath, JSON.stringify({ right, wrong, refused, acceptedInvalid: accepted, limited, judge: JUDGE,
+      excludes: [{ class: "encoding", leaves: "utf8" }] }) + "\n");
   }
   console.log("");
   console.log(`records ${records} (skipped ${skipped} deviations)  right ${right}  wrong ${wrong}  refused-valid ${refused}  accepted-invalid ${accepted}  limit ${limited}  errors 0  in ${((Date.now() - start) / 1000).toFixed(1)}s  (${process.version}, ${typeof Graal !== "undefined" ? "GraalJS " + Graal.versionGraalVM : "V8 " + process.versions.v8})`);

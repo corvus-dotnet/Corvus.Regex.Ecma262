@@ -49,8 +49,8 @@ ap.add_argument("--job", choices=["short", "default"], default="short")
 ap.add_argument("--out-dir", required=True)
 ap.add_argument("--base-path", default="")
 ap.add_argument("--run-url", default="")
-ap.add_argument("--compliance", default="", help="the data-set runner's last line for the Corvus engines (records ... right N wrong N refused-valid N accepted-invalid N ...)")
-ap.add_argument("--compliance-v8", default="", help="tools/benchmarks/v8/dataset.mjs's last line for V8, in the same shape")
+ap.add_argument("--compliance", default="", help="the data-set runner's compliance file (--compliance) for the Corvus engines")
+ap.add_argument("--compliance-v8", default="", help="tools/benchmarks/v8/dataset.mjs's compliance file for V8")
 args = ap.parse_args()
 if not (args.run or args.interleaved):
     raise SystemExit("a run: --interleaved <run.json> or --run <BenchmarkDotNet artifacts>")
@@ -215,32 +215,26 @@ method_html = (
     + HOST_HTML
 )
 
-import re as _re
-
-def counts_of(line, encodings, note=""):
-    """The counts of a data-set runner's last line, with the encodings its runner answers in (which the central page's
-    figure is a share of: every answer the test data asks in those encodings)."""
-    m = _re.search(r"right ([\d,]+)\s+wrong ([\d,]+)\s+refused-valid ([\d,]+)\s+accepted-invalid ([\d,]+)(?:\s+limit ([\d,]+))?", line)
-    if not m:
-        # A data-set runner that failed gives no counts: the engine is shown with no compliance figure, and its
-        # timing is kept.
-        print(f"industry-results: no counts in the data-set runner's last line ({line!r}); no compliance figure", file=sys.stderr)
+def compliance_file(path):
+    """The compliance object a data-set runner wrote (its --compliance file): the counts, how it judged the engine and
+    what it leaves out, which the page reads as they are. A runner that failed wrote none: the engine is shown with no
+    compliance figure, and its timing is kept."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError) as e:
+        print(f"industry-results: no compliance file from the data-set runner ({e}); no compliance figure", file=sys.stderr)
         return None
-    n = lambda k: int((m.group(k) or "0").replace(",", ""))
-    out = {"right": n(1), "wrong": n(2), "refused": n(3), "acceptedInvalid": n(4), "limited": n(5), "encodings": encodings}
-    if note:
-        out["note"] = note
-    return out
 
 
 def compliance_of(group):
-    """What an engine answers on the ECMA-262 test data: counts for an engine held to it (this library's over both
-    encodings; V8's over UTF-16, its one encoding), or not ECMA-262."""
+    """What an engine answers on the ECMA-262 test data: the compliance its runner wrote for an engine held to it, or
+    not ECMA-262."""
     if group == "V8":
-        return counts_of(args.compliance_v8, ["utf16"], "V8 over UTF-16, its one encoding, by tools/benchmarks/v8/dataset.mjs")
+        return compliance_file(args.compliance_v8)
     if group == ".NET":
         return "not ECMA-262"
-    return counts_of(args.compliance, ["utf16", "utf8"])
+    return compliance_file(args.compliance)
 
 data = {
     "meta": {

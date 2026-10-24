@@ -13,5 +13,5 @@ failure as the data file carries it, so the record step cannot fail on a figure 
 of the image times two workloads whose figures always have one.
 
 The workflow also writes the record of the same run with the .NET generator given no time on any workload, and with a
-data-set runner that gave no counts line, and checks that the record keeps the engine and shows this library's engines
+data-set runner that wrote no compliance file, and checks that the record keeps the engine and shows this library's engines
 with no compliance figure.

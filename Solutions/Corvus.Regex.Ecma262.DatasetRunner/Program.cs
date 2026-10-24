@@ -5,6 +5,7 @@
 // Runs the library over the ECMA-262 regular expression test data (github.com/corvus-dotnet/ecma262-regex-test-data).
 //
 //   DatasetRunner <data directory> <wrong-cases output file> [file filter] [utf16|utf8|both] [--answers <file>]
+//                 [--compliance <file>]
 //
 // Each record is asked about under each grammar V8 found it valid in: the record's flags with u added (the
 // `unicode` answers) and the record's flags alone (the `legacy` answers). A text is matched as UTF-16 and as UTF-8.
@@ -21,6 +22,13 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Corvus.Ecma262.RegularExpressions;
+
+int complianceAt = Array.IndexOf(args, "--compliance");
+string? compliancePath = complianceAt >= 0 ? args[complianceAt + 1] : null;
+if (complianceAt >= 0)
+{
+    args = [.. args.Take(complianceAt), .. args.Skip(complianceAt + 2)];
+}
 
 int answersAt = Array.IndexOf(args, "--answers");
 string? answersPath = answersAt >= 0 ? args[answersAt + 1] : null;
@@ -236,9 +244,59 @@ if (answersPath is not null)
 {
     File.WriteAllLines(answersPath, Overlay.Written);
 }
+if (compliancePath is not null)
+{
+    WriteCompliance(compliancePath);
+}
+
 Console.WriteLine();
 Console.WriteLine($"records {records:N0} (skipped {skipped} deviations)  right {right:N0}  wrong {wrong:N0}  refused-valid {refusedValid}  accepted-invalid {acceptedInvalid}  limit {limited}  errors {errors}  in {clock.Elapsed}");
 return wrong + refusedValid + acceptedInvalid + errors == 0 ? 0 : 1;
+
+// The engine's compliance as the benchmark page reads it (docs/implementing-a-source.md in
+// corvus-regex-ecma262-benchmarks): the counts, this runner and the calls it makes in each encoding it asked in, and
+// what it leaves out, which for this library is nothing.
+void WriteCompliance(string path)
+{
+    using FileStream stream = File.Create(path);
+    using Utf8JsonWriter json = new(stream, new JsonWriterOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+    json.WriteStartObject();
+    json.WriteNumber("right", right);
+    json.WriteNumber("wrong", wrong);
+    json.WriteNumber("refused", refusedValid);
+    json.WriteNumber("acceptedInvalid", acceptedInvalid);
+    json.WriteNumber("limited", limited + errors);
+    json.WriteStartObject("judge");
+    json.WriteString("runner", "https://github.com/corvus-dotnet/Corvus.Regex.Ecma262/blob/main/Solutions/Corvus.Regex.Ecma262.DatasetRunner/Program.cs");
+    json.WriteStartObject("calls");
+    if (encodings is "both" or "utf16")
+    {
+        json.WriteStartArray("utf16");
+        foreach (string call in (string[])["Regex.IsMatch(string)", "Regex.Match(string, int)", "Regex.Matches(string)", "Regex.Replace(string, string)", "Regex.Split(string)"])
+        {
+            json.WriteStringValue(call);
+        }
+
+        json.WriteEndArray();
+    }
+
+    if (encodings is "both" or "utf8")
+    {
+        json.WriteStartArray("utf8");
+        foreach (string call in (string[])["Regex.IsMatch(ReadOnlySpan<byte>)", "Regex.TryMatch(ReadOnlySpan<byte>, int, Span<ValueCapture>, out ValueMatch)", "Regex.EnumerateMatches(ReadOnlySpan<byte>)", "Regex.Replace(ReadOnlySpan<byte>, ReadOnlySpan<byte>, IBufferWriter<byte>)"])
+        {
+            json.WriteStringValue(call);
+        }
+
+        json.WriteEndArray();
+    }
+
+    json.WriteEndObject();
+    json.WriteEndObject();
+    json.WriteStartArray("excludes");
+    json.WriteEndArray();
+    json.WriteEndObject();
+}
 
 void Judge(Regex regex, string pattern, string modeFlags, string text, bool expected, string name, string encoding, ref long fileRight, ref long fileWrong, ref long fileLimited, Func<bool> run)
 {
