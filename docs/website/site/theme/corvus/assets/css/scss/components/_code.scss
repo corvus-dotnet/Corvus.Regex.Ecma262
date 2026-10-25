@@ -24,6 +24,9 @@ samp {
 pre {
   margin: 0 0 var(--space-md);
   padding: var(--space-md);
+  // A code block keeps its lines, and scrolls sideways when one is too long (the sanitize base wraps pre, which on a
+  // narrow screen breaks a command where it has no line break, and starts each wrapped line with its space).
+  white-space: pre;
   overflow-x: auto;
   background: var(--color-bg-code);
   border: 1px solid var(--color-border);
@@ -32,6 +35,8 @@ pre {
   -webkit-overflow-scrolling: touch;
 
   code {
+    display: block;
+    white-space: inherit;
     padding: 0;
     background: none;
     border: none;
