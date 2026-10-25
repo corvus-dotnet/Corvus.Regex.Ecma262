@@ -52,8 +52,9 @@ jobs:
         r = json.load(open("record-check/industry.json"))["results"]
         assert r[".NET interpreter"]["sherlock: zqj"] == {"limit": 30}, r[".NET interpreter"]["sherlock: zqj"]
         assert r["Corvus generated UTF-8"]["sherlock: aei"] == {"error": "a round gave no figure"}, r["Corvus generated UTF-8"]["sherlock: aei"]
-        assert "time" in r[".NET generated"]["sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m"]
-        print("the record keeps a stopped figure, an error and a differing count")
+        w = "sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m"
+        assert r[".NET generated"][w] == {"wrongCount": {"counted": 34, "v8": 37}}, r[".NET generated"][w]
+        print("the record keeps a stopped figure and an error, and a count other than V8's is a wrong count")
         # An engine with no time on any workload, and a data-set runner that wrote no compliance file.
         d = json.load(open("tools/benchmarks/record-check/run.json"))
         d["results"]["net-generated"] = {w: {"error": "no workload of this harness has the pattern"} for w in d["results"]["net-generated"]}
