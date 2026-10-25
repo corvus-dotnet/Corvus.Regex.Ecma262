@@ -6,18 +6,13 @@ benchmark page.
 
 ## What it starts from
 
-**The JSON Schema port's engine, brought up to the Rust crate.** `src-go/.../internal/ecmaregex` (with its `ucd`
-package) is where the Rust crate came from: `parse.rs` is `parse.go`, `compile.rs` is `compile.go`, `vm.rs` is
-`vm.go`, and so on, file for file. The crate has grown a long way since. The Go engine matches UTF-8 only, takes no flags
-beyond modifier groups, translates what it can to the standard library's `regexp` (RE2) and backtracks over the rest,
-reads malformed UTF-8 as U+FFFD (which we now refuse everywhere), and has no UTF-16, no `replace` or `split`, and no
-search layer.
-
-So the repository starts as the plan says every engine does: the engine moved out of the port's tree with its history
-(`git filter-repo` on its paths), as the Rust engine was. Then the crate's work is carried across onto the matching Go
-files, one piece at a time: the flags and the UTF-16 API, the refusal of ill-formed UTF-8, `replace` and `split`, the
-match timeout, the search layer and the automata. Because the files still correspond, each piece is a port of a known
-change rather than a fresh translation. The JSON Schema port then takes the module in place of its engine in step 7.
+**A port of the Rust crate, not the JSON Schema port's engine.** The plan's Go row says the engine starts from
+`src-go/.../internal/ecmaregex`. That engine is real, but it was built for JSON Schema and nothing else. It matches
+UTF-8 only, takes no flags beyond modifier groups, translates what it can to the standard library's `regexp` (RE2)
+and backtracks over the rest, and reads malformed UTF-8 as U+FFFD, which we now refuse everywhere. It has no UTF-16, no
+flags, no `replace` or `split`, and no search layer. The Rust crate (0.2.x) has all of that, and the Java engine has
+already shown that porting it is the quicker road. So the Go engine is a port of the crate, as the Java one was, and the
+JSON Schema port's engine is replaced by it in step 7. The plan's Go row is corrected in the same change.
 
 ## Decisions
 
