@@ -11,8 +11,9 @@ benchmark page.
 UTF-8 only, takes no flags beyond modifier groups, translates what it can to the standard library's `regexp` (RE2)
 and backtracks over the rest, and reads malformed UTF-8 as U+FFFD, which we now refuse everywhere. It has no UTF-16, no
 flags, no `replace` or `split`, and no search layer. The Rust crate (0.2.x) has all of that, and the Java engine has
-already shown that porting it is the quicker road. So the Go engine is a port of the crate, as the Java one was, and the
-JSON Schema port's engine is replaced by it in step 7. The plan's Go row is corrected in the same change.
+already shown that porting it is the quicker road. So the Go engine is a port of the crate, as the Java one was. The crate came from
+that Go engine in the first place (its files still follow the Go names), but it has had far more work since, and the
+port carries all of it. The JSON Schema port's engine is replaced by the new module in step 7. The plan's Go row is corrected in the same change.
 
 ## Decisions
 
