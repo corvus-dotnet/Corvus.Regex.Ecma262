@@ -205,8 +205,9 @@ public class IndustryCount
         if (ours != expected)
         {
             // The pattern means something different in the two grammars (.NET's \w and \d take every script, its
-            // dot and its $ under the m option treat \r differently), so the counts differ; the work is comparable
-            // all the same, and the difference is noted beside the result.
+            // dot and its $ under the m option treat \r differently), so the counts differ. A count other than V8's
+            // is a wrong answer whatever the engine's dialect: the interleaved driver's record and the central page
+            // give .NET no figure there.
             Console.Error.WriteLine($"// {this.Workload}: .NET counts {expected}, this library {ours}: the pattern differs in meaning between the grammars");
         }
     }
