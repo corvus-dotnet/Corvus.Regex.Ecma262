@@ -34,6 +34,11 @@ def failure(r):
     m = re.match(r"counted (\d+) where V8 counts (\d+)", str(r.get("error", "")))
     if m:
         return {"wrongCount": {"counted": int(m.group(1)), "v8": int(m.group(2))}}
+    # A count other than V8's from a .NET engine ("<engine> n, V8 m"), which does not claim ECMA-262: a wrong answer
+    # all the same.
+    m = re.search(r"(\d+), V8 (\d+)$", str(r.get("differs", "")))
+    if m:
+        return {"wrongCount": {"counted": int(m.group(1)), "v8": int(m.group(2))}}
     return {"error": r["error"]} if "error" in r else None
 
 ap = argparse.ArgumentParser()
@@ -160,8 +165,9 @@ if INTERLEAVED:
     for _, name, _ in ENGINES:
         figures = INTERLEAVED["results"].get(by_name[name], {})
         # A figure stopped at the limit is {"limit": 30}, which the page shows as giving no result within 30 s.
-        results[name] = {w: ({"time": {"median": r["median"], "min": r["min"], "max": r["max"]}} if "median" in r
-                             else failure(r))
+        # A count other than V8's ("differs") is a wrong answer, whatever the engine: a failure, with no figure.
+        results[name] = {w: ({"time": {"median": r["median"], "min": r["min"], "max": r["max"]}}
+                             if "median" in r and "differs" not in r else failure(r))
                          for w, r in figures.items()}
 
 # V8 as an engine beside the .NET ones: its own harness, the same texts and workloads, the same flags as the Corvus rows.

@@ -6,7 +6,8 @@ run can give besides a time:
 - the .NET interpreter over `sherlock: zqj` stopped at the 30 s limit (`{"limit": 30}`);
 - this library's generated code over UTF-8 on `sherlock: aei` with a round that gave no figure (an error);
 - both .NET engines over `sherlock: ^Sherlock Holmes|Sherlock Holmes$ /m` with a count that differs from V8's (a time,
-  marked `differs`).
+  marked `differs`), which the record carries as a wrong count with no figure: a wrong answer, though .NET's engines
+  do not claim ECMA-262.
 
 The harness-image workflow writes the record of it with `industry-results.py` and checks that the record keeps each
 failure as the data file carries it, so the record step cannot fail on a figure with no time unnoticed. The smoke run
