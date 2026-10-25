@@ -111,8 +111,11 @@ Each step is its own repository, its own pull requests and its own release, in t
 4. **Go.** The scalar parts of the search layer over `bytes.Index`, which is vectorised in the runtime; assembly
    only where a measured row demands it. Same gate.
 5. **Julia.** The search layer with SIMD.jl. Same gate.
-6. **Object Pascal and OCaml.** Moved out as they are, held to the data, on the page against their platforms'
-   engines; the search layer when a consumer asks.
+6. **Object Pascal and OCaml.** Moved out, then given the scalar parts of the search layer, as Go is: the needle's
+   rarest-position search over the platform's substring search (`IndexByte` and `Pos` in Free Pascal;
+   `String.index_from`, or `memchr` through a C stub, in OCaml), the multi-literal search, the alternation windows
+   and the anchored and reverse automata. Neither platform has much to offer for vectors, and none of these needs
+   them. Same gate.
 7. **Phase 6, per library.** When an engine is published: the Corvus library of that language takes the package in
    place of its in-tree engine (or, for .NET, in place of the translator and the shape matchers), with the JSON
    Schema corpora as the conformance check and the evaluator not slower. One pull request per library.
