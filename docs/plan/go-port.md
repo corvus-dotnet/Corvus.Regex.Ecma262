@@ -8,12 +8,13 @@ benchmark page.
 
 **A port of the Rust crate, not the JSON Schema port's engine.** The plan's Go row says the engine starts from
 `src-go/.../internal/ecmaregex`. That engine is real, but it was built for JSON Schema and nothing else. It matches
-UTF-8 only, takes no flags beyond modifier groups, translates what it can to the standard library's `regexp` (RE2)
-and backtracks over the rest, and reads malformed UTF-8 as U+FFFD, which we now refuse everywhere. It has no UTF-16, no
+UTF-8 only, takes no flags beyond modifier groups, translates what it can to the standard library's `regexp` (RE2) and
+backtracks over the rest, and reads malformed UTF-8 as U+FFFD, which we now refuse everywhere. It has no UTF-16, no
 flags, no `replace` or `split`, and no search layer. The Rust crate (0.2.x) has all of that, and the Java engine has
-already shown that porting it is the quicker road. So the Go engine is a port of the crate, as the Java one was. The crate came from
-that Go engine in the first place (its files still follow the Go names), but it has had far more work since, and the
-port carries all of it. The JSON Schema port's engine is replaced by the new module in step 7. The plan's Go row is corrected in the same change.
+already shown that porting it is the quicker road. So the Go engine is a port of the crate, as the Java one was. The
+crate came from that Go engine in the first place (its files still follow the Go names), but it has had far more work
+since, and the port carries all of it. The JSON Schema port's engine is replaced by the new module in step 7. The plan's
+Go row is corrected in the same change.
 
 ## Decisions
 
@@ -28,9 +29,9 @@ These are the choices to agree before any code. Each has a recommendation.
    many times makes a `Text` once (`NewText`, which checks it) and pays once, as the Java engine's `Utf8Text` does.
 4. **The API.** The method set of the standard library's `regexp` (`MatchString`, `FindStringIndex`,
    `FindAllStringIndex`, `FindStringSubmatchIndex`, `ReplaceAllString`, `Split` and their `[]byte` forms), so it reads
-   as Go reads, with `Compile(pattern, flags)` for ECMA-262's flags, and a reusable `Captures` value for matching with no
-   allocation. A match timeout as the other engines have it (the .NET model). Since `regexp`'s methods return no error,
-   a pattern with a timeout uses `Try` forms that return `(result, error)`.
+   as Go reads, with `Compile(pattern, flags)` for ECMA-262's flags, and a reusable `Captures` value for matching with
+   no allocation. A match timeout as the other engines have it (the .NET model). Since `regexp`'s methods return no
+   error, a pattern with a timeout uses `Try` forms that return `(result, error)`.
 5. **The search layer, scalar first.** The rarest-byte needle over `bytes.IndexByte` and `bytes.Index`, which the Go
    runtime already vectorises in assembly. The multi-literal search, the alternation windows, the case search, and the
    anchored and reverse automata as the crate has them. SWAR over 8-byte words where a runtime search doesn't reach.
