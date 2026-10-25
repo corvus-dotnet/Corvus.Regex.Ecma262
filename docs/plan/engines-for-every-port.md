@@ -16,7 +16,7 @@ Corvus library adopt it in place of its hand-rolled one (the design document's p
 | .NET | `Corvus.Regex.Ecma262` (this one) | NuGet `Corvus.Regex.Ecma262`, released 1.0.0 | done | `System.Text.RegularExpressions`; V8 |
 | Rust | `corvus-regex-ecma262-rs` | crate `corvus-regex-ecma262`; crate `corvus-regex-ecma262-capi` (the C ABI, in the same repository) | the engine in `src-rs/corvus-json-schema` | `regex` (the platform's standard, RE2 semantics), `regress` (an ECMA-262 engine); V8 |
 | Java | `corvus-regex-ecma262-java` | Maven `io.github.corvus-dotnet:corvus-regex-ecma262` | the engine in `src-java` | `java.util.regex`; GraalJS TRegex (`org.graalvm.regex`); V8 |
-| Go | `corvus-regex-ecma262-go` | module `github.com/corvus-dotnet/corvus-regex-ecma262-go` | `src-go/.../internal/ecmaregex` | `regexp` (RE2); goja's `RegExp`; V8 |
+| Go | `corvus-regex-ecma262-go` | module `github.com/corvus-dotnet/corvus-regex-ecma262-go` | a port of the Rust crate (the JSON Schema port's `internal/ecmaregex` is UTF-8 and JSON Schema only; see [the Go plan](go-port.md)) | `regexp` (RE2); goja's `RegExp`; V8 |
 | Julia | `corvus-regex-ecma262-jl` | `CorvusRegexEcma262.jl` | `src-jl/.../ecmaregex` | `Base.Regex` (PCRE2); V8 |
 | Python | `corvus-regex-ecma262-py` | wheel `corvus-regex-ecma262`, over the C ABI | the Rust engine | `re`, `regex`; V8 |
 | Object Pascal | `corvus-regex-ecma262-pas` | the unit, as the Pascal port ships it | `Corvus.JsonSchema.EcmaRegex.pas` | `TRegExpr` (FPC); V8 |
@@ -108,8 +108,8 @@ Each step is its own repository, its own pull requests and its own release, in t
    Rust is released and every one of these is published.
 3. **Java.** Its own engine already; `indexOf` intrinsics for the needle, the Vector API for the fingerprint
    search, generated code through the Java generator we have (under the method-size limit). Same gate.
-4. **Go.** The scalar parts of the search layer over `bytes.Index`, which is vectorised in the runtime; assembly
-   only where a measured row demands it. Same gate.
+4. **Go.** A port of the Rust crate ([the Go plan](go-port.md)), with the scalar parts of the search layer over
+   `bytes.Index`, which is vectorised in the runtime; assembly only where a measured row demands it. Same gate.
 5. **Julia.** The search layer with SIMD.jl. Same gate.
 6. **Object Pascal and OCaml.** Moved out, then given the scalar parts of the search layer, as Go is: the needle's
    rarest-position search over the platform's substring search (`IndexByte` and `Pos` in Free Pascal;
