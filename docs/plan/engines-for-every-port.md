@@ -17,7 +17,7 @@ Corvus library adopt it in place of its hand-rolled one (the design document's p
 | Rust | `corvus-regex-ecma262-rs` | crate `corvus-regex-ecma262`; crate `corvus-regex-ecma262-capi` (the C ABI, in the same repository) | the engine in `src-rs/corvus-json-schema` | `regex` (the platform's standard, RE2 semantics), `regress` (an ECMA-262 engine); V8 |
 | Java | `corvus-regex-ecma262-java` | Maven `io.github.corvus-dotnet:corvus-regex-ecma262` | the engine in `src-java` | `java.util.regex`; GraalJS TRegex (`org.graalvm.regex`); V8 |
 | Go | `corvus-regex-ecma262-go` | module `github.com/corvus-dotnet/corvus-regex-ecma262-go` | `src-go/.../internal/ecmaregex` | `regexp` (RE2); goja's `RegExp`; V8 |
-| Julia | `corvus-regex-ecma262-jl` | `CorvusRegexEcma262.jl` | `src-jl/.../ecmaregex` | `Base.Regex` (PCRE2); V8 |
+| Julia | `corvus-regex-ecma262-jl` | `CorvusRegexEcma262.jl` | a port of the Rust crate (the JSON Schema port's `src-jl/.../ecmaregex` translates to PCRE2 and refuses what it can't translate; see [the Julia plan](julia-port.md)) | `Base.Regex` (PCRE2); V8 |
 | Python | `corvus-regex-ecma262-py` | wheel `corvus-regex-ecma262`, over the C ABI | the Rust engine | `re`, `regex`; V8 |
 | Object Pascal | `corvus-regex-ecma262-pas` | the unit, as the Pascal port ships it | `Corvus.JsonSchema.EcmaRegex.pas` | `TRegExpr` (FPC); V8 |
 | OCaml | `corvus-regex-ecma262-ocaml` | opam `corvus-regex-ecma262` | the engine in `ocaml-corvus-json-schema` | `re`, `pcre`; V8 |
@@ -110,7 +110,8 @@ Each step is its own repository, its own pull requests and its own release, in t
    search, generated code through the Java generator we have (under the method-size limit). Same gate.
 4. **Go.** The scalar parts of the search layer over `bytes.Index`, which is vectorised in the runtime; assembly
    only where a measured row demands it. Same gate.
-5. **Julia.** The search layer with SIMD.jl. Same gate.
+5. **Julia.** A port of the Rust crate ([the Julia plan](julia-port.md)), with the scalar parts of the search layer
+   over `memchr` and SWAR, as Go has them; SIMD.jl only where a measured row demands it. Same gate.
 6. **Object Pascal and OCaml.** Moved out, then given the scalar parts of the search layer, as Go is: the needle's
    rarest-position search over the platform's substring search (`IndexByte` and `Pos` in Free Pascal;
    `String.index_from`, or `memchr` through a C stub, in OCaml), the multi-literal search, the alternation windows
