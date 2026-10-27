@@ -17,8 +17,8 @@ step 7. The plan's OCaml row is corrected in the same change.
 
 ## Decisions
 
-These are the choices to agree before any code. Each has a recommendation; the fourth is the one with a real
-trade-off.
+These are the choices to agree before any code. Each has a recommendation; the fourth, the one with a real
+trade-off, is taken.
 
 1. **The compiler.** OCaml 4.14 or later with dune 3, the floor of the JSON Schema port, so step 7 can take the library
    without raising it. A 64-bit OCaml only (the matcher packs into the 63-bit `int`), as the port's opam file says.
@@ -44,7 +44,7 @@ trade-off.
    Pascal `Swar` unit has them. The cost: the package needs a C compiler (which `ocamlopt` needs anyway), and it
    cannot run under js_of_ocaml or wasm_of_ocaml without JavaScript versions of the kernels. The alternative is OCaml
    alone (SWAR over `String.get_int64_le`), which keeps those targets but leaves the literal searches several times
-   slower than V8. **Yours to choose.**
+   slower than V8. **Chosen: OCaml with C kernels.**
 5. **The API is OCaml's.** A module `Corvus_regex_ecma262` with an abstract `t`. `compile ?flags ?match_timeout pattern`
    returns `(t, error) result`, so a pattern from a schema is tried without an exception and with its own timeout from
    the start (the try-create with a timeout every engine is to have); `compile_exn` raises. Then `is_match`, `exec`
