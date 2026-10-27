@@ -19,8 +19,8 @@ Corvus library adopt it in place of its hand-rolled one (the design document's p
 | Go | `corvus-regex-ecma262-go` | module `github.com/corvus-dotnet/corvus-regex-ecma262-go` | `src-go/.../internal/ecmaregex` | `regexp` (RE2); goja's `RegExp`; V8 |
 | Julia | `corvus-regex-ecma262-jl` | `CorvusRegexEcma262.jl` | `src-jl/.../ecmaregex` | `Base.Regex` (PCRE2); V8 |
 | Python | `corvus-regex-ecma262-py` | wheel `corvus-regex-ecma262`, over the C ABI | the Rust engine | `re`, `regex`; V8 |
-| Object Pascal | `corvus-regex-ecma262-pas` | the unit, as the Pascal port ships it | `Corvus.JsonSchema.EcmaRegex.pas` | `TRegExpr` (FPC); V8 |
-| OCaml | `corvus-regex-ecma262-ocaml` | opam `corvus-regex-ecma262` | the engine in `ocaml-corvus-json-schema` | `re`, `pcre`; V8 |
+| Object Pascal | `corvus-regex-ecma262-pas` | source archives of the unit `Corvus.Ecma262.RegularExpressions`, released 0.1.0 | the Rust crate (0.2.x), not the port's `Corvus.JsonSchema.EcmaRegex.pas` ([pascal-port.md](pascal-port.md)) | `TRegExpr` (FPC); V8 |
+| OCaml | `corvus-regex-ecma262-ocaml` | opam `corvus-regex-ecma262` | the Rust crate (0.2.x), not the port's `ecmaregex` ([ocaml-port.md](ocaml-port.md)) | `re`, `pcre2`; V8 |
 | C | `corvus-regex-ecma262-rs` (the C ABI crate and its header) | release archives of the shared library and header per platform | the Rust engine | QuickJS `libregexp` (an ECMA-262 engine in C), PCRE2 (not ECMA-262); V8 |
 | C++ | `corvus-regex-ecma262-cpp` | a header-only C++20 library over the C ABI (RAII handles, `std::string_view` and `std::u16string_view`, match ranges), with a CMake package, vcpkg and Conan recipes | the Rust engine | `std::regex` (ECMAScript grammar), Boost.Regex in its ECMAScript mode, SRELL (an ECMAScript library), RE2 (not ECMA-262); V8 |
 | Ruby | `corvus-regex-ecma262-ruby` | gem `corvus-regex-ecma262`, over the C ABI | the Rust engine | `Regexp` (Onigmo); V8 |
