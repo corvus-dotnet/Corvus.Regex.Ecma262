@@ -94,6 +94,17 @@ Each has a recommendation.
    the next patch, as features are numbered here. An engine whose API must change shape to take the settings (none is
    expected) would be a minor release.
 
+## No cost to a warm match
+
+Agreed with all the decisions above, with one constraint: these changes must not slow a warm match. So:
+- both settings are resolved when a pattern is compiled. The edition only changes what the parser accepts, and the
+  Unicode version only changes which tables the compiler reads its classes and case folding from;
+- nothing the matcher or the searches do for each character changes, and a compiled pattern holds no reference to the
+  settings;
+- each engine's pull request carries an A/B of the Industry workloads, with the default settings, against its last
+  release, showing no row moved beyond the run's noise. A pattern compiled under another Unicode version may compile
+  more slowly the first time its tables are read, which is not a warm cost.
+
 ## What it does not change
 
 The defaults: an engine built from this sweep, given no new setting, accepts the same patterns and gives the same
