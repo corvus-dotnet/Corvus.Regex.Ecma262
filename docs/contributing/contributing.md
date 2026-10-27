@@ -187,6 +187,16 @@ pwsh tools/unicode/gen-es2020-properties.ps1 -Properties ../ecma262-regex-test-d
 Each file is listed in the library's and the generator's project files by name (the projects do not glob), so a new
 generated file is added to both.
 
+CI makes every one of these files again from its sources and fails unless they are the checked-in files: each
+version's Unicode Character Database and emoji files (each download checked against its SHA-256), regress's
+`gen-unicode` at 0.12.0, and the scripts above. It runs on Linux or macOS, with Rust installed:
+
+```bash
+pwsh tools/unicode/check-tables.ps1 -Properties ../ecma262-regex-test-data/es2020-properties.json
+```
+
+A new version of Unicode is added to that script's list, with its hashes, as well as to the library.
+
 ## 5. Benchmarks
 
 The benchmarks compare the library with `System.Text.RegularExpressions` on the workloads of `dotnet/performance`

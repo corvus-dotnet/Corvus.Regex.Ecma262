@@ -497,7 +497,7 @@ Corvus.Regex.Ecma262/
     Corvus.Regex.Ecma262.DatasetRunner/  console: the test data run, interpreted and generated, both encodings
     Corvus.Regex.Ecma262.StackProbe/   console: patterns built to overflow the stack, each in a process of its own
     Corvus.Regex.Ecma262.AotSample/    a native AOT publish of a generated pattern
-  tools/unicode/                       gen-ecma-unicode-data.ps1 and gen-ecma-unicode-strings.ps1 (from UCD)
+  tools/unicode/                       gen-ecma-unicode-data.ps1 and gen-ecma-unicode-strings.ps1 (from UCD), check-tables.ps1
   tools/benchmarks/                    industry-results.py (the record of a run) and the results page generator
 ```
 
