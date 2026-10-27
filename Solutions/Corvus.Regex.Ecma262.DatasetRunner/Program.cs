@@ -5,7 +5,7 @@
 // Runs the library over the ECMA-262 regular expression test data (github.com/corvus-dotnet/ecma262-regex-test-data).
 //
 //   DatasetRunner <data directory> <wrong-cases output file> [file filter] [utf16|utf8|both] [--answers <file>]
-//                 [--compliance <file>]
+//                 [--compliance <file>] [--edition current|es2020] [--unicode 13|17|18|latest]
 //
 // Each record is asked about under each grammar V8 found it valid in: the record's flags with u added (the
 // `unicode` answers) and the record's flags alone (the `legacy` answers). A text is matched as UTF-16 and as UTF-8.
@@ -15,7 +15,8 @@
 // are not UTF-8, each one answer over UTF-8 under each grammar the pattern is valid in, whose right answer is a
 // refusal: the ArgumentException of the members that take UTF-8. With --answers, the runner also writes its own
 // answers where they differ from the data's (Overlay.cs), from which the data's overlays for other versions of Unicode
-// are made.
+// are made. With --edition and --unicode, the patterns are read with that edition's grammar and that version's
+// character database, and the data is the data as `node edition.js apply` or `node unicode.js apply` writes it for them.
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -28,6 +29,34 @@ string? compliancePath = complianceAt >= 0 ? args[complianceAt + 1] : null;
 if (complianceAt >= 0)
 {
     args = [.. args.Take(complianceAt), .. args.Skip(complianceAt + 2)];
+}
+
+// The edition of the grammar and the version of Unicode, for the data as `node edition.js apply` and
+// `node unicode.js apply` write it.
+int editionAt = Array.IndexOf(args, "--edition");
+if (editionAt >= 0)
+{
+    Factory.Edition = args[editionAt + 1] switch
+    {
+        "current" => RegexEdition.Current,
+        "es2020" => RegexEdition.Es2020,
+        string e => throw new ArgumentException($"The edition is current or es2020, not {e}."),
+    };
+    args = [.. args.Take(editionAt), .. args.Skip(editionAt + 2)];
+}
+
+int unicodeAt = Array.IndexOf(args, "--unicode");
+if (unicodeAt >= 0)
+{
+    Factory.UnicodeVersion = args[unicodeAt + 1] switch
+    {
+        "13" or "13.0" => RegexUnicodeVersion.V13,
+        "17" or "17.0" => RegexUnicodeVersion.V17,
+        "18" or "18.0" => RegexUnicodeVersion.V18,
+        "latest" => RegexUnicodeVersion.Latest,
+        string v => throw new ArgumentException($"The Unicode version is 13, 17, 18 or latest, not {v}."),
+    };
+    args = [.. args.Take(unicodeAt), .. args.Skip(unicodeAt + 2)];
 }
 
 int answersAt = Array.IndexOf(args, "--answers");
@@ -85,10 +114,14 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
                 return;
             }
 
-            int ok = Captures.Judge(r, pattern, limit, Unescape, wrongCases.Enqueue, out int bad, out int lim, lineNumber);
+            int ok = Captures.Judge(r, pattern, limit, Unescape, wrongCases.Enqueue, out int bad, out int lim, out int refused, out int accepted, lineNumber);
             Interlocked.Add(ref fileRight, ok);
             Interlocked.Add(ref fileWrong, bad);
             Interlocked.Add(ref fileLimited, lim);
+            Interlocked.Add(ref fileRefused, refused);
+            Interlocked.Add(ref refusedValid, refused);
+            Interlocked.Add(ref fileAccepted, accepted);
+            Interlocked.Add(ref acceptedInvalid, accepted);
             return;
         }
 

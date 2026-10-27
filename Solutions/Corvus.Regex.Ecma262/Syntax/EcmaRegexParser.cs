@@ -90,6 +90,12 @@ internal sealed class EcmaRegexParser
     /// <summary>Whether the pattern is read with the grammar of the v flag: the u flag's, with set notation and strings in a class.</summary>
     private readonly bool unicodeSets;
 
+    /// <summary>The Unicode of the version the pattern is read with.</summary>
+    private readonly UnicodeTables tables;
+
+    /// <summary>Whether the pattern is read with the grammar of ECMAScript 2020, which refuses what later editions added.</summary>
+    private readonly bool es2020;
+
     /// <summary>Initializes a new instance of the <see cref="EcmaRegexParser"/> class.</summary>
     /// <param name="pattern">The pattern.</param>
     /// <param name="unicode">Whether to read it with the grammar of the u flag.</param>
@@ -98,9 +104,13 @@ internal sealed class EcmaRegexParser
     /// <param name="dotAll">Whether the s flag is set.</param>
     /// <param name="work">The count of the steps taken for the pattern, when the caller keeps one.</param>
     /// <param name="unicodeSets">Whether to read it with the grammar of the v flag (which implies <paramref name="unicode"/>).</param>
-    public EcmaRegexParser(ReadOnlySpan<char> pattern, bool unicode, bool ignoreCase = false, bool multiline = false, bool dotAll = false, EcmaRegexWork? work = null, bool unicodeSets = false)
+    /// <param name="edition">The edition of the grammar. ECMAScript 2020's has no v flag, which the caller refuses.</param>
+    /// <param name="unicodeVersion">The version of Unicode whose character database the pattern is read with.</param>
+    public EcmaRegexParser(ReadOnlySpan<char> pattern, bool unicode, bool ignoreCase = false, bool multiline = false, bool dotAll = false, EcmaRegexWork? work = null, bool unicodeSets = false, RegexEdition edition = RegexEdition.Current, RegexUnicodeVersion unicodeVersion = RegexUnicodeVersion.Default)
     {
         this.work = work ?? new EcmaRegexWork();
+        this.tables = UnicodeTables.For(unicodeVersion);
+        this.es2020 = edition == RegexEdition.Es2020;
         this.Unicode = unicode || unicodeSets;
         this.unicodeSets = unicodeSets;
         this.ignoreCase = ignoreCase;
@@ -355,7 +365,7 @@ internal sealed class EcmaRegexParser
     {
         if (this.ignoreCase)
         {
-            int[] set = EcmaRegexUnicode.FoldClosure([c, c], this.Unicode);
+            int[] set = this.tables.FoldClosure([c, c], this.Unicode);
             if (set.Length != 2 || set[0] != set[1])
             {
                 return SetNode(set);
@@ -366,7 +376,7 @@ internal sealed class EcmaRegexParser
     }
 
     /// <summary>The set that also holds, inside a case-insensitive group, every character equivalent to a member.</summary>
-    private int[] Folded(int[] set) => this.ignoreCase ? EcmaRegexUnicode.FoldClosure(set, this.Unicode) : set;
+    private int[] Folded(int[] set) => this.ignoreCase ? this.tables.FoldClosure(set, this.Unicode) : set;
 
     private EcmaRegexNode Term()
     {
@@ -613,7 +623,7 @@ internal sealed class EcmaRegexParser
         }
 
         int c = this.Peek();
-        if (c == 'i' || c == 'm' || c == 's' || c == '-')
+        if ((c == 'i' || c == 'm' || c == 's' || c == '-') && !this.es2020)
         {
             return this.ModifierGroup();
         }
@@ -642,6 +652,12 @@ internal sealed class EcmaRegexParser
             // no match can go through both.
             if (this.names.TryGetValue(name, out List<int[]>? others))
             {
+                // The 2020 grammar refuses a name used twice, wherever the groups are.
+                if (this.es2020)
+                {
+                    throw this.Error("Duplicate group name '" + name + "'");
+                }
+
                 this.work.Spend((long)others.Count * (this.pathLength + 1));
                 foreach (int[] other in others)
                 {
@@ -805,7 +821,7 @@ internal sealed class EcmaRegexParser
                 c = char.ConvertToUtf32((char)c, (char)this.p[this.i++]);
             }
 
-            if (name.Length == 0 ? !EcmaRegexUnicode.IsNameStart(c) : !EcmaRegexUnicode.IsNamePart(c))
+            if (name.Length == 0 ? !this.tables.IsNameStart(c) : !this.tables.IsNamePart(c))
             {
                 throw this.Error("Invalid group name");
             }
@@ -865,7 +881,7 @@ internal sealed class EcmaRegexParser
                 throw this.Error("Invalid named reference");
             }
 
-            EcmaRegexNode reference = new(EcmaRegexNodeKind.Backref) { Name = this.GroupName(), Fold = this.ignoreCase };
+            EcmaRegexNode reference = new(EcmaRegexNodeKind.Backref) { Name = this.GroupName(), Fold = this.ignoreCase, FoldVersion = this.tables.Version };
             this.namedRefs.Add(reference);
             this.HasBackreferences = true;
             return reference;
@@ -878,7 +894,7 @@ internal sealed class EcmaRegexParser
             if (n <= this.GroupCount)
             {
                 this.HasBackreferences = true;
-                return new EcmaRegexNode(EcmaRegexNodeKind.Backref) { Groups = [n], Fold = this.ignoreCase };
+                return new EcmaRegexNode(EcmaRegexNodeKind.Backref) { Groups = [n], Fold = this.ignoreCase, FoldVersion = this.tables.Version };
             }
 
             if (this.Unicode)
@@ -991,9 +1007,10 @@ internal sealed class EcmaRegexParser
                     throw this.Error("Invalid property name");
                 }
 
-                int[]? set = EcmaRegexUnicode.Property(expression, out _);
+                // The 2020 grammar knows only the names and values of its own tables, whatever the version of Unicode.
+                int[]? set = this.es2020 && !Es2020Properties.Has(expression) ? null : this.tables.Property(expression, out _);
                 this.work.Spend(8);
-                if (set is null && this.unicodeSets && EcmaRegexUnicode.StringProperty(expression, out int[] codePoints, out int[][] strings))
+                if (set is null && this.unicodeSets && this.tables.StringProperty(expression, out int[] codePoints, out int[][] strings))
                 {
                     // A property of strings, which the v flag alone names, and which has no complement.
                     if (c == 'P')
@@ -1609,7 +1626,7 @@ internal sealed class EcmaRegexParser
         int[] result = new int[codePoints.Count];
         for (int k = 0; k < result.Length; k++)
         {
-            result[k] = this.ignoreCase ? EcmaRegexUnicode.Canonicalize(codePoints[k], unicode: true) : codePoints[k];
+            result[k] = this.ignoreCase ? this.tables.Canonicalize(codePoints[k], unicode: true) : codePoints[k];
         }
 
         return result;

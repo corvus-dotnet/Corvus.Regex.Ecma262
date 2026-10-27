@@ -31,6 +31,8 @@
     <Compile Include="..\Corvus.Regex.Ecma262\Engine\Program.cs" Link="Shared\Engine\Program.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Engine\TextEncoding.cs" Link="Shared\Engine\TextEncoding.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\RegexFlags.cs" Link="Shared\RegexFlags.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\RegexEdition.cs" Link="Shared\RegexEdition.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\RegexUnicodeVersion.cs" Link="Shared\RegexUnicodeVersion.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\RegexParseException.cs" Link="Shared\RegexParseException.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\RegexPatternTooLargeException.cs" Link="Shared\RegexPatternTooLargeException.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexLimits.cs" Link="Shared\Syntax\EcmaRegexLimits.cs" />
@@ -39,8 +41,14 @@
     <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexNode.cs" Link="Shared\Syntax\EcmaRegexNode.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Syntax\EcmaRegexParser.cs" Link="Shared\Syntax\EcmaRegexParser.cs" />
     <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicode.cs" Link="Shared\Unicode\EcmaRegexUnicode.cs" />
-    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeStrings.cs" Link="Shared\Unicode\EcmaRegexUnicodeStrings.cs" />
-    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeData.cs" Link="Shared\Unicode\EcmaRegexUnicodeData.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeData13.cs" Link="Shared\Unicode\EcmaRegexUnicodeData13.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeData17.cs" Link="Shared\Unicode\EcmaRegexUnicodeData17.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeData18.cs" Link="Shared\Unicode\EcmaRegexUnicodeData18.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeStrings13.cs" Link="Shared\Unicode\EcmaRegexUnicodeStrings13.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeStrings17.cs" Link="Shared\Unicode\EcmaRegexUnicodeStrings17.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeStrings18.cs" Link="Shared\Unicode\EcmaRegexUnicodeStrings18.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\Es2020Properties.cs" Link="Shared\Unicode\Es2020Properties.cs" />
+    <Compile Include="..\Corvus.Regex.Ecma262\Unicode\UnicodeTables.cs" Link="Shared\Unicode\UnicodeTables.cs" />
   </ItemGroup>
 
   <ItemGroup>

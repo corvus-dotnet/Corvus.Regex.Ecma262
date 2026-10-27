@@ -15,18 +15,28 @@ internal static class Captures
 {
     private const string Replacement = "<$&|$1|$2|$10|$<a>|$$|$`|$'>";
 
-    /// <summary>Judges one record. Returns the number of right answers and appends each wrong one.</summary>
-    public static int Judge(JsonElement r, string pattern, TimeSpan limit, Func<string, string> unescape, Action<string> wrong, out int wrongCount, out int limited, int line)
+    /// <summary>
+    /// Judges one record. Returns the number of right answers and appends each wrong one. A grammar the data finds
+    /// the pattern valid in and this engine refuses is counted in <paramref name="refused"/>, and one the data finds
+    /// it not valid in (as an overlay may) and this engine accepts in <paramref name="accepted"/>.
+    /// </summary>
+    public static int Judge(JsonElement r, string pattern, TimeSpan limit, Func<string, string> unescape, Action<string> wrong, out int wrongCount, out int limited, out int refused, out int accepted, int line)
     {
         int right = 0;
         wrongCount = 0;
         limited = 0;
+        refused = 0;
+        accepted = 0;
         string flags = r.GetProperty("flags").GetString()!;
         JsonElement valid = r.GetProperty("valid");
         if (Overlay.Enabled)
         {
             Answers(r, pattern, flags, valid, limit, unescape, line);
         }
+
+        // The grammars this engine reads the pattern in as the data does; the answers are judged in those alone.
+        bool unicodeMade = Verdict(pattern, flags + "u", valid.GetProperty("unicode").GetBoolean(), limit, wrong, ref refused, ref accepted);
+        bool legacyMade = Verdict(pattern, flags, valid.GetProperty("legacy").GetBoolean(), limit, wrong, ref refused, ref accepted);
 
         foreach (JsonElement t in r.GetProperty("tests").EnumerateArray())
         {
@@ -37,7 +47,7 @@ internal static class Captures
             }
 
             string text = unescape(t.GetProperty("text").GetRawText());
-            foreach ((string mode, bool isValid) in new[] { ("unicode", valid.GetProperty("unicode").GetBoolean()), ("legacy", valid.GetProperty("legacy").GetBoolean()) })
+            foreach ((string mode, bool isValid) in new[] { ("unicode", unicodeMade), ("legacy", legacyMade) })
             {
                 if (!isValid || !t.TryGetProperty(mode, out JsonElement a))
                 {
@@ -59,6 +69,36 @@ internal static class Captures
         }
 
         return right;
+    }
+
+    /// <summary>Whether the engine reads the pattern in a grammar the data finds it valid in, counting a verdict that differs from the data's.</summary>
+    private static bool Verdict(string pattern, string flags, bool expectedValid, TimeSpan limit, Action<string> wrong, ref int refused, ref int accepted)
+    {
+        bool made;
+        string? error = null;
+        try
+        {
+            _ = Factory.Make(pattern, Regex.ParseFlags(flags), limit);
+            made = true;
+        }
+        catch (Exception e) when (e is RegexParseException or RegexPatternTooLargeException)
+        {
+            made = false;
+            error = e.Message;
+        }
+
+        if (expectedValid && !made)
+        {
+            refused++;
+            wrong($"REFUSED\tcaptures.jsonl\t/{Escape(pattern)}/{flags}\t{error}");
+        }
+        else if (!expectedValid && made)
+        {
+            accepted++;
+            wrong($"ACCEPTED-INVALID\tcaptures.jsonl\t/{Escape(pattern)}/{flags}");
+        }
+
+        return expectedValid && made;
     }
 
     /// <summary>With --answers: the engine's verdict and answers under each grammar, where they differ from the data's.</summary>

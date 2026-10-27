@@ -165,17 +165,27 @@ for commands that take no switches, such as `dotnet test`.
 
 ## 4. The Unicode tables
 
-The property tables and case folding (`Solutions/Corvus.Regex.Ecma262/Unicode/EcmaRegexUnicodeData.cs`) and the
-properties of strings (`EcmaRegexUnicodeStrings.cs`) are generated from the Unicode Character Database by the
-scripts in `tools/unicode/`. They are regenerated only for a new Unicode version:
+The property tables and case folding (`Solutions/Corvus.Regex.Ecma262/Unicode/EcmaRegexUnicodeData17.cs`) and the
+properties of strings (`EcmaRegexUnicodeStrings17.cs`) are generated from the Unicode Character Database by the
+scripts in `tools/unicode/`, one pair of files for each version of Unicode the library carries (13, 17 and 18). A
+new version is a new pair, written from that version's tables and emoji files, and an instance of it in
+`UnicodeTables.cs`. The tables come from regress's `gen-unicode` run on that version's Unicode Character Database
+(the script's help says how):
 
 ```bash
-pwsh tools/unicode/gen-ecma-unicode-data.ps1
-pwsh tools/unicode/gen-ecma-unicode-strings.ps1
+pwsh tools/unicode/gen-ecma-unicode-data.ps1 -RegressTables unicodetables-18.0.0.rs -UnicodeVersion 18.0.0
+pwsh tools/unicode/gen-ecma-unicode-strings.ps1 -EmojiSequences ucd-18.0.0/emoji-sequences.txt -EmojiZwjSequences ucd-18.0.0/emoji-zwj-sequences.txt
 ```
 
-Both files are listed in the library's and the generator's project files by name (the projects do not glob), so a
-new generated file is added to both.
+The property names of ECMAScript 2020 (`Es2020Properties.cs`) are generated from `es2020-properties.json` of the test
+data, which the data's edition overlay is made from too:
+
+```bash
+pwsh tools/unicode/gen-es2020-properties.ps1 -Properties ../ecma262-regex-test-data/es2020-properties.json
+```
+
+Each file is listed in the library's and the generator's project files by name (the projects do not glob), so a new
+generated file is added to both.
 
 ## 5. Benchmarks
 

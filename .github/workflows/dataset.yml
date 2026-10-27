@@ -1,7 +1,9 @@
 # Runs the library over the whole ECMA-262 regular expression test data
 # (github.com/corvus-dotnet/ecma262-regex-test-data): every pattern under each grammar V8 found it valid in, every
 # text as UTF-16 and as UTF-8. The pass is 0 wrong answers, 0 refusals of a valid pattern, 0 acceptances of an
-# invalid one and 0 matches at their limit. The data is pinned to a commit; move the pin when the data grows.
+# invalid one and 0 matches at their limit. The data is pinned to a commit; move the pin when the data grows. The
+# Linux job also runs the data as the data's own scripts write it for Unicode 13 and 18 (unicode.js apply) and for
+# the grammar of ECMAScript 2020 (edition.js apply), with the runner set to match.
 name: dataset
 on:
   push:
@@ -26,7 +28,7 @@ jobs:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         repository: corvus-dotnet/ecma262-regex-test-data
-        ref: cff0860b7ebc5eb9c801eb9f8cec9d5398688ff2
+        ref: 1b4c4353c4fa3fc3e318db32ef0261391519b9a5
         path: ecma262-regex-test-data
         persist-credentials: false
     - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
@@ -36,12 +38,44 @@ jobs:
       run: dotnet build Solutions/Corvus.Regex.Ecma262.DatasetRunner/Corvus.Regex.Ecma262.DatasetRunner.csproj -c Release
     - name: Run the data
       run: ./Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner ecma262-regex-test-data/data wrong-cases.tsv
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: '24.22.1'
+    - name: Run the data for other versions of Unicode and for ECMAScript 2020
+      shell: pwsh
+      run: |
+        $runner = './Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner'
+        $data = 'ecma262-regex-test-data'
+        $runs = @(
+            @{ Name = 'unicode-13'; Make = @('unicode.js', 'apply', '13.0'); Options = @('--unicode', '13') },
+            @{ Name = 'unicode-18'; Make = @('unicode.js', 'apply', '18.0'); Options = @('--unicode', '18') },
+            @{ Name = 'es2020'; Make = @('edition.js', 'apply'); Options = @('--edition', 'es2020') },
+            @{ Name = 'es2020-unicode-13'; Make = @('edition.js', 'apply'); Version = '13.0'; Options = @('--edition', 'es2020', '--unicode', '13') }
+        )
+        $failed = @()
+        foreach ($run in $runs) {
+            $out = Join-Path $env:RUNNER_TEMP $run.Name
+            if ($run.Make[0] -eq 'unicode.js') {
+                node "$data/unicode.js" apply $run.Make[2] $out "$data/data"
+            }
+            else {
+                # An empty version is the data's own Unicode.
+                $version = if ($run.Version) { $run.Version } else { '' }
+                node "$data/edition.js" apply $out $version "$data/data"
+            }
+
+            if ($LASTEXITCODE -ne 0) { throw "The data for $($run.Name) was not written." }
+            & $runner $out "wrong-cases-$($run.Name).tsv" '*.jsonl' both @($run.Options)
+            if ($LASTEXITCODE -ne 0) { $failed += $run.Name }
+        }
+
+        if ($failed.Count -gt 0) { throw "Wrong: $($failed -join ', ')" }
     - name: Keep the wrong cases
       if: failure()
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: wrong-cases
-        path: wrong-cases.tsv
+        path: wrong-cases*.tsv
 
   dataset-net481:
     # The same data over the netstandard2.0 build of the library, on .NET Framework 4.8.1: the plain paths the modern
@@ -55,7 +89,7 @@ jobs:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         repository: corvus-dotnet/ecma262-regex-test-data
-        ref: cff0860b7ebc5eb9c801eb9f8cec9d5398688ff2
+        ref: 1b4c4353c4fa3fc3e318db32ef0261391519b9a5
         path: ecma262-regex-test-data
         persist-credentials: false
     - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1

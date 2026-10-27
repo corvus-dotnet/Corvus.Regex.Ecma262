@@ -1,4 +1,4 @@
-// <copyright file="EcmaRegexUnicodeData.cs" company="Endjin Limited">
+// <copyright file="EcmaRegexUnicodeData17.cs" company="Endjin Limited">
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
@@ -13,7 +13,8 @@ namespace Corvus.Ecma262.RegularExpressions;
 
 /// <summary>
 /// The Unicode data behind the property escapes and the case-insensitive matching of ECMA-262 patterns, which
-/// <see cref="EcmaRegexUnicode"/> reads. The library carries it so that a pattern means the same on every runtime.
+/// <see cref="UnicodeTables"/> reads, of Unicode 17.0.0. The library carries it so that a pattern means the
+/// same on every runtime.
 /// </summary>
 /// <remarks>
 /// A number is written five bits to a character, lowest bits first, in the alphabet of base 64. A character from
@@ -22,7 +23,7 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// end of the run before it, its length less one, its delta (twice its size, plus one when negative) and its stride
 /// less one. The delta applies to every code point of the run that is a whole number of strides from its start.
 /// </remarks>
-internal static class EcmaRegexUnicodeData
+internal static class EcmaRegexUnicodeData17
 {
     /// <summary>The Unicode version of the data.</summary>
     public const string UnicodeVersion = "17.0.0";

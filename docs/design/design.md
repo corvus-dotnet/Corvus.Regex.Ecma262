@@ -33,7 +33,7 @@ from nothing:
 | Piece | Source | Notes |
 |---|---|---|
 | Parser, syntax tree, both grammars (the u flag; Annex B without), group names, modifier groups | `EcmaRegexParser.cs` from Corvus.JsonSchema's code generator | Already C#, already netstandard2.0, already Unicode 17 and ECMAScript 2025. The base of the front end. |
-| Unicode property tables, case folding (Canonicalize for both modes), sets | `EcmaRegexUnicode.cs`, `EcmaRegexUnicodeData.cs` (generated) and the Go `ucd` package | The generator script `tools/unicode/gen-ecma-unicode-data.ps1` moved with them. |
+| Unicode property tables, case folding (Canonicalize for both modes), sets | `EcmaRegexUnicode.cs`, `UnicodeTables.cs`, `EcmaRegexUnicodeData17.cs` (generated) and the Go `ucd` package | The generator script `tools/unicode/gen-ecma-unicode-data.ps1` moved with them, and now writes the tables of each version of Unicode the library carries (13, 17 and 18). |
 | Compiler (tree to flat program), instruction set | The Go and Rust `ecmaregex` compilers | Characters, sets, literals, anchors, splits, captures, lookarounds, counted loops, backreferences in four forms. |
 | Backtracking matcher: explicit stack, memo of failed places, counted loops, first sets, time and memory limits | The Go and Rust virtual machines | The Rust form (per-thread state, retained capacity) is the closer model for .NET. |
 | ASCII automaton for linear patterns | The Go and Rust automata | 256 states, built on first use. |
@@ -80,8 +80,9 @@ The options are ECMA-262's flags and nothing else: a `[Flags] enum RegexFlags` w
 
 `RegexFlags.None` is `new RegExp(pattern)` with no flags: the Annex B grammar and matching by UTF-16 code unit,
 which is what ECMA-262 does with no flag. The u-first reading JSON Schema uses (the u flag grammar, then Annex B
-when that refuses) is the caller's: two calls of the non-throwing `Regex.TryCreate(pattern, flags, out Regex?
-regex, out string? error)`, which costs no exception, and `Regex.Flags` says which flags are in force.
+when that refuses) is the caller's: two calls of the non-throwing `Regex.TryCreate(pattern, flags, matchTimeout, out
+Regex? regex, out string? error)`, which costs no exception and needs no global default timeout, and `Regex.Flags`
+says which flags are in force.
 
 Where ECMA-262 keeps `lastIndex` on the `RegExp` object, the library takes the position as an argument, as .NET
 does: `Match(input, startAt)` is `exec` with `lastIndex` set to `startAt`, and `Sticky` anchors it there. There is
@@ -102,9 +103,24 @@ sets hold every form of a character where ECMA-262's hold the folded form, and t
 intersection, difference and complement because a set here is a union of whole case classes. A class with strings
 compiles to a non-capturing group of an alternation: the strings longest first, each a sequence of characters
 (each the set of its forms under `i`), then the set; the matcher, the start searches and the generator see
-nothing new. The seven properties of strings are a generated file of their own (`EcmaRegexUnicodeStrings.cs`,
-from the two emoji sequence files of Unicode 17, by `tools/unicode/gen-ecma-unicode-strings.ps1`), read the first
-time a pattern names one.
+nothing new. The seven properties of strings are a generated file of their own for each version of Unicode
+(`EcmaRegexUnicodeStrings17.cs`, from the two emoji sequence files of Unicode 17, by
+`tools/unicode/gen-ecma-unicode-strings.ps1`), read the first time a pattern names one.
+
+**The edition and the version of Unicode.** Two settings beside the flags, each independent of the other, and
+neither a flag letter, since the flags are ECMA-262's. `RegexEdition` is `Current` (the default, ECMAScript 2025) or
+`Es2020`, the grammar of ECMA-262's 11th edition, which JSON Schema 2020-12 names. The 2020 grammar refuses what later
+editions added, and nothing else: the `d` and `v` flags, modifier groups, a group name used by two groups, and a
+property name or value that is not in the edition's tables (`Es2020Properties.cs`, generated from the test data's
+`es2020-properties.json`). `RegexUnicodeVersion` is `V13`, `V17`, `V18`, `Latest` (18 today) or `Default`, the
+version of the V8 the answers are held to (17 today). Each version is an instance of `UnicodeTables` over its own
+generated data (`EcmaRegexUnicodeData13.cs` and so on), read lazily as before. Both settings are resolved when the
+pattern is compiled: the edition changes only what the parser accepts, and the version only which tables the parser
+reads its classes and case folding from. The one thing a match reads from the version is the case folding of a
+case-insensitive backreference, whose instruction carries the version as a number, so a warm match costs the same
+whatever the settings. The constructor, `TryCreate`, `IsValid` and `[GeneratedRegex]` (as the named arguments
+`Edition` and `UnicodeVersion`) take them, and `Regex.Edition` and `Regex.UnicodeVersion` report them, the version
+resolved.
 
 ### 3.3 Errors, and the members whose algorithm is ECMA-262's
 
@@ -493,7 +509,7 @@ protected by a ruleset in the same shape as Corvus.JsonSchema's.
 
 ### 8.1 The data set
 
-`corvus-dotnet/ecma262-regex-test-data` holds V8's verdicts (Node 24.22.0, V8 13.6.233.17, Unicode 17) for every pattern of its families
+`corvus-dotnet/ecma262-regex-test-data` holds V8's verdicts (Node 24.22.1, V8 13.6.233.17, Unicode 17) for every pattern of its families
 (validity under both grammars) and `RegExp.prototype.test` answers for the texts of each, with the `i`, `m` and
 `s` flags where a family exercises them. It is the oracle for every Corvus port, and this library is held to all
 of it, over both encodings, interpreted and as generated code:

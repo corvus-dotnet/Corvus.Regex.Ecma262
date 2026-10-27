@@ -21,7 +21,7 @@ public class UnicodeTablesTests
     [DataRow("ASCII", 'é', false)]
     public void APropertyEscapeNamesItsSet(string property, char c, bool member)
     {
-        int[]? set = EcmaRegexUnicode.Property(property.AsSpan(), out _);
+        int[]? set = UnicodeTables.V17.Property(property.AsSpan(), out _);
         Assert.IsNotNull(set, property);
         Assert.AreEqual(member, EcmaRegexUnicode.Contains(set, c), $"\\p{{{property}}} and '{c}'");
     }
@@ -29,13 +29,13 @@ public class UnicodeTablesTests
     [TestMethod]
     public void AnUnknownPropertyIsNoSet()
     {
-        Assert.IsNull(EcmaRegexUnicode.Property("Nope".AsSpan(), out _));
+        Assert.IsNull(UnicodeTables.V17.Property("Nope".AsSpan(), out _));
     }
 
     [TestMethod]
     public void SimpleCaseFoldingJoinsTheKelvinSignToK()
     {
-        int[] closure = EcmaRegexUnicode.FoldClosure([0x4B, 0x4B], unicode: true);
+        int[] closure = UnicodeTables.V17.FoldClosure([0x4B, 0x4B], unicode: true);
         Assert.IsTrue(EcmaRegexUnicode.Contains(closure, 0x6B), "k");
         Assert.IsTrue(EcmaRegexUnicode.Contains(closure, 0x212A), "Kelvin sign");
     }
@@ -43,7 +43,7 @@ public class UnicodeTablesTests
     [TestMethod]
     public void TheCanonicalizeOfAPatternWithNoFlagLeavesTheKelvinSignAlone()
     {
-        int[] closure = EcmaRegexUnicode.FoldClosure([0x4B, 0x4B], unicode: false);
+        int[] closure = UnicodeTables.V17.FoldClosure([0x4B, 0x4B], unicode: false);
         Assert.IsTrue(EcmaRegexUnicode.Contains(closure, 0x6B), "k");
         Assert.IsFalse(EcmaRegexUnicode.Contains(closure, 0x212A), "Kelvin sign");
     }

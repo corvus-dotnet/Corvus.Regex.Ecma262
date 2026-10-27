@@ -77,4 +77,10 @@ public sealed class GeneratedRegexAttribute : Attribute
 
     /// <summary>Gets the limit of time on a match in milliseconds, or -1 for none.</summary>
     public int MatchTimeoutMilliseconds { get; }
+
+    /// <summary>Gets or sets the edition of ECMA-262 whose grammar the pattern is read with: <see cref="RegexEdition.Current"/> unless set.</summary>
+    public RegexEdition Edition { get; set; }
+
+    /// <summary>Gets or sets the version of Unicode whose character database the pattern is read with: <see cref="RegexUnicodeVersion.Default"/> unless set.</summary>
+    public RegexUnicodeVersion UnicodeVersion { get; set; }
 }

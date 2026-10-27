@@ -92,6 +92,56 @@ public class GeneratorTests
     }
 
     [TestMethod]
+    public void TheEditionAndVersionOfUnicodeArePassedToTheRegex()
+    {
+        (Compilation output, ImmutableArray<Diagnostic> diagnostics, string generated) = Run("""
+            using Corvus.Ecma262.RegularExpressions;
+            public static partial class Patterns
+            {
+                [GeneratedRegex(@"\p{sc=Grek}", "u", Edition = RegexEdition.Es2020, UnicodeVersion = RegexUnicodeVersion.V13)]
+                public static partial Regex Greek();
+
+                [GeneratedRegex(@"(.)\1", "iu", UnicodeVersion = RegexUnicodeVersion.V18)]
+                public static partial Regex Twice();
+
+                [GeneratedRegex("x", "")]
+                public static partial Regex Plain();
+            }
+            """);
+        Assert.AreEqual(0, diagnostics.Length, string.Join("\n", diagnostics));
+        AssertCompiles(output);
+        StringAssert.Contains(generated, "Regex.DefaultMatchTimeout, (global::Corvus.Ecma262.RegularExpressions.RegexEdition)1, (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)13, new Bounds(), new Captures());");
+        StringAssert.Contains(generated, "Regex.DefaultMatchTimeout, (global::Corvus.Ecma262.RegularExpressions.RegexEdition)0, (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)18, new Bounds(), new Captures());");
+        StringAssert.Contains(generated, "(global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)18");
+        // The defaults are not written, so the code of a member without them is as it was.
+        StringAssert.Contains(generated, "new(\"x\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)0, global::Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout, new Bounds(), new Captures());");
+    }
+
+    [TestMethod]
+    [DataRow("(?i:a)", "u", "Edition = RegexEdition.Es2020", "CRE0001", "Invalid group")]
+    [DataRow(@"\p{Script=Yezidi}", "u", "Edition = RegexEdition.Es2020, UnicodeVersion = RegexUnicodeVersion.V13", "CRE0001", "Invalid property name")]
+    [DataRow(@"\p{Script=Jurchen}", "u", "UnicodeVersion = RegexUnicodeVersion.V17", "CRE0001", "Invalid property name")]
+    [DataRow("a", "v", "Edition = RegexEdition.Es2020", "CRE0003", "no d or v flag")]
+    [DataRow("a", "d", "Edition = RegexEdition.Es2020", "CRE0003", "no d or v flag")]
+    [DataRow("a", "", "Edition = (RegexEdition)9", "CRE0003", "not a RegexEdition")]
+    [DataRow("a", "", "UnicodeVersion = (RegexUnicodeVersion)16", "CRE0003", "not a RegexUnicodeVersion")]
+    public void APatternTheEditionOrVersionRefusesIsABuildError(string pattern, string flags, string settings, string id, string message)
+    {
+        (_, ImmutableArray<Diagnostic> diagnostics, string generated) = Run($$"""
+            using Corvus.Ecma262.RegularExpressions;
+            public static partial class Patterns
+            {
+                [GeneratedRegex({{Literal(pattern)}}, "{{flags}}", {{settings}})]
+                public static partial Regex Bad();
+            }
+            """);
+        Assert.AreEqual(1, diagnostics.Length, string.Join("\n", diagnostics));
+        Assert.AreEqual(id, diagnostics[0].Id);
+        StringAssert.Contains(diagnostics[0].GetMessage(), message);
+        Assert.AreEqual(string.Empty, generated);
+    }
+
+    [TestMethod]
     [DataRow("public static partial Regex M(int x);", "CRE0002", "has parameters")]
     [DataRow("public partial Regex M();", "CRE0002", "not static")]
     [DataRow("public static partial string M();", "CRE0002", "does not return")]

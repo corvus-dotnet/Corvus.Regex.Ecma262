@@ -24,6 +24,8 @@ patterns and exec calls among them, with none wrong.
   on Unicode 17 data, the `u` flag, and the `v` flag with set notation (`[[a-z]--[aeiou]]`, `&&`), strings in classes
   (`\q{...}`) and the properties of strings (`\p{RGI_Emoji}`). The flags are ECMA-262's letters (`d`, `g`, `i`, `m`,
   `s`, `u`, `v`, `y`), not `RegexOptions`.
+- **The grammar of ECMAScript 2020 and a choice of Unicode version**, each chosen on its own: the grammar JSON Schema
+  2020-12 names, and the character database of Unicode 13, 17 (the default, V8's) or 18.
 - **The shape of `System.Text.RegularExpressions`**: `Regex`, `Match`, `Group`, `Capture`, `Matches`, `Replace`,
   `Split` and `EnumerateMatches`, in the namespace `Corvus.Ecma262.RegularExpressions`, so it drops in where the .NET
   class is used.
@@ -147,14 +149,35 @@ int dates = Patterns.Dates().Count("on 11/18/2019 and 1/2/03");    // 2
 ### Validity without an exception
 
 JSON Schema reads a pattern with the `u` flag first and with the Annex B grammar when that refuses. `TryCreate`
-costs no exception:
+costs no exception, and takes the match timeout, so a validator needs no global default:
 
 ```csharp
-if (!Regex.TryCreate(pattern, RegexFlags.Unicode, out Regex? regex, out string? error)
-    && !Regex.TryCreate(pattern, RegexFlags.None, out regex, out error))
+TimeSpan timeout = TimeSpan.FromSeconds(1);
+if (!Regex.TryCreate(pattern, RegexFlags.Unicode, timeout, out Regex? regex, out string? error)
+    && !Regex.TryCreate(pattern, RegexFlags.None, timeout, out regex, out error))
 {
     Console.WriteLine(error);
 }
+```
+
+### The edition and the version of Unicode
+
+JSON Schema 2020-12 names the grammar of ECMAScript 2020 (ECMA-262, 11th edition). `RegexEdition.Es2020` refuses what
+later editions added, and nothing else: the `d` and `v` flags, modifier groups such as `(?i:...)`, a group name used by
+two groups, and a property name or value that is not in the 2020 tables (such as `\p{Script=Yezidi}`). A pattern it
+accepts has the same answers as in today's grammar.
+
+The version of Unicode is chosen apart from the edition: `RegexUnicodeVersion.V13`, `V17` or `V18`, `Latest` (18
+today) or `Default`, which is the version of the V8 the answers are held to (17 today). It decides the members of each
+`\p{...}`, the characters of a group name and the case folding of the `i` flag. Both are read when the pattern is
+compiled, so a match costs the same whichever is chosen.
+
+```csharp
+// ECMAScript 2020 as its edition was published, with the Unicode of its year.
+bool valid = Regex.TryCreate(pattern, RegexFlags.Unicode, timeout, RegexEdition.Es2020, RegexUnicodeVersion.V13, out Regex? regex, out string? error);
+
+[GeneratedRegex(@"\p{Script=Greek}+", "u", Edition = RegexEdition.Es2020, UnicodeVersion = RegexUnicodeVersion.Latest)]
+public static partial Regex Greek();
 ```
 
 ## The flags

@@ -57,6 +57,8 @@
     <Compile Include="ValueMatch.cs" />
     <Compile Include="ValueMatchEnumerator.cs" />
     <Compile Include="RegexFlags.cs" />
+    <Compile Include="RegexEdition.cs" />
+    <Compile Include="RegexUnicodeVersion.cs" />
     <Compile Include="GeneratedRegexAttribute.cs" />
     <Compile Include="GeneratedRunner.cs" />
     <Compile Include="RegexMatchTimeoutException.cs" />
@@ -69,8 +71,14 @@
     <Compile Include="Syntax\EcmaRegexNode.cs" />
     <Compile Include="Syntax\EcmaRegexParser.cs" />
     <Compile Include="Unicode\EcmaRegexUnicode.cs" />
-    <Compile Include="Unicode\EcmaRegexUnicodeData.cs" />
-    <Compile Include="Unicode\EcmaRegexUnicodeStrings.cs" />
+    <Compile Include="Unicode\EcmaRegexUnicodeData13.cs" />
+    <Compile Include="Unicode\EcmaRegexUnicodeData17.cs" />
+    <Compile Include="Unicode\EcmaRegexUnicodeData18.cs" />
+    <Compile Include="Unicode\EcmaRegexUnicodeStrings13.cs" />
+    <Compile Include="Unicode\EcmaRegexUnicodeStrings17.cs" />
+    <Compile Include="Unicode\EcmaRegexUnicodeStrings18.cs" />
+    <Compile Include="Unicode\Es2020Properties.cs" />
+    <Compile Include="Unicode\UnicodeTables.cs" />
   </ItemGroup>
 
   <ItemGroup>

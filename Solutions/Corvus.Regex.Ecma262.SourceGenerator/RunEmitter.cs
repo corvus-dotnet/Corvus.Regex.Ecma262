@@ -374,7 +374,8 @@ internal static class RunEmitter
             {
                 bool back = i.Op is Op.BackrefFoldBack or Op.BackrefUnitsBack;
                 bool fold = i.Op is Op.BackrefFold or Op.BackrefFoldBack;
-                string flag = i.Flag ? "true" : "false";
+                // The version of Unicode whose case folding the backreference matches with, when it is not 17.
+                string flag = (i.Flag ? "true" : "false") + (i.B == (int)RegexUnicodeVersion.V17 ? string.Empty : ", (" + Ns + "RegexUnicodeVersion)" + i.B.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 EmitSteps(sb, indent);
                 Line(sb, indent, "from = caps[" + (2 * i.A) + "];");
                 Line(sb, indent, "to = caps[" + ((2 * i.A) + 1) + "];");
