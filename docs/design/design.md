@@ -281,7 +281,7 @@ against a literal's forms by one vector compare per form where every character i
 UTF-16 the same search looks at the low byte of each unit, so it has twice the lanes to look at; the runtime's
 own string search (`SearchValues<string>`, which is Teddy too) keeps ASCII literals there, with the forms its
 comparison does not know (the long s, the Kelvin sign) looked for apart, and the fingerprint search takes the
-rest. Measured on the search alone over UTF-8, three names under the i flag went from 0.26 to 0.06 ms, seven from
+rest. Teddy is Geoff Langdale's, from Intel's [Hyperscan](https://github.com/intel/hyperscan) (`src/fdr/teddy.c`); the [README of aho-corasick's port](https://github.com/BurntSushi/aho-corasick/blob/master/src/packed/teddy/README.md) describes it in full. Measured on the search alone over UTF-8, three names under the i flag went from 0.26 to 0.06 ms, seven from
 0.95 to 0.08, four over sixteen million characters from 12.2 to 1.8, and five Russian names from 1.12 to 0.15.
 Below the cost of 0.35 the needle's one anchor position wins by half: two or three literals that start with
 capitals (`Sher|Hol`, `Sherlock|Street`, `Holmes|Watson`) search at 0.53 to 0.65 of the runtime's time.

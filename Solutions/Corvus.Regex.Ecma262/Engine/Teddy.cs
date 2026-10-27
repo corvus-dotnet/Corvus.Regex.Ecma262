@@ -24,11 +24,19 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// the lanes at units are starts; every form of a letter is in the tables, so nothing is searched for apart.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Teddy is Geoff Langdale's, from Intel's Hyperscan (<c>src/fdr/teddy.c</c> in
+/// <see href="https://github.com/intel/hyperscan"/>), which the Rust crate aho-corasick ports. The README of that port,
+/// <see href="https://github.com/BurntSushi/aho-corasick/blob/master/src/packed/teddy/README.md"/>, describes it in
+/// full, with the masks worked through and the papers it rests on.
+/// </para>
+/// <para>
 /// The loop over the vectors with no start in them is its own method for each number of positions, with no call
 /// in it: the tables then stay in registers, where a loop that also handles the starts reloads them at every
 /// vector (the three-name search measured 61 us against 75 with one loop). A start is compared against a
 /// literal's forms with one vector compare per form where the literal fits a vector and every character of it
 /// is one unit in every form.
+/// </para>
 /// </remarks>
 /// <typeparam name="T">The unit: byte for UTF-8, ushort for UTF-16.</typeparam>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
