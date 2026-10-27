@@ -158,7 +158,7 @@ public struct Inst
     /// <summary>Gets or sets a group, a loop or the first of a range of groups, depending on the instruction.</summary>
     public int A { get; set; }
 
-    /// <summary>Gets or sets the last of a range of groups.</summary>
+    /// <summary>Gets or sets the last of a range of groups, and for a backreference the <see cref="RegexUnicodeVersion"/> of its case folding.</summary>
     public int B { get; set; }
 
     /// <summary>Gets or sets the least count of a repetition.</summary>
@@ -2989,7 +2989,7 @@ internal sealed class Compiler
                 // string. So matching each in turn matches the one that took part.
                 foreach (int g in n.Groups)
                 {
-                    this.Add(new Inst(op) { A = this.tracked[g], Flag = this.unicode });
+                    this.Add(new Inst(op) { A = this.tracked[g], B = (int)n.FoldVersion, Flag = this.unicode });
                 }
 
                 break;

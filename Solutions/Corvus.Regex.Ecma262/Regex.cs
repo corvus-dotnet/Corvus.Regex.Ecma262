@@ -81,7 +81,24 @@ public sealed partial class Regex
     /// <exception cref="RegexParseException">The pattern is not valid in the grammar of its flags.</exception>
     /// <exception cref="RegexPatternTooLargeException">The pattern is over a limit of size.</exception>
     public Regex(string pattern, RegexFlags flags, TimeSpan matchTimeout)
-        : this(pattern, flags, matchTimeout, null, null)
+        : this(pattern, flags, matchTimeout, RegexEdition.Current, RegexUnicodeVersion.Default, null, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Regex"/> class with a match timeout, the edition of the grammar
+    /// and the version of Unicode, which are independent of each other. A validator of JSON Schema 2020-12, which names
+    /// ECMAScript 2020, takes <see cref="RegexEdition.Es2020"/>.
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="matchTimeout">The time a match may take before it is abandoned with <see cref="RegexMatchTimeoutException"/>, or <see cref="InfiniteMatchTimeout"/>.</param>
+    /// <param name="edition">The edition of ECMA-262 whose grammar the pattern is read with.</param>
+    /// <param name="unicodeVersion">The version of Unicode whose character database the pattern is read with.</param>
+    /// <exception cref="RegexParseException">The pattern is not valid in the grammar of its flags and edition.</exception>
+    /// <exception cref="RegexPatternTooLargeException">The pattern is over a limit of size.</exception>
+    public Regex(string pattern, RegexFlags flags, TimeSpan matchTimeout, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
+        : this(pattern, flags, matchTimeout, edition, unicodeVersion, null, null)
     {
     }
 
@@ -96,6 +113,23 @@ public sealed partial class Regex
     /// <param name="captures">The generated code for the program that tracks every group, or null.</param>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public Regex(string pattern, RegexFlags flags, TimeSpan matchTimeout, GeneratedRunner? bounds, GeneratedRunner? captures)
+        : this(pattern, flags, matchTimeout, RegexEdition.Current, RegexUnicodeVersion.Default, bounds, captures)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Regex"/> class whose programs run as the generated code given
+    /// rather than the interpreter: the seam for the source generator, not for use by hand.
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="matchTimeout">The limit of time on a match.</param>
+    /// <param name="edition">The edition of the grammar.</param>
+    /// <param name="unicodeVersion">The version of Unicode.</param>
+    /// <param name="bounds">The generated code for the program that finds a match's bounds, or null.</param>
+    /// <param name="captures">The generated code for the program that tracks every group, or null.</param>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public Regex(string pattern, RegexFlags flags, TimeSpan matchTimeout, RegexEdition edition, RegexUnicodeVersion unicodeVersion, GeneratedRunner? bounds, GeneratedRunner? captures)
     {
         this.captureRunner = captures;
         if (pattern is null)
@@ -105,9 +139,12 @@ public sealed partial class Regex
 
         ValidateFlags(flags);
         ValidateMatchTimeout(matchTimeout);
+        ValidateEdition(flags, edition);
+        this.UnicodeVersion = UnicodeTables.Resolve(unicodeVersion);
         this.Pattern = pattern;
         this.Flags = flags;
         this.MatchTimeout = matchTimeout;
+        this.Edition = edition;
         bool unicode = (flags & (RegexFlags.Unicode | RegexFlags.UnicodeSets)) != 0;
 
         // The reader and the compiler go a level deeper for each level of groups (and with the v flag, of classes),
@@ -123,7 +160,9 @@ public sealed partial class Regex
                     ignoreCase: (flags & RegexFlags.IgnoreCase) != 0,
                     multiline: (flags & RegexFlags.Multiline) != 0,
                     dotAll: (flags & RegexFlags.DotAll) != 0,
-                    unicodeSets: (flags & RegexFlags.UnicodeSets) != 0);
+                    unicodeSets: (flags & RegexFlags.UnicodeSets) != 0,
+                    edition: edition,
+                    unicodeVersion: unicodeVersion);
                 EcmaRegexNode root = parser.Parse();
                 return (parser, root, Compiler.Compile(root, unicode, parser.GroupCount, trackAll: false));
             });
@@ -145,6 +184,15 @@ public sealed partial class Regex
 
     /// <summary>Gets the flags.</summary>
     public RegexFlags Flags { get; }
+
+    /// <summary>Gets the edition of ECMA-262 whose grammar the pattern was read with.</summary>
+    public RegexEdition Edition { get; }
+
+    /// <summary>
+    /// Gets the version of Unicode whose character database the pattern was read with, resolved: never
+    /// <see cref="RegexUnicodeVersion.Default"/> or <see cref="RegexUnicodeVersion.Latest"/>.
+    /// </summary>
+    public RegexUnicodeVersion UnicodeVersion { get; }
 
     /// <summary>
     /// Gets the match timeout of every instance made without one of its own: the <c>REGEX_DEFAULT_MATCH_TIMEOUT</c>
@@ -237,10 +285,35 @@ public sealed partial class Regex
     /// <param name="error">Why the pattern was refused, or null.</param>
     /// <returns><see langword="true"/> when the pattern is valid in the grammar of its flags and not over a limit of size.</returns>
     public static bool TryCreate(string pattern, RegexFlags flags, out Regex? regex, out string? error)
+        => TryCreate(pattern, flags, DefaultMatchTimeout, RegexEdition.Current, RegexUnicodeVersion.Default, out regex, out error);
+
+    /// <summary>Creates a regular expression with a match timeout without throwing for a pattern that is not valid.</summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="matchTimeout">The time a match may take before it is abandoned with <see cref="RegexMatchTimeoutException"/>, or <see cref="InfiniteMatchTimeout"/>.</param>
+    /// <param name="regex">The regular expression, or null.</param>
+    /// <param name="error">Why the pattern was refused, or null.</param>
+    /// <returns><see langword="true"/> when the pattern is valid in the grammar of its flags and not over a limit of size.</returns>
+    public static bool TryCreate(string pattern, RegexFlags flags, TimeSpan matchTimeout, out Regex? regex, out string? error)
+        => TryCreate(pattern, flags, matchTimeout, RegexEdition.Current, RegexUnicodeVersion.Default, out regex, out error);
+
+    /// <summary>
+    /// Creates a regular expression with a match timeout, the edition of the grammar and the version of Unicode,
+    /// without throwing for a pattern that is not valid.
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="matchTimeout">The time a match may take before it is abandoned with <see cref="RegexMatchTimeoutException"/>, or <see cref="InfiniteMatchTimeout"/>.</param>
+    /// <param name="edition">The edition of ECMA-262 whose grammar the pattern is read with.</param>
+    /// <param name="unicodeVersion">The version of Unicode whose character database the pattern is read with.</param>
+    /// <param name="regex">The regular expression, or null.</param>
+    /// <param name="error">Why the pattern was refused, or null.</param>
+    /// <returns><see langword="true"/> when the pattern is valid in the grammar of its flags and edition and not over a limit of size.</returns>
+    public static bool TryCreate(string pattern, RegexFlags flags, TimeSpan matchTimeout, RegexEdition edition, RegexUnicodeVersion unicodeVersion, out Regex? regex, out string? error)
     {
         try
         {
-            regex = new Regex(pattern, flags);
+            regex = new Regex(pattern, flags, matchTimeout, edition, unicodeVersion);
             error = null;
             return true;
         }
@@ -263,6 +336,15 @@ public sealed partial class Regex
     /// <param name="flags">The flags.</param>
     /// <returns><see langword="true"/> when it is. A pattern over a limit of size is not reported as valid.</returns>
     public static bool IsValid(string pattern, RegexFlags flags) => TryCreate(pattern, flags, out _, out _);
+
+    /// <summary>Whether a pattern is a valid ECMA-262 pattern in the grammar of the flags and the edition, under a version of Unicode.</summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="edition">The edition of ECMA-262 whose grammar the pattern is read with.</param>
+    /// <param name="unicodeVersion">The version of Unicode whose character database the pattern is read with.</param>
+    /// <returns><see langword="true"/> when it is. A pattern over a limit of size is not reported as valid.</returns>
+    public static bool IsValid(string pattern, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
+        => TryCreate(pattern, flags, InfiniteMatchTimeout, edition, unicodeVersion, out _, out _);
 
     /// <summary>Whether a pattern matches anywhere in a text, with no flags.</summary>
     /// <param name="input">The text.</param>
@@ -455,6 +537,20 @@ public sealed partial class Regex
             throw new RegexParseException("Invalid regular expression flags", 0);
         }
 
+    }
+
+    /// <summary>Refuses an edition that is not one, and the flags ECMAScript 2020 does not have: <c>d</c> (2022) and <c>v</c> (2024).</summary>
+    private static void ValidateEdition(RegexFlags flags, RegexEdition edition)
+    {
+        if (edition is not RegexEdition.Current and not RegexEdition.Es2020)
+        {
+            throw new ArgumentOutOfRangeException(nameof(edition));
+        }
+
+        if (edition == RegexEdition.Es2020 && (flags & (RegexFlags.HasIndices | RegexFlags.UnicodeSets)) != 0)
+        {
+            throw new RegexParseException("Invalid regular expression flags", 0);
+        }
     }
 
     /// <summary>The default match timeout the <see cref="AppContext"/> data sets.</summary>

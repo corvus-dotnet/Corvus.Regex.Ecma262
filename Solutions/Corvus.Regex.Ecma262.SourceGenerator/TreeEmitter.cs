@@ -521,7 +521,7 @@ internal static class TreeEmitter
                             continue;
                         }
 
-                        this.Line("if (!" + Ns + "Matcher.BackrefAt<TUnit, TEncoding>(input, pos, caps[" + (2 * t) + "], caps[" + ((2 * t) + 1) + "], " + (n.Fold ? "true" : "false") + ", " + (this.p.Unicode ? "true" : "false") + ", out w))");
+                        this.Line("if (!" + Ns + "Matcher.BackrefAt<TUnit, TEncoding>(input, pos, caps[" + (2 * t) + "], caps[" + ((2 * t) + 1) + "], " + (n.Fold ? "true" : "false") + ", " + (this.p.Unicode ? "true" : "false") + (n.Fold && n.FoldVersion != RegexUnicodeVersion.V17 ? ", (" + Ns + "RegexUnicodeVersion)" + ((int)n.FoldVersion).ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty) + ", out w))");
                         this.Line("{");
                         this.Line("    goto " + this.done + ";");
                         this.Line("}");

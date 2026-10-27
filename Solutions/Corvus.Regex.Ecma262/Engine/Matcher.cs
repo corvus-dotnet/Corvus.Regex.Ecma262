@@ -2622,11 +2622,32 @@ public static class Matcher
     /// <param name="pos">The position.</param>
     /// <param name="from">The start of the capture, or <see cref="MatchState.None"/>.</param>
     /// <param name="to">The end of the capture.</param>
-    /// <param name="fold">Whether case is folded.</param>
+    /// <param name="fold">Whether case is folded, as Unicode 17 folds it.</param>
     /// <param name="unicode">Whether the pattern has the u flag.</param>
     /// <param name="width">The units taken.</param>
     /// <returns>Whether it is.</returns>
     public static bool BackrefAt<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, int pos, int from, int to, bool fold, bool unicode, out int width)
+        where TUnit : unmanaged, IEquatable<TUnit>
+        where TEncoding : struct, ITextEncoding<TUnit>
+        => BackrefAt<TUnit, TEncoding>(input, pos, from, to, fold, unicode, RegexUnicodeVersion.V17, out width);
+
+    /// <summary>
+    /// Whether the text a group captured is at a position, and how many units it takes there: compared unit by
+    /// unit for a pattern with the u flag and no folding, else a character at a time, folding case when asked with
+    /// the case mappings of a version of Unicode. A group that has not taken part matches the empty string.
+    /// </summary>
+    /// <typeparam name="TUnit">The unit of the text.</typeparam>
+    /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
+    /// <param name="input">The text.</param>
+    /// <param name="pos">The position.</param>
+    /// <param name="from">The start of the capture, or <see cref="MatchState.None"/>.</param>
+    /// <param name="to">The end of the capture.</param>
+    /// <param name="fold">Whether case is folded.</param>
+    /// <param name="unicode">Whether the pattern has the u flag.</param>
+    /// <param name="version">The version of Unicode whose case folding is used.</param>
+    /// <param name="width">The units taken.</param>
+    /// <returns>Whether it is.</returns>
+    public static bool BackrefAt<TUnit, TEncoding>(ReadOnlySpan<TUnit> input, int pos, int from, int to, bool fold, bool unicode, RegexUnicodeVersion version, out int width)
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
@@ -2651,6 +2672,7 @@ public static class Matcher
         }
 
         bool units = !unicode;
+        UnicodeTables? tables = fold ? UnicodeTables.For(version) : null;
         int at = pos;
         while (from < to)
         {
@@ -2663,7 +2685,7 @@ public static class Matcher
 
             int got = units ? enc.UnitAt(input, at, out w) : enc.Decode(input, at, out w);
             at += w;
-            if (got != want && !(fold && CaseFolding.Canonicalize(got, unicode) == CaseFolding.Canonicalize(want, unicode)))
+            if (got != want && !(fold && tables!.Canonicalize(got, unicode) == tables.Canonicalize(want, unicode)))
             {
                 return false;
             }
@@ -3372,6 +3394,7 @@ public static class Matcher
                     int at = pos;
                     bool ok = true;
                     bool fold = i.Op == Op.BackrefFold;
+                    UnicodeTables? tables = fold ? UnicodeTables.For((RegexUnicodeVersion)i.B) : null;
                     while (from < to && ok)
                     {
                         int want = units ? enc.UnitAt(input, from, out int w) : enc.Decode(input, from, out w);
@@ -3384,7 +3407,7 @@ public static class Matcher
 
                         int got = units ? enc.UnitAt(input, at, out w) : enc.Decode(input, at, out w);
                         at += w;
-                        ok = got == want || (fold && CaseFolding.Canonicalize(got, i.Flag) == CaseFolding.Canonicalize(want, i.Flag));
+                        ok = got == want || (fold && tables!.Canonicalize(got, i.Flag) == tables.Canonicalize(want, i.Flag));
                     }
 
                     if (ok)
@@ -3413,6 +3436,7 @@ public static class Matcher
                     int at = pos;
                     bool ok = true;
                     bool fold = i.Op == Op.BackrefFoldBack;
+                    UnicodeTables? tables = fold ? UnicodeTables.For((RegexUnicodeVersion)i.B) : null;
                     while (from < to && ok)
                     {
                         int want = units ? enc.UnitBefore(input, to, out int w) : enc.DecodeBefore(input, to, out w);
@@ -3425,7 +3449,7 @@ public static class Matcher
 
                         int got = units ? enc.UnitBefore(input, at, out w) : enc.DecodeBefore(input, at, out w);
                         at -= w;
-                        ok = got == want || (fold && CaseFolding.Canonicalize(got, i.Flag) == CaseFolding.Canonicalize(want, i.Flag));
+                        ok = got == want || (fold && tables!.Canonicalize(got, i.Flag) == tables.Canonicalize(want, i.Flag));
                     }
 
                     if (ok)

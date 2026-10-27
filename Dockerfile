@@ -7,9 +7,9 @@
 # writes /out/industry.json (and industry.md, industry-v8.json beside it). Mount the test data at /data to skip the
 # clone; set JOB=short for a quick look.
 FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:747cbade5bfd918a175ac32f8f1d931edec2c7d0d5397a3de72eaef1ac1f66d2
-ARG NODE_VERSION=24.22.0
-# The SHA-256 of node-v24.22.0-linux-x64.tar.xz, from nodejs.org/dist/v24.22.0/SHASUMS256.txt.
-ARG NODE_SHA256=cc2f601cee82d9a5a233302fe307abc600727035fd7d2c3a3571755989e95008
+ARG NODE_VERSION=24.22.1
+# The SHA-256 of node-v24.22.1-linux-x64.tar.xz, from nodejs.org/dist/v24.22.1/SHASUMS256.txt.
+ARG NODE_SHA256=6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6
 RUN apt-get update && apt-get install -y --no-install-recommends curl git python3 ca-certificates xz-utils \
     && rm -rf /var/lib/apt/lists/* \
     && curl -sSfL -o /tmp/node.tar.xz "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \

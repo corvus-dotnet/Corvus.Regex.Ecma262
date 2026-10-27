@@ -33,6 +33,12 @@ internal static class Factory
 
     private static readonly Lazy<ImmutableArray<MetadataReference>> References = new(LoadReferences);
 
+    /// <summary>Gets or sets the edition of the grammar every pattern is read with.</summary>
+    public static RegexEdition Edition { get; set; }
+
+    /// <summary>Gets or sets the version of Unicode every pattern is read with.</summary>
+    public static RegexUnicodeVersion UnicodeVersion { get; set; }
+
     /// <summary>Gets the number of patterns with generated code.</summary>
     public static int Count => Runners.Count;
 
@@ -44,8 +50,8 @@ internal static class Factory
     public static Regex Make(string pattern, RegexFlags flags, TimeSpan limit)
     {
         return Runners.TryGetValue((pattern, Key(flags)), out (GeneratedRunner Bounds, GeneratedRunner Captures) r)
-            ? new Regex(pattern, flags, limit, r.Bounds, r.Captures)
-            : new Regex(pattern, flags, limit);
+            ? new Regex(pattern, flags, limit, Edition, UnicodeVersion, r.Bounds, r.Captures)
+            : new Regex(pattern, flags, limit, Edition, UnicodeVersion);
     }
 
     /// <summary>Generates, compiles and loads the code for the patterns of a file's records, one in <paramref name="every"/>.</summary>
@@ -123,7 +129,7 @@ internal static class Factory
             string runners;
             try
             {
-                runners = Gen::Corvus.Ecma262.RegularExpressions.SourceGenerator.RegexGenerator.Runners(batch[k].Pattern, (int)batch[k].Flags);
+                runners = Gen::Corvus.Ecma262.RegularExpressions.SourceGenerator.RegexGenerator.Runners(batch[k].Pattern, (int)batch[k].Flags, (Gen::Corvus.Ecma262.RegularExpressions.RegexEdition)(int)Edition, (Gen::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)(int)UnicodeVersion);
             }
             catch (Exception)
             {

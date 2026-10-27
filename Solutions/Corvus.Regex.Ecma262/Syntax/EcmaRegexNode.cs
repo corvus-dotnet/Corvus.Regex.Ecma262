@@ -105,6 +105,9 @@ internal sealed class EcmaRegexNode(EcmaRegexNodeKind kind)
     /// <summary>Gets or sets a value indicating whether a Backref, WordBoundary or NotWordBoundary is inside a case-insensitive group.</summary>
     public bool Fold { get; set; }
 
+    /// <summary>Gets or sets the version of Unicode whose case folding a Backref inside a case-insensitive group matches with.</summary>
+    public RegexUnicodeVersion FoldVersion { get; set; }
+
     /// <summary>Gets or sets a value indicating whether a Look is a lookbehind.</summary>
     public bool Behind { get; set; }
 
