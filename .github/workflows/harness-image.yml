@@ -2,7 +2,8 @@
 # published to ghcr.io/corvus-dotnet/corvus-regex-ecma262-dotnet (`:latest` from main, the version tag from the tag's
 # push). auto_release.yml pushes the tag with the endjin bot's token, which starts this workflow; the GitHub release it
 # then makes with the workflow's own token starts nothing. A run by hand with a tag builds and publishes that release's
-# image (to make one a release lacks).
+# image (to make one a release lacks). Built for linux/amd64 and linux/arm64, each natively on a runner of its own
+# architecture, then joined into one multi-platform tag.
 # This repository publishes no benchmark results of its own: the central benchmark site
 # (https://corvus-oss.org/corvus-regex-ecma262-benchmarks/) runs this image each night on its runner, beside
 # the engines of every other source, and is the one page of figures.
@@ -31,10 +32,23 @@ concurrency:
   group: harness-image-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  IMAGE: ghcr.io/corvus-dotnet/corvus-regex-ecma262-dotnet
+  # The version: the tag pushed, the release's, or the one given by hand.
+  VERSION: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || github.event.release.tag_name || '' }}
+
 jobs:
   image:
-    name: Harness image
-    runs-on: ubuntu-latest
+    name: Build and run (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - arch: amd64
+          runner: ubuntu-latest
+        - arch: arm64
+          runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -85,13 +99,46 @@ jobs:
       run: |
         tools/benchmarks/texts.sh texts
         docker run --rm -e COUNT_GATE=1 -v "$PWD/all.json:/workloads.json:ro" -v "$PWD/texts:/texts:ro" -v "$PWD/out:/out" harness
-    - name: Publish the image
-      if: github.ref == 'refs/heads/main' || github.ref_type == 'tag' || github.event_name == 'release' || inputs.tag != ''
+    - name: Push this architecture's image
+      # Under a tag of this run's alone; the publish job joins the two architectures into the tags the site pulls.
+      if: github.ref == 'refs/heads/main' || env.VERSION != ''
       env:
-        # The version: the tag pushed, the release's, or the one given by hand.
-        VERSION: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || github.event.release.tag_name || '' }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ACTOR: ${{ github.actor }}
+        ARCH: ${{ matrix.arch }}
       run: |
-        echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
-        image=ghcr.io/corvus-dotnet/corvus-regex-ecma262-dotnet
-        if [ '${{ github.ref }}' = 'refs/heads/main' ] && [ -z "$VERSION" ]; then docker tag harness "$image:latest" && docker push "$image:latest"; fi
-        if [ -n "$VERSION" ]; then docker tag harness "$image:$VERSION" && docker push "$image:$VERSION"; fi
+        echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+        docker tag harness "$IMAGE:build-$GITHUB_RUN_ID-$ARCH"
+        docker push "$IMAGE:build-$GITHUB_RUN_ID-$ARCH"
+
+  gate:
+    # The check the ruleset of main requires: it passes when the image built and ran on both architectures.
+    name: Harness image
+    needs: image
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Both architectures passed
+      env:
+        RESULT: ${{ needs.image.result }}
+      run: |
+        if [ "$RESULT" != success ]; then echo "::error::The image job ended $RESULT."; exit 1; fi
+
+  publish:
+    name: Publish the image
+    needs: image
+    if: github.ref == 'refs/heads/main' || github.ref_type == 'tag' || github.event_name == 'release' || inputs.tag != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+    - name: Join the architectures into one tag
+      # `:latest` from main; the version's tag from a tag, a release or a run by hand that names one.
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ACTOR: ${{ github.actor }}
+        REF: ${{ github.ref }}
+      run: |
+        echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+        if [ -n "$VERSION" ]; then tag="$IMAGE:$VERSION"; elif [ "$REF" = refs/heads/main ]; then tag="$IMAGE:latest"; else exit 0; fi
+        docker buildx imagetools create -t "$tag" "$IMAGE:build-$GITHUB_RUN_ID-amd64" "$IMAGE:build-$GITHUB_RUN_ID-arm64"
+        docker buildx imagetools inspect "$tag"
