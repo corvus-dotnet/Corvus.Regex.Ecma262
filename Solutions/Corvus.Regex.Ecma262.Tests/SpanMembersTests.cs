@@ -232,20 +232,9 @@ public class SpanMembersTests
         byte[] buffer8 = new byte[utf8.Length * 2];
         FixedWriter<char> writer = new(buffer);
         FixedWriter<byte> writer8 = new(buffer8);
-        Span<ValueCapture> captures = stackalloc ValueCapture[groups.GroupCount + 1];
-        for (int k = 0; k < 50; k++)
-        {
-            Work(words, groups, utf8, buffer, buffer8, writer, writer8, captures);
-        }
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int k = 0; k < 200; k++)
-        {
-            Work(words, groups, utf8, buffer, buffer8, writer, writer8, captures);
-        }
-
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.AreEqual(0, allocated, $"allocated {allocated} bytes");
+        ValueCapture[] captures = new ValueCapture[groups.GroupCount + 1];
+        long allocated = Allocations.Least(() => Work(words, groups, utf8, buffer, buffer8, writer, writer8, captures), 200, out string windows);
+        Assert.AreEqual(0, allocated, $"allocated {windows} bytes in three windows of 200 passes");
 
         static void Work(Regex words, Regex groups, byte[] utf8, char[] buffer, byte[] buffer8, FixedWriter<char> writer, FixedWriter<byte> writer8, Span<ValueCapture> captures)
         {

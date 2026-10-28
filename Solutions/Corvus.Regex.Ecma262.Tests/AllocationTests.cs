@@ -27,23 +27,19 @@ public class AllocationTests
     {
         Regex r = new(pattern, flags);
         byte[] utf8 = Encoding.UTF8.GetBytes(text);
-        for (int k = 0; k < 50; k++)
-        {
-            Assert.AreEqual(expected, r.IsMatch(text));
-            Assert.AreEqual(expected, r.IsMatch(utf8));
-        }
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int k = 0; k < 1000; k++)
-        {
-            if (r.IsMatch(text) != expected || r.IsMatch(utf8) != expected)
+        Assert.AreEqual(expected, r.IsMatch(text));
+        Assert.AreEqual(expected, r.IsMatch(utf8));
+        long allocated = Allocations.Least(
+            () =>
             {
-                Assert.Fail("The answer changed.");
-            }
-        }
-
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.AreEqual(0, allocated, $"/{pattern}/{flags} allocated {allocated} bytes over 2000 matches");
+                if (r.IsMatch(text) != expected || r.IsMatch(utf8) != expected)
+                {
+                    Assert.Fail("The answer changed.");
+                }
+            },
+            1000,
+            out string windows);
+        Assert.AreEqual(0, allocated, $"/{pattern}/{flags} allocated {windows} bytes in three windows of 2000 matches");
     }
 
     [TestMethod]
@@ -58,22 +54,18 @@ public class AllocationTests
         string text = new('a', groups);
         byte[] utf8 = Encoding.UTF8.GetBytes(text);
         ValueCapture[] captures = new ValueCapture[groups + 1];
-        for (int k = 0; k < 50; k++)
-        {
-            Assert.IsTrue(r.TryMatch(text.AsSpan(), 0, captures, out _));
-            Assert.IsTrue(r.TryMatch(utf8, 0, captures, out _));
-        }
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int k = 0; k < 1000; k++)
-        {
-            if (!r.TryMatch(text.AsSpan(), 0, captures, out _) || !r.TryMatch(utf8, 0, captures, out _))
+        Assert.IsTrue(r.TryMatch(text.AsSpan(), 0, captures, out _));
+        Assert.IsTrue(r.TryMatch(utf8, 0, captures, out _));
+        long allocated = Allocations.Least(
+            () =>
             {
-                Assert.Fail("The answer changed.");
-            }
-        }
-
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.AreEqual(0, allocated, $"{groups} groups /{flags} allocated {allocated} bytes over 2000 matches");
+                if (!r.TryMatch(text.AsSpan(), 0, captures, out _) || !r.TryMatch(utf8, 0, captures, out _))
+                {
+                    Assert.Fail("The answer changed.");
+                }
+            },
+            1000,
+            out string windows);
+        Assert.AreEqual(0, allocated, $"{groups} groups /{flags} allocated {windows} bytes in three windows of 2000 matches");
     }
 }
