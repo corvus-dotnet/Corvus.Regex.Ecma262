@@ -9,6 +9,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace Corvus.Ecma262.RegularExpressions;
@@ -86,7 +87,7 @@ public sealed class Teddy<T>
 
     /// <summary>Initializes a new instance of the <see cref="Teddy{T}"/> class.</summary>
     /// <param name="needles">The literals, at most <see cref="MostLiterals"/>, each at least two units long.</param>
-    /// <param name="packed">Over UTF-16, whether to narrow thirty-two units to bytes at each step (a unit beyond 255 to 255, which is then a bucket of its own) rather than look at the low byte of sixteen: for literals that are ASCII in their own form, with any forms beyond it. Needs AVX2.</param>
+    /// <param name="packed">Over UTF-16, whether to narrow thirty-two units to bytes at each step (a unit beyond 255 to 255, which is then a bucket of its own) rather than look at the low byte of sixteen: for literals that are ASCII in their own form, with any forms beyond it. Sixteen units at each step where the machine has no AVX2. Needs <see cref="PackedSupported"/>.</param>
     public Teddy(Needle<T>[] needles, bool packed = false)
     {
         this.needles = needles;
@@ -238,8 +239,8 @@ public sealed class Teddy<T>
     /// <summary>Gets a value indicating whether the search is vectorised on this machine.</summary>
     public static bool Supported => Vector128.IsHardwareAccelerated;
 
-    /// <summary>Gets a value indicating whether the packed search over UTF-16 is available on this machine.</summary>
-    public static bool PackedSupported => Avx2.IsSupported && Vector256.IsHardwareAccelerated;
+    /// <summary>Gets a value indicating whether the packed search over UTF-16 is available on this machine: thirty-two units at a step with AVX2, sixteen with AdvSimd (ARM) or SSE2.</summary>
+    public static bool PackedSupported => (Avx2.IsSupported && Vector256.IsHardwareAccelerated) || (Vector128.IsHardwareAccelerated && (AdvSimd.IsSupported || Sse2.IsSupported));
 
     private static int Unit(T u) => typeof(T) == typeof(byte) ? Unsafe.As<T, byte>(ref u) : Unsafe.As<T, ushort>(ref u);
 
@@ -266,7 +267,7 @@ public sealed class Teddy<T>
         int i = from;
         if (this.packed)
         {
-            int found = this.IndexOfPacked(input, ref i, last, out length);
+            int found = Avx2.IsSupported && Vector256.IsHardwareAccelerated ? this.IndexOfPacked(input, ref i, last, out length) : this.IndexOfPacked128(input, ref i, last, out length);
             if (found != -1)
             {
                 return found < 0 ? -1 : found;
@@ -324,6 +325,34 @@ public sealed class Teddy<T>
             }
 
             i += Vector256<byte>.Count;
+        }
+
+        return -1;
+    }
+
+    /// <summary>Over UTF-16 without AVX2: sixteen units narrowed to bytes at each step, then the lookups of the byte search. Returns the start, -1 with the position the vectors reached, or -2 past the last start.</summary>
+    private int IndexOfPacked128(ReadOnlySpan<T> input, ref int i, int last, out int length)
+    {
+        length = -1;
+        ReadOnlySpan<ushort> units = MemoryMarshal.Cast<T, ushort>(input);
+        int lastVector = units.Length - Vector128<byte>.Count - this.reach;
+        ref ushort s = ref MemoryMarshal.GetReference(units);
+        while (i <= lastVector)
+        {
+            Vector128<byte> r = this.count == 3 ? this.PackedHalf3(ref s, ref i, lastVector) : this.count == 2 ? this.PackedHalf2(ref s, ref i, lastVector) : this.PackedHalf1(ref s, ref i, lastVector);
+            if (i > lastVector)
+            {
+                break;
+            }
+
+            uint lanes = (~Vector128.Equals(r, Vector128<byte>.Zero)).ExtractMostSignificantBits();
+            int found = this.Candidates(input, i, lanes, Vector256.Create(r, Vector128<byte>.Zero), 1, last, out length);
+            if (found != -1)
+            {
+                return found;
+            }
+
+            i += Vector128<byte>.Count;
         }
 
         return -1;
@@ -405,6 +434,20 @@ public sealed class Teddy<T>
         return Avx2.Permute4x64(packed.AsInt64(), 0xD8).AsByte();
     }
 
+    /// <summary>Sixteen UTF-16 units from a position as bytes, in order: a unit beyond 255 as 255 with AdvSimd, and with SSE2 as 255 up to 0x7FFF and 0 from 0x8000, as the AVX2 search narrows (at worst a candidate the check refuses).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> Narrow128(ref ushort s, int at)
+    {
+        Vector128<ushort> a = Vector128.LoadUnsafe(ref s, (nuint)at);
+        Vector128<ushort> b = Vector128.LoadUnsafe(ref s, (nuint)(at + Vector128<ushort>.Count));
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.ExtractNarrowingSaturateUpper(AdvSimd.ExtractNarrowingSaturateLower(a), b);
+        }
+
+        return Sse2.PackUnsignedSaturate(a.AsInt16(), b.AsInt16());
+    }
+
     /// <summary>The buckets whose literals have each byte of a vector at a position: the two nibble lookups.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<byte> Look(Vector256<byte> lo, Vector256<byte> hi, Vector256<byte> c, Vector256<byte> nibble)
@@ -470,6 +513,69 @@ public sealed class Teddy<T>
         {
             r = Look(lo0, hi0, Narrow(ref s, at + p0), nibble);
             if (r != Vector256<byte>.Zero)
+            {
+                break;
+            }
+        }
+
+        i = at;
+        return r;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector128<byte> PackedHalf3(ref ushort s, ref int i, int lastVector)
+    {
+        Vector128<byte> nibble = Vector128.Create((byte)0x0F);
+        Vector128<byte> lo0 = this.lo[0], hi0 = this.hi[0], lo1 = this.lo[1], hi1 = this.hi[1], lo2 = this.lo[2], hi2 = this.hi[2];
+        int p0 = this.p0, p1 = this.p1, p2 = this.p2;
+        int at = i;
+        Vector128<byte> r = default;
+        for (; at <= lastVector; at += Vector128<byte>.Count)
+        {
+            r = Look(lo0, hi0, Narrow128(ref s, at + p0), nibble) & Look(lo1, hi1, Narrow128(ref s, at + p1), nibble) & Look(lo2, hi2, Narrow128(ref s, at + p2), nibble);
+            if (r != Vector128<byte>.Zero)
+            {
+                break;
+            }
+        }
+
+        i = at;
+        return r;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector128<byte> PackedHalf2(ref ushort s, ref int i, int lastVector)
+    {
+        Vector128<byte> nibble = Vector128.Create((byte)0x0F);
+        Vector128<byte> lo0 = this.lo[0], hi0 = this.hi[0], lo1 = this.lo[1], hi1 = this.hi[1];
+        int p0 = this.p0, p1 = this.p1;
+        int at = i;
+        Vector128<byte> r = default;
+        for (; at <= lastVector; at += Vector128<byte>.Count)
+        {
+            r = Look(lo0, hi0, Narrow128(ref s, at + p0), nibble) & Look(lo1, hi1, Narrow128(ref s, at + p1), nibble);
+            if (r != Vector128<byte>.Zero)
+            {
+                break;
+            }
+        }
+
+        i = at;
+        return r;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Vector128<byte> PackedHalf1(ref ushort s, ref int i, int lastVector)
+    {
+        Vector128<byte> nibble = Vector128.Create((byte)0x0F);
+        Vector128<byte> lo0 = this.lo[0], hi0 = this.hi[0];
+        int p0 = this.p0;
+        int at = i;
+        Vector128<byte> r = default;
+        for (; at <= lastVector; at += Vector128<byte>.Count)
+        {
+            r = Look(lo0, hi0, Narrow128(ref s, at + p0), nibble);
+            if (r != Vector128<byte>.Zero)
             {
                 break;
             }

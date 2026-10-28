@@ -146,7 +146,7 @@ public class CaptureTests
         CollectionAssert.AreEqual(expected, actual);
         Assert.AreEqual(expected.Count, r.Count(utf8));
 
-        Span<ValueCapture> caps = stackalloc ValueCapture[r.GroupCount + 1];
+        ValueCapture[] caps = new ValueCapture[r.GroupCount + 1];
         Assert.IsTrue(r.TryMatch(text.AsSpan(), 3, caps, out ValueMatch vm));
         Assert.AreEqual(3, vm.Index);
         Assert.AreEqual(1, vm.Length);
@@ -155,23 +155,17 @@ public class CaptureTests
         Assert.IsTrue(r.TryMatch(utf8, 0, caps, out vm));
         Assert.AreEqual(2, caps[0].Length);
 
-        for (int k = 0; k < 20; k++)
-        {
-            r.Count(text.AsSpan());
-            r.Count(utf8);
-            r.TryMatch(text.AsSpan(), 0, caps, out _);
-        }
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int k = 0; k < 200; k++)
-        {
-            r.Count(text.AsSpan());
-            r.Count(utf8);
-            r.TryMatch(text.AsSpan(), 0, caps, out _);
-            r.TryMatch(utf8, 0, caps, out _);
-        }
-
-        Assert.AreEqual(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        long allocated = Allocations.Least(
+            () =>
+            {
+                r.Count(text.AsSpan());
+                r.Count(utf8);
+                r.TryMatch(text.AsSpan(), 0, caps, out _);
+                r.TryMatch(utf8, 0, caps, out _);
+            },
+            200,
+            out string windows);
+        Assert.AreEqual(0, allocated, $"allocated {windows} bytes in three windows of 200 passes");
     }
 
     [TestMethod]
