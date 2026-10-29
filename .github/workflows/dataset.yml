@@ -30,7 +30,7 @@ jobs:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         repository: corvus-dotnet/ecma262-regex-test-data
-        ref: 1b4c4353c4fa3fc3e318db32ef0261391519b9a5
+        ref: 36e8b71c181fa10554760f461dc8c526fd3ffb42
         path: ecma262-regex-test-data
         persist-credentials: false
     - name: Install the Rust toolchain that check-tables.ps1 runs regress's gen-unicode under
@@ -111,7 +111,7 @@ jobs:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         repository: corvus-dotnet/ecma262-regex-test-data
-        ref: 1b4c4353c4fa3fc3e318db32ef0261391519b9a5
+        ref: 36e8b71c181fa10554760f461dc8c526fd3ffb42
         path: ecma262-regex-test-data
         persist-credentials: false
     - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
@@ -144,7 +144,7 @@ jobs:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         repository: corvus-dotnet/ecma262-regex-test-data
-        ref: 1b4c4353c4fa3fc3e318db32ef0261391519b9a5
+        ref: 36e8b71c181fa10554760f461dc8c526fd3ffb42
         path: ecma262-regex-test-data
         persist-credentials: false
     - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
