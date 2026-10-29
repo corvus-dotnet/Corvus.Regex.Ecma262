@@ -4,14 +4,6 @@
     var docsParent = Model.SiteContext.Navigation?.Children?
         .FirstOrDefault(x => x.Url?.ToString()?.Contains("/docs/") == true);
     var docPages = docsParent?.Children?.OrderBy(x => x.Rank).ToList();
-    // The documentation's pages are one level under /docs/ (Vellum's navigation has two levels); each language's are in
-    // its folder, /docs/<language>/, whose index page names the language.
-    var docGroups = (docPages ?? new()).Where(x => x.Url?.ToString()?.EndsWith("/index.html") == true)
-        .Select(g => (Group: g, Folder: g.Url.ToString().Substring(0, g.Url.ToString().Length - "index.html".Length),
-                      Docs: docPages.Where(d => d.Url?.ToString()?.EndsWith("/index.html") == false
-                                                && d.Url.ToString().StartsWith(g.Url.ToString().Substring(0, g.Url.ToString().Length - "index.html".Length)))
-                                    .OrderBy(d => d.Rank).ToList()))
-        .ToList();
 }
 <div class="layout-docs container">
     @await Html.PartialAsync("_Sidebar").ConfigureAwait(false)
@@ -23,19 +15,7 @@
                 <a href="https://corvus-oss.org/corvus-regex-ecma262-benchmarks/">the benchmark page</a>. New here? Start by
                 <a href="/getting-started/index.html">choosing your language</a>.
             </p>
-            @foreach (var g in docGroups)
-            {
-                <h2><a href="@g.Group.Url">@g.Group.Title</a></h2>
-                <div class="card-grid" style="margin:var(--space-md) 0 var(--space-lg)">
-                    @foreach (var doc in g.Docs)
-                    {
-                        <a class="card card--link" href="@doc.Url">
-                            <h3 class="card__title">@doc.Title</h3>
-                            <p class="card__body">@doc.Description</p>
-                        </a>
-                    }
-                </div>
-            }
+            @await Html.PartialAsync("_DocsLanguages").ConfigureAwait(false)
         </div>
     </main>
 </div>

@@ -275,6 +275,46 @@ Get-ChildItem $apiTaxonomyDir -Filter "*.yml" -ErrorAction SilentlyContinue | Wh
 if ($LASTEXITCODE -ne 0) { throw "API generation failed" }
 Write-StepDuration "API generation" $sw
 
+# The API section is every language's: /api/ is a picker of their references (views/Shared/_ApiLanguages.cshtml, written
+# by the languages step), and the generator's landing page for .NET's reference becomes /api/dotnet.html.
+$apiViewsDir = Join-Path $siteDir "theme" "corvus" "views" "api"
+Move-Item (Join-Path $apiViewsDir "index.cshtml") (Join-Path $apiViewsDir "dotnet.cshtml") -Force
+$dotnetApiYml = (Get-Content (Join-Path $apiTaxonomyDir "index.yml") -Raw -Encoding utf8) `
+    -replace '(?m)^Title: API Reference$', "Title: .NET API Reference`nTemplate: api/dotnet" `
+    -replace '(?m)^  Title: API$', '  Title: .NET' `
+    -replace '(?m)^  Parent: /$', '  Parent: /api/index.html' `
+    -replace '(?m)^  Url: /api/index.html$', '  Url: /api/dotnet.html' `
+    -replace '(?m)^  Rank: 3$', '  Rank: 0' `
+    -replace '(?m)^(    Visible|    Link): True$', '$1: False'
+[System.IO.File]::WriteAllText((Join-Path $apiTaxonomyDir "dotnet.yml"), $dotnetApiYml, [System.Text.Encoding]::UTF8)
+$apiIndexYml = @"
+ContentType: application/vnd.endjin.ssg.page+yaml
+Title: API Reference
+Template: api/languages
+Navigation:
+  Title: API
+  Description: "The API reference of each language's package."
+  Parent: /
+  Url: /api/index.html
+  Rank: 3
+  Header:
+    Visible: True
+    Link: True
+  Footer:
+    Visible: True
+    Link: True
+MetaData:
+  Title: "API Reference - Corvus.Regex.Ecma262"
+  Description: "The API reference of the ECMA-262 regular expression package for each language: .NET, Rust, C, C++, Python, Ruby, PHP, Swift, Fortran, R, Java, Go, Julia, Object Pascal and OCaml."
+  Keywords: [API, reference, regex, ECMA-262]
+OpenGraph:
+  Title: "API Reference - Corvus.Regex.Ecma262"
+  Description: "The API reference of each language's package."
+  Image:
+ContentBlocks: []
+"@
+[System.IO.File]::WriteAllText((Join-Path $apiTaxonomyDir "index.yml"), $apiIndexYml, [System.Text.Encoding]::UTF8)
+
 # -- Step 4: Generate docs content from the repository's documents -------------------------------------------------
 Write-Host "`n[4/10] Generating docs content from the repository's documents..." -ForegroundColor Cyan
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -388,61 +428,67 @@ OpenGraph:
   Title: ".NET documentation - Corvus.Regex.Ecma262"
   Description: "The design of the .NET engine, its benchmarks and how to contribute."
   Image:
-ContentBlocks: []
+ContentBlocks:
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: docs-dotnet
+    Spec:
+      Path: ../../../content/Docs/docs-dotnet.md
 "@
 [System.IO.File]::WriteAllText((Join-Path $dotnetDocsTaxonomyDir "index.yml"), $dotnetDocsYml, [System.Text.Encoding]::UTF8)
+$dotnetGroupBody = "---`nContentType: `"application/vnd.endjin.ssg.content+md`"`nPublicationStatus: Published`nDate: 2026-10-29T00:00:00.0+00:00`nTitle: `".NET`"`n---`n- [Getting started](/getting-started/dotnet.html): install the package and write your first pattern.`n- [API reference](/api/dotnet.html): every name, with its signature.`n- [The repository](https://github.com/corvus-dotnet/Corvus.Regex.Ecma262).`n"
+[System.IO.File]::WriteAllText((Join-Path $docsContentDir "docs-dotnet.md"), $dotnetGroupBody, [System.Text.Encoding]::UTF8)
 Write-StepDuration "Docs generation ($docCount pages)" $sw
 
-# The languages (languages.json): each engine repository's getting-started page, fetched at its latest release and
-# published as /getting-started/<id>.html, and the language picker of the home and getting-started pages
-# (views/Shared/_Languages.cshtml). A language whose page cannot be fetched (none yet, or no network) gets a card that
-# links to its README, so the site always builds. .NET's guide is this site's own (taxonomy/getting-started/dotnet.yml).
+# The languages (languages.json), listed by name wherever they appear. Each engine repository owns its pages, fetched
+# here from its main branch, where they describe its latest release, so that a change to them alone is published
+# without a release of the library: its getting-started page (/getting-started/<id>.html), its API reference (/api/<id>.html
+# for a page it generates; or its ecosystem's documentation host, linked only when the host answers), and its other
+# documents (/docs/<id>/<slug>.html, under a page that names the language). A page that cannot be fetched (none yet,
+# or no network) falls back to the repository, so the site always builds. .NET's pages are this site's own.
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
-$languages = (Get-Content (Join-Path $here "languages.json") -Raw -Encoding utf8 | ConvertFrom-Json).languages
+# By name, compared ordinally without case, so that ".NET" comes first and the rest are in alphabetical order.
+$languages = [System.Collections.Generic.List[object]]::new()
+$languages.AddRange(@((Get-Content (Join-Path $here "languages.json") -Raw -Encoding utf8 | ConvertFrom-Json).languages))
+$languages.Sort([System.Comparison[object]] { param($x, $y) [System.StringComparer]::OrdinalIgnoreCase.Compare($x.name, $y.name) })
 $langContentDir = Join-Path $siteDir "content" "GettingStarted" "Languages"
 $gsTaxonomyDir = Join-Path $siteDir "taxonomy" "getting-started"
-New-Item -ItemType Directory -Force -Path $langContentDir | Out-Null
+$apiLangTaxonomyDir = Join-Path $siteDir "taxonomy" "api-languages"
+New-Item -ItemType Directory -Force -Path $langContentDir, $apiLangTaxonomyDir | Out-Null
 Get-ChildItem $langContentDir -Filter "*.md" -ErrorAction SilentlyContinue | Remove-Item -Force
 Get-ChildItem $gsTaxonomyDir -Filter "*.yml" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notin @("index.yml", "dotnet.yml") } | Remove-Item -Force
-$langHref = @{}
-$rank = 1
-foreach ($lang in $languages) {
-    if ($lang.local) { $langHref[$lang.id] = "/getting-started/$($lang.id).html"; continue }
-    $readme = "https://github.com/$($lang.repo)"
-    $langHref[$lang.id] = $readme
-    $tag = $null
-    $raw = $null
+Get-ChildItem $apiLangTaxonomyDir -Filter "*.yml" -ErrorAction SilentlyContinue | Remove-Item -Force
+Get-ChildItem $docsTaxonomyDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "dotnet" } | Remove-Item -Recurse -Force
+
+# The branch each repository's pages are read from: its main branch, whose pages describe its latest release.
+$pagesRef = "main"
+
+function Get-RepoFile($repo, $ref, $path) {
+    $text = (& gh api "repos/$repo/contents/${path}?ref=$ref" -H "Accept: application/vnd.github.raw" 2>$null) -join "`n"
+    if ($LASTEXITCODE -ne 0 -or !$text) { return $null }
+    return $text
+}
+
+function Test-Host($url) {
     try {
-        $tag = (& gh api "repos/$($lang.repo)/releases/latest" --jq .tag_name 2>$null)
-        if ($LASTEXITCODE -eq 0 -and $tag) {
-            $raw = (& gh api "repos/$($lang.repo)/contents/$($lang.page)?ref=$tag" -H "Accept: application/vnd.github.raw" 2>$null) -join "`n"
-            if ($LASTEXITCODE -ne 0) { $raw = $null }
-        }
-    } catch { $raw = $null }
-    if (!$raw) { Write-Host "  $($lang.name): no page at its latest release - the card links its README" -ForegroundColor DarkYellow; continue }
-    if ($raw -match '^# (.+?)[\r\n]') { $title = $Matches[1].Trim() -replace '`', '' } else { $title = "Getting started with $($lang.name)" }
-    $body = ($raw -replace '^#[^\n]+\n\s*', '').TrimStart()
-    # A link relative to the page in its repository goes to the file in that repository at the same release.
-    $pageDir = [System.IO.Path]::GetDirectoryName($lang.page) -replace '\\', '/'
-    $base = "https://github.com/$($lang.repo)/blob/$tag/"
-    $body = [regex]::Replace($body, '\]\((?!https?://|#|mailto:)([^)]+)\)', {
-        param($m)
-        $target = [System.Uri]::new([System.Uri]::new("https://x/$pageDir/"), $m.Groups[1].Value).AbsolutePath.TrimStart('/')
-        "](${base}$target)"
-    })
+        $r = Invoke-WebRequest -Uri $url -Method Get -MaximumRedirection 5 -TimeoutSec 30 -UseBasicParsing -ErrorAction Stop
+        return $r.StatusCode -eq 200
+    } catch { return $false }
+}
+
+function Write-SitePage($taxonomyPath, $contentPath, $contentRelative, $template, $title, $navTitle, $summary, $parent, $url, $rank, $body) {
     $titleYaml = $title -replace '"', '\"'
-    $summary = $lang.summary -replace '"', '\"'
+    $summaryYaml = $summary -replace '"', '\"'
     $frontmatter = "---`nContentType: `"application/vnd.endjin.ssg.content+md`"`nPublicationStatus: Published`nDate: 2026-10-29T00:00:00.0+00:00`nTitle: `"$titleYaml`"`n---`n"
-    [System.IO.File]::WriteAllText((Join-Path $langContentDir "$($lang.id).md"), ($frontmatter + $body), [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText($contentPath, ($frontmatter + $body), [System.Text.Encoding]::UTF8)
     $yml = @"
 ContentType: application/vnd.endjin.ssg.page+yaml
 Title: "$titleYaml"
-Template: getting-started/language
+Template: $template
 Navigation:
-  Title: "$($lang.name)"
-  Description: "$summary"
-  Parent: /getting-started/index.html
-  Url: /getting-started/$($lang.id).html
+  Title: "$($navTitle -replace '"', '\"')"
+  Description: "$summaryYaml"
+  Parent: $parent
+  Url: $url
   Rank: $rank
   Header:
     Visible: False
@@ -452,40 +498,174 @@ Navigation:
     Link: False
 MetaData:
   Title: "$titleYaml - Corvus.Regex.Ecma262"
-  Description: "$summary"
-  Keywords: [getting started, regex, ECMA-262, $($lang.name)]
+  Description: "$summaryYaml"
+  Keywords: [regex, ECMA-262, $($navTitle -replace '[\[\],]', '')]
 OpenGraph:
   Title: "$titleYaml - Corvus.Regex.Ecma262"
-  Description: "$summary"
+  Description: "$summaryYaml"
   Image:
 ContentBlocks:
   - ContentType: application/vnd.endjin.ssg.content+md
-    Id: $($lang.id)
+    Id: $([System.IO.Path]::GetFileNameWithoutExtension($contentPath))
     Spec:
-      Path: ../../content/GettingStarted/Languages/$($lang.id).md
+      Path: $contentRelative
 "@
-    [System.IO.File]::WriteAllText((Join-Path $gsTaxonomyDir "$($lang.id).yml"), $yml, [System.Text.Encoding]::UTF8)
-    $langHref[$lang.id] = "/getting-started/$($lang.id).html"
-    $rank++
-    Write-Host "  $($lang.name) -> /getting-started/$($lang.id).html (at $tag)" -ForegroundColor Gray
+    New-Item -ItemType Directory -Force -Path ([System.IO.Path]::GetDirectoryName($taxonomyPath)) | Out-Null
+    [System.IO.File]::WriteAllText($taxonomyPath, $yml, [System.Text.Encoding]::UTF8)
 }
-# The picker: a card for each language, its package and how to install it. Razor reads '@' as code, so it is doubled.
+
+# First every file is fetched, and where the site publishes it is noted (repository and path to site address), so that
+# a link from one page to another the site publishes, in any repository, goes to the site's page.
+$fetched = @{}
+$siteUrlOf = @{}
+foreach ($lang in $languages) {
+    $lang | Add-Member -NotePropertyName tag -NotePropertyValue $null -Force
+    $lang | Add-Member -NotePropertyName pageText -NotePropertyValue $null -Force
+    $lang | Add-Member -NotePropertyName apiText -NotePropertyValue $null -Force
+    $lang | Add-Member -NotePropertyName apiHref -NotePropertyValue $null -Force
+    $lang | Add-Member -NotePropertyName docTexts -NotePropertyValue @() -Force
+    if ($lang.local) { continue }
+    $tag = (& gh api "repos/$($lang.repo)/releases/latest" --jq .tag_name 2>$null)
+    if ($LASTEXITCODE -ne 0 -or !$tag) { Write-Host "  $($lang.name): no release could be read - every card links its repository" -ForegroundColor DarkYellow; continue }
+    $lang.tag = $tag
+    if ($lang.page) {
+        $lang.pageText = Get-RepoFile $lang.repo $pagesRef $lang.page
+        if ($lang.pageText) { $siteUrlOf["$($lang.repo)|$($lang.page)"] = "/getting-started/$($lang.id).html" }
+    }
+    if ($lang.api.page) {
+        $lang.apiText = Get-RepoFile $lang.repo $pagesRef $lang.api.page
+        if ($lang.apiText) { $siteUrlOf["$($lang.repo)|$($lang.api.page)"] = "/api/$($lang.id).html"; $lang.apiHref = "/api/$($lang.id).html" }
+    } elseif ($lang.api.url) {
+        if (Test-Host $lang.api.url) { $lang.apiHref = $lang.api.url }
+        else { Write-Host "  $($lang.name): $($lang.api.url) does not answer yet - its API card links the repository" -ForegroundColor DarkYellow }
+    }
+    $docs = @()
+    foreach ($doc in @($lang.docs)) {
+        if (!$doc) { continue }
+        $text = Get-RepoFile $lang.repo $pagesRef $doc.path
+        if (!$text) { continue }
+        $slug = ConvertTo-KebabCase ([System.IO.Path]::GetFileNameWithoutExtension($doc.path))
+        $siteUrlOf["$($lang.repo)|$($doc.path)"] = "/docs/$($lang.id)/$slug.html"
+        $docs += [pscustomobject]@{ doc = $doc; text = $text; slug = $slug }
+    }
+    $lang.docTexts = $docs
+}
+
+# The one page of benchmark figures, which every language's documentation links.
+$benchmarksUrl = "https://corvus-oss.org/corvus-regex-ecma262-benchmarks/"
+
+# A page's body: its title line taken off, and each link made absolute: to the site's page where the site publishes
+# the file (this repository's or another's), else to the file in its repository's main branch, where it was read.
+function Convert-Body($lang, $path, $raw) {
+    if ($raw -match '^# (.+?)[\r\n]') { $title = $Matches[1].Trim() -replace '`', '' } else { $title = $null }
+    $body = ($raw -replace '^#[^\n]+\n\s*', '').TrimStart()
+    $dir = [System.IO.Path]::GetDirectoryName($path) -replace '\\', '/'
+    $body = [regex]::Replace($body, '\]\(([^)\s]+)\)', {
+        param($m)
+        $target = $m.Groups[1].Value
+        if ($target -match '^(#|mailto:)') { return $m.Value }
+        $fragment = ''
+        if ($target -match '^([^#]*)(#.*)$') { $target = $Matches[1]; $fragment = $Matches[2] }
+        if ($target -match '^https://github\.com/([^/]+/[^/]+)/blob/[^/]+/(.+)$') { $key = "$($Matches[1])|$($Matches[2])" }
+        elseif ($target -match '^https?://') { return $m.Value }
+        else { $key = "$($lang.repo)|" + [System.Uri]::new([System.Uri]::new("https://x/$dir/"), $target).AbsolutePath.TrimStart('/') }
+        if ($siteUrlOf.ContainsKey($key)) { return "]($($siteUrlOf[$key])$fragment)" }
+        if ($target -match '^https?://') { return $m.Value }
+        return "](https://github.com/$($lang.repo)/blob/$pagesRef/$($key.Split('|')[1])$fragment)"
+    })
+    return @{ title = $title; body = $body }
+}
+
+$pages = 0
+$rank = 1
+foreach ($lang in $languages) {
+    if ($lang.local) { continue }
+    $repoUrl = "https://github.com/$($lang.repo)"
+    if ($lang.pageText) {
+        $c = Convert-Body $lang $lang.page $lang.pageText
+        $title = if ($c.title) { $c.title } else { "Getting started with $($lang.name)" }
+        Write-SitePage (Join-Path $gsTaxonomyDir "$($lang.id).yml") (Join-Path $langContentDir "$($lang.id).md") "../../content/GettingStarted/Languages/$($lang.id).md" `
+            "getting-started/language" $title $lang.name $lang.summary "/getting-started/index.html" "/getting-started/$($lang.id).html" $rank $c.body
+        $pages++
+    }
+    if ($lang.apiText) {
+        $c = Convert-Body $lang $lang.api.page $lang.apiText
+        $title = if ($c.title) { "$($lang.name): $($c.title)" } else { "$($lang.name) API reference" }
+        Write-SitePage (Join-Path $apiLangTaxonomyDir "$($lang.id).yml") (Join-Path $langContentDir "api-$($lang.id).md") "../../content/GettingStarted/Languages/api-$($lang.id).md" `
+            "getting-started/language" $title $lang.name "The API reference of the $($lang.name) package." "/api/index.html" "/api/$($lang.id).html" $rank $c.body
+        $pages++
+    }
+    # The language's documentation: a page naming the language with its getting-started page and API reference, and
+    # each document beside it, one level under /docs/ (Vellum's navigation has two levels; the views group by folder).
+    $groupDir = Join-Path $docsTaxonomyDir $lang.id
+    $start = if ($lang.pageText) { "/getting-started/$($lang.id).html" } else { $repoUrl }
+    $api = if ($lang.apiHref) { $lang.apiHref } else { $repoUrl }
+    $groupBody = "- [Getting started]($start): install the package and write your first pattern.`n- [API reference]($api): every name, with its signature.`n- [Benchmarks]($benchmarksUrl): every engine, measured each night on the central benchmark page.`n- [The repository]($repoUrl), at $($lang.tag).`n"
+    Write-SitePage (Join-Path $groupDir "index.yml") (Join-Path $langContentDir "docs-$($lang.id).md") "../../../content/GettingStarted/Languages/docs-$($lang.id).md" `
+        "docs/group" $lang.name $lang.name "The documentation of the $($lang.name) package: getting started, the API reference and the repository's documents." "/docs/index.html" "/docs/$($lang.id)/index.html" $rank $groupBody
+    $docRank = 1
+    foreach ($d in $lang.docTexts) {
+        $c = Convert-Body $lang $d.doc.path $d.text
+        $title = if ($c.title) { $c.title } else { $d.doc.title }
+        Write-SitePage (Join-Path $groupDir "$($d.slug).yml") (Join-Path $langContentDir "doc-$($lang.id)-$($d.slug).md") "../../../content/GettingStarted/Languages/doc-$($lang.id)-$($d.slug).md" `
+            "docs/doc-page" $title $d.doc.title $d.doc.summary "/docs/index.html" "/docs/$($lang.id)/$($d.slug).html" ($rank * 100 + $docRank) $c.body
+        $docRank++
+        $pages++
+    }
+    $rank++
+    Write-Host "  $($lang.name) at $($lang.tag): page $([bool]$lang.pageText), API $(if ($lang.apiHref) { $lang.apiHref } else { 'repository' }), $(@($lang.docTexts).Count) documents" -ForegroundColor Gray
+}
+
+# The pickers: a card for each language, by name. Razor reads '@' as code, so it is doubled.
 $enc = { param($t) ([System.Net.WebUtility]::HtmlEncode([string]$t)) -replace '@', '@@' }
-$cards = foreach ($lang in $languages) {
-    $href = $langHref[$lang.id]
-    $external = if ($href.StartsWith("https://")) { ' target="_blank" rel="noopener noreferrer"' } else { '' }
-    $note = if ($href.StartsWith("https://")) { '<span class="lang-card__note">README &#8599;</span>' } else { '' }
+function New-Picker($cards) { "@* Generated by build.ps1 from languages.json. *@`n<div class=`"lang-grid`">`n$($cards -join "`n")`n</div>`n" }
+function New-Card($name, $href, $summary, $codeLine) {
+    $external = $href.StartsWith("https://")
+    $target = if ($external) { ' target="_blank" rel="noopener noreferrer"' } else { '' }
+    $note = if ($external) { '<span class="lang-card__note">&#8599;</span>' } else { '' }
+    $code = if ($codeLine) { "`n        <code class=`"lang-card__install`">$(& $enc $codeLine)</code>" } else { '' }
     @"
-    <a class="lang-card" href="$(& $enc $href)"$external>
-        <span class="lang-card__name">$(& $enc $lang.name)$note</span>
-        <span class="lang-card__summary">$(& $enc $lang.summary)</span>
-        <code class="lang-card__install">$(& $enc $lang.install)</code>
+    <a class="lang-card" href="$(& $enc $href)"$target>
+        <span class="lang-card__name">$(& $enc $name)$note</span>
+        <span class="lang-card__summary">$(& $enc $summary)</span>$code
     </a>
 "@
 }
-$picker = "@* Generated by build.ps1 from languages.json. *@`n<div class=`"lang-grid`">`n$($cards -join "`n")`n</div>`n"
-[System.IO.File]::WriteAllText((Join-Path $siteDir "theme" "corvus" "views" "Shared" "_Languages.cshtml"), $picker, [System.Text.Encoding]::UTF8)
-Write-StepDuration "Languages ($($rank - 1) pages fetched)" $sw
+$startCards = foreach ($lang in $languages) {
+    $href = if ($lang.local) { "/getting-started/$($lang.id).html" } elseif ($lang.pageText) { "/getting-started/$($lang.id).html" } else { "https://github.com/$($lang.repo)" }
+    New-Card $lang.name $href $lang.summary $lang.install
+}
+$apiCards = foreach ($lang in $languages) {
+    $href = if ($lang.local) { "/api/dotnet.html" } elseif ($lang.apiHref) { $lang.apiHref } else { "https://github.com/$($lang.repo)" }
+    $where = if ($lang.local -or ($lang.apiHref -and !$lang.apiHref.StartsWith("https://"))) { "Every name, with its signature." } elseif ($lang.apiHref) { "On " + ([System.Uri]$lang.apiHref).Host + "." } else { "Not published yet: the repository." }
+    New-Card $lang.name $href $where $lang.package
+}
+$viewsShared = Join-Path $siteDir "theme" "corvus" "views" "Shared"
+[System.IO.File]::WriteAllText((Join-Path $viewsShared "_Languages.cshtml"), (New-Picker $startCards), [System.Text.Encoding]::UTF8)
+[System.IO.File]::WriteAllText((Join-Path $viewsShared "_ApiLanguages.cshtml"), (New-Picker $apiCards), [System.Text.Encoding]::UTF8)
+# The documentation index: for each language, by name, its getting-started page, its API reference and its documents.
+$docSections = foreach ($lang in $languages) {
+    $repoUrl = "https://github.com/$($lang.repo)"
+    $cards = @()
+    if ($lang.local) {
+        $cards += New-Card "Getting started" "/getting-started/$($lang.id).html" "Install the package and write your first pattern." $null
+        $cards += New-Card "API reference" "/api/dotnet.html" "Every name, with its signature." $null
+        foreach ($descriptor in $descriptors) {
+            $slug = ConvertTo-KebabCase ([System.IO.Path]::GetFileNameWithoutExtension($descriptor['source']))
+            $cards += New-Card $descriptor['navTitle'] "/docs/dotnet/$slug.html" $descriptor['description'] $null
+        }
+    } else {
+        $start = if ($lang.pageText) { "/getting-started/$($lang.id).html" } else { $repoUrl }
+        $api = if ($lang.apiHref) { $lang.apiHref } else { $repoUrl }
+        $cards += New-Card "Getting started" $start $(if ($lang.pageText) { "Install the package and write your first pattern." } else { "Not published yet: the repository." }) $null
+        $cards += New-Card "API reference" $api $(if ($lang.apiHref -and $lang.apiHref.StartsWith("https://")) { "On " + ([System.Uri]$lang.apiHref).Host + "." } elseif ($lang.apiHref) { "Every name, with its signature." } else { "Not published yet: the repository." }) $null
+        foreach ($d in $lang.docTexts) { $cards += New-Card $d.doc.title "/docs/$($lang.id)/$($d.slug).html" $d.doc.summary $null }
+        $cards += New-Card "Benchmarks" $benchmarksUrl "Every engine, measured each night." $null
+    }
+    "<h2 id=`"$($lang.id)`"><a href=`"/docs/$($lang.id)/index.html`">$(& $enc $lang.name)</a></h2>`n<div class=`"lang-grid`">`n$($cards -join "`n")`n</div>"
+}
+[System.IO.File]::WriteAllText((Join-Path $viewsShared "_DocsLanguages.cshtml"), "@* Generated by build.ps1 from languages.json. *@`n$($docSections -join "`n")`n", [System.Text.Encoding]::UTF8)
+Write-StepDuration "Languages ($pages pages fetched)" $sw
 
 # -- Step 5: Run Vellum --------------------------------------------------------------------------------------------
 Write-Host "`n[5/10] Running Vellum..." -ForegroundColor Cyan

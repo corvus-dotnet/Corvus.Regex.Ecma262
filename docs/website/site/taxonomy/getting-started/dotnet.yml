@@ -39,6 +39,10 @@ ContentBlocks:
     Spec:
       Path: ../../content/GettingStarted/Matching.md
   - ContentType: application/vnd.endjin.ssg.content+md
+    Id: Timeouts
+    Spec:
+      Path: ../../content/GettingStarted/Timeouts.md
+  - ContentType: application/vnd.endjin.ssg.content+md
     Id: Utf8
     Spec:
       Path: ../../content/GettingStarted/Utf8.md

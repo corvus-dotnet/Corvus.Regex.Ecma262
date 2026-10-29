@@ -1,0 +1,18 @@
+@model SiteViewModel
+@{
+    Layout = "../Shared/_Layout.cshtml";
+    ViewBag.MetaTitle = Model.PageContext.MetaData.Title;
+}
+<div class="layout-docs container">
+    @await Html.PartialAsync("_Sidebar").ConfigureAwait(false)
+    <main id="main-content" class="layout-docs__main">
+        <div class="doc__content">
+            <h1>API Reference</h1>
+            <p>
+                Every name of each language's package, with its signature. .NET's reference is generated here; each other
+                language's is generated in its repository, or is on its ecosystem's documentation host.
+            </p>
+        </div>
+        @await Html.PartialAsync("_ApiLanguages").ConfigureAwait(false)
+    </main>
+</div>

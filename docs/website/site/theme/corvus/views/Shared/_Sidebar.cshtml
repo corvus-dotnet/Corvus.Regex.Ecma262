@@ -10,11 +10,13 @@
                       Docs: docPages.Where(d => d.Url?.ToString()?.EndsWith("/index.html") == false
                                                 && d.Url.ToString().StartsWith(g.Url.ToString().Substring(0, g.Url.ToString().Length - "index.html".Length)))
                                     .OrderBy(d => d.Rank).ToList()))
+        .OrderBy(g => g.Group.Title, StringComparer.OrdinalIgnoreCase)
         .ToList();
     var currentUrl = Model.PageContext.Navigation?.Url;
     var startParent = Model.SiteContext.Navigation?.Children?
         .FirstOrDefault(x => x.Url?.ToString()?.Contains("/getting-started/") == true);
-    var startPages = startParent?.Children?.OrderBy(x => x.Rank).ToList();
+    // The languages by name, so that each is easy to find.
+    var startPages = startParent?.Children?.OrderBy(x => x.Title, StringComparer.OrdinalIgnoreCase).ToList();
 }
 <button class="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false"></button>
 <div class="sidebar-backdrop"></div>
