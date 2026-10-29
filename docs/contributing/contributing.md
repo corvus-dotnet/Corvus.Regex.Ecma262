@@ -260,7 +260,9 @@ benchmark compete for the same cores and the numbers are worthless.
 
 Merging a pull request to `main` makes a release: the release automation tags the merge with the version
 GitVersion computes from `GitVersion.yml`, and the build publishes the package to NuGet. A pull request that
-should not make a release (documentation, CI, tooling) carries the `no_release` label. The version is bumped by
+should not make a release (documentation, CI, tooling) carries the `no_release` label. The documentation site is
+updated from stable release tags, and between them by running `build-website-only.yml`, which builds it from main and
+deploys it; the documents on main describe the latest release, so a change to them alone needs no release. The version is bumped by
 editing `next-version` in `GitVersion.yml`: a breaking change to the public surface is a major bump, a feature a
 minor one, and a fix a patch.
 
