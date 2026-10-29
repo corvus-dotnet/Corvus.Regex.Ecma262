@@ -143,6 +143,32 @@ public class EmitterTests
     }
 
     [TestMethod]
+    [DataRow("^[a-z]+$", Unicode, Current)]
+    [DataRow("(?i:a)", Unicode, Current)]
+    [DataRow("(?i:a)", Unicode, Es2020)]
+    [DataRow("(", Unicode, Current)]
+    [DataRow("\\-", 0, Current)]
+    [DataRow("\\-", Unicode, Current)]
+    public void ValidationAgreesWithTryCreate(string pattern, int flagValue, int editionValue)
+    {
+        bool valid = Emit.RegexEmitter.TryValidate(pattern, (Emit.RegexFlags)flagValue, (Emit.RegexEdition)editionValue, Emit.RegexUnicodeVersion.Default, out string? error, out bool tooLarge);
+        bool expected = Lib.Regex.TryCreate(pattern, (Lib.RegexFlags)flagValue, Lib.Regex.DefaultMatchTimeout, (Lib.RegexEdition)editionValue, Lib.RegexUnicodeVersion.Default, out _, out string? expectedError);
+        Assert.AreEqual(expected, valid);
+        Assert.AreEqual(expectedError, error);
+        Assert.IsFalse(tooLarge);
+    }
+
+    [TestMethod]
+    public void APatternOverALimitOfSizeIsTooLargeNotInvalid()
+    {
+        string pattern = new string('(', 201) + new string(')', 201);
+        Assert.IsFalse(Emit.RegexEmitter.TryValidate(pattern, Emit.RegexFlags.Unicode, Emit.RegexEdition.Current, Emit.RegexUnicodeVersion.Default, out string? error, out bool tooLarge));
+        Assert.IsTrue(tooLarge);
+        Lib.RegexPatternTooLargeException e = Assert.ThrowsExactly<Lib.RegexPatternTooLargeException>(() => new Lib.Regex(pattern, Lib.RegexFlags.Unicode));
+        Assert.AreEqual(e.Message, error);
+    }
+
+    [TestMethod]
     public void AnyPatternTextSurvivesTheLiteral()
     {
         // Quotes, backslashes, controls, the line and paragraph separators, a byte order mark, a lone surrogate and

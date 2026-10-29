@@ -133,7 +133,8 @@ diagnostics CRE0001 to CRE0005 cover the pattern, the member's shape, the flags,
 - The emitted search uses members the library has only on `net10.0`, under `#if NET10_0_OR_GREATER`; a .NET
   Framework consumer gets the plain paths and the same answers.
 - *The emitter as source.* A source generator does not run on another's output, so a `[GeneratedRegex]` written
-  into generated code is never given its body. `RegexEmitter.TryEmit` writes the same code for a pattern, and the
+  into generated code is never given its body. `RegexEmitter.TryEmit` writes the same code for a pattern
+  (`TryValidate` only checks it, as `Regex.TryCreate` would), and the
   `Corvus.Regex.Ecma262.CodeGeneration.Sources` package carries it, with the parser and compiler it needs, as C#
   compiled into the code generator that takes it. Its types are internal and in a namespace of their own
   (`Corvus.Ecma262.RegularExpressions.CodeGeneration`), so it loads no assembly beside a source generator and

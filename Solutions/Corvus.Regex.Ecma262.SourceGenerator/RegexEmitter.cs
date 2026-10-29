@@ -97,6 +97,52 @@ public static class RegexEmitter
         return true;
     }
 
+    /// <summary>
+    /// Whether a pattern compiles, as <c>Regex.TryCreate</c> decides it: read and compiled as the library reads and
+    /// compiles it, with nothing written. A code generator asks this of a pattern it will not emit code for, such as
+    /// one a precompiled program holds.
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="edition">The edition of the grammar.</param>
+    /// <param name="unicodeVersion">The version of Unicode.</param>
+    /// <param name="error">Why the pattern does not compile, as <c>Regex.TryCreate</c> says; or
+    /// <see langword="null"/>.</param>
+    /// <param name="tooLarge"><see langword="true"/> when the pattern is valid and over a limit of size, as
+    /// <c>RegexPatternTooLargeException</c> reports, rather than not valid.</param>
+    /// <returns><see langword="true"/> when the pattern compiles.</returns>
+    public static bool TryValidate(string pattern, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion, out string? error, out bool tooLarge)
+    {
+        if (pattern is null)
+        {
+            throw new ArgumentNullException(nameof(pattern));
+        }
+
+        tooLarge = false;
+        error = CheckSettings((int)flags, (int)edition, (int)unicodeVersion);
+        if (error is not null)
+        {
+            return false;
+        }
+
+        try
+        {
+            DeepStack.Run(pattern, (flags & RegexFlags.UnicodeSets) != 0, () => CompileOnThisStack(pattern, (int)flags, edition, unicodeVersion));
+            return true;
+        }
+        catch (RegexPatternTooLargeException e)
+        {
+            error = e.Message;
+            tooLarge = true;
+            return false;
+        }
+        catch (RegexParseException e)
+        {
+            error = e.Message;
+            return false;
+        }
+    }
+
     /// <summary>What is wrong with the flags, the edition and the version of Unicode, or <see langword="null"/>.</summary>
     /// <param name="flags">The flags.</param>
     /// <param name="edition">The edition.</param>
@@ -315,7 +361,7 @@ public static class RegexEmitter
         return sb;
     }
 
-    private static string RunnersOnThisStack(string pattern, int flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
+    private static (Program Bounds, Program Captures) CompileOnThisStack(string pattern, int flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
     {
         bool unicode = (flags & (int)(RegexFlags.Unicode | RegexFlags.UnicodeSets)) != 0;
         EcmaRegexParser parser = new(
@@ -328,8 +374,12 @@ public static class RegexEmitter
             edition: edition,
             unicodeVersion: unicodeVersion);
         EcmaRegexNode root = parser.Parse();
-        Program bounds = Compiler.Compile(root, unicode, parser.GroupCount, trackAll: false);
-        Program captures = Compiler.Compile(root, unicode, parser.GroupCount, trackAll: true);
+        return (Compiler.Compile(root, unicode, parser.GroupCount, trackAll: false), Compiler.Compile(root, unicode, parser.GroupCount, trackAll: true));
+    }
+
+    private static string RunnersOnThisStack(string pattern, int flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
+    {
+        (Program bounds, Program captures) = CompileOnThisStack(pattern, flags, edition, unicodeVersion);
         StringBuilder sb = new();
         if (!TreeEmitter.TryEmitRunner(sb, 1, "Bounds", bounds))
         {

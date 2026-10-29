@@ -33,5 +33,9 @@ else
 }
 ```
 
+`RegexEmitter.TryValidate` reads and compiles a pattern with nothing written, and says whether it is not valid or
+valid and over a limit of size, as the library's `Regex.TryCreate` and `RegexPatternTooLargeException` would. It is
+for a pattern the code generator checks but does not emit code for.
+
 The generated code references the library, so the project that compiles it references
 `Corvus.Regex.Ecma262` of the same version.
