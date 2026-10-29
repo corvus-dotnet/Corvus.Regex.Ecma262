@@ -2,9 +2,9 @@
 
 Every language has a design document and a contributing guide beside its getting-started page, each with the same
 sections, in the same order, as .NET's (`docs/design/design.md` and `docs/contributing/contributing.md` here). Each
-section covers the same ground in that language's terms. A language whose engine is the Rust crate (Python, Ruby and
-PHP bind the crate itself; C is the crate behind a C ABI; C++, Swift, Fortran and R bind the C library) says so where
-the engine is described, and points to the Rust crate's design for it, rather than describing it again.
+section covers the same ground in that language's terms. A language whose engine is the Rust crate (Python, Ruby,
+PHP and R bind the crate itself; C is the crate behind a C ABI; C++, Swift and Fortran bind the C library) says so
+where the engine is described, and points to the Rust crate's design for it, rather than describing it again.
 
 Every other language's documents are `docs/design.md` and `docs/contributing.md` in its own repository, fetched by
 the site at its latest release, as `docs/getting-started.md` is. Both describe the library as it is, never its
