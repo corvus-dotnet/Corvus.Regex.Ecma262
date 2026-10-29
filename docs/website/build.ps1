@@ -284,6 +284,10 @@ $docsTaxonomyDir = Join-Path $siteDir "taxonomy" "docs"
 $descriptorsDir = Join-Path $here "doc-descriptors"
 Get-ChildItem $docsContentDir -Filter "*.md" -ErrorAction SilentlyContinue | Remove-Item -Force
 Get-ChildItem $docsTaxonomyDir -Filter "*.yml" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "index.yml" } | Remove-Item -Force
+# .NET's documents are a folder of their own under the documentation (/docs/dotnet/).
+$dotnetDocsTaxonomyDir = Join-Path $docsTaxonomyDir "dotnet"
+if (Test-Path $dotnetDocsTaxonomyDir) { Remove-Item $dotnetDocsTaxonomyDir -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $dotnetDocsTaxonomyDir | Out-Null
 
 # The descriptors in order, and a map from each source document's file name to its page, for the links between them.
 $descriptors = @()
@@ -313,7 +317,7 @@ foreach ($descriptor in $descriptors) {
     # (2026-10-19.md), (design/design.md#10-phases), each to its page.
     foreach ($srcFile in $docLinkMap.Keys) {
         $escaped = [regex]::Escape($srcFile)
-        $target = "/docs/$($docLinkMap[$srcFile])"
+        $target = "/docs/dotnet/$($docLinkMap[$srcFile])"
         $docBody = [regex]::Replace($docBody, "\(((?:\.\./|\./)?[A-Za-z0-9_./-]*?)$escaped(#[^)]+)?\)", "($target`$2)")
     }
     $navTitle = if ($descriptor['navTitle']) { $descriptor['navTitle'] } else { $docTitle }
@@ -331,7 +335,7 @@ Navigation:
   Title: "$($navTitle -replace '"', '\"')"
   Description: "$docDescription"
   Parent: /docs/index.html
-  Url: /docs/$slug.html
+  Url: /docs/dotnet/$slug.html
   Rank: $docRank
   Header:
     Visible: False
@@ -351,13 +355,137 @@ ContentBlocks:
   - ContentType: application/vnd.endjin.ssg.content+md
     Id: $baseName
     Spec:
-      Path: ../../content/Docs/$baseName.md
+      Path: ../../../content/Docs/$baseName.md
 "@
-    [System.IO.File]::WriteAllText((Join-Path $docsTaxonomyDir "$slug.yml"), $docTaxonomyYml, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText((Join-Path $dotnetDocsTaxonomyDir "$slug.yml"), $docTaxonomyYml, [System.Text.Encoding]::UTF8)
     $docCount++
     Write-Host "  $docTitle -> $slug" -ForegroundColor Gray
 }
+# This repository's documents are .NET's: they hang under /docs/dotnet/, a page of their own in the documentation's
+# navigation, as each language's documents do, so that the site never places one language's documents as every
+# language's.
+$dotnetDocsYml = @"
+ContentType: application/vnd.endjin.ssg.page+yaml
+Title: ".NET"
+Template: docs/group
+Navigation:
+  Title: ".NET"
+  Description: "The design of the .NET engine, its benchmarks against System.Text.RegularExpressions, and how to contribute."
+  Parent: /docs/index.html
+  Url: /docs/dotnet/index.html
+  Rank: 0
+  Header:
+    Visible: False
+    Link: False
+  Footer:
+    Visible: False
+    Link: False
+MetaData:
+  Title: ".NET documentation - Corvus.Regex.Ecma262"
+  Description: "The design of the .NET engine, its benchmarks against System.Text.RegularExpressions, and how to contribute."
+  Keywords: [documentation, .NET, design, benchmarks]
+OpenGraph:
+  Title: ".NET documentation - Corvus.Regex.Ecma262"
+  Description: "The design of the .NET engine, its benchmarks and how to contribute."
+  Image:
+ContentBlocks: []
+"@
+[System.IO.File]::WriteAllText((Join-Path $dotnetDocsTaxonomyDir "index.yml"), $dotnetDocsYml, [System.Text.Encoding]::UTF8)
 Write-StepDuration "Docs generation ($docCount pages)" $sw
+
+# The languages (languages.json): each engine repository's getting-started page, fetched at its latest release and
+# published as /getting-started/<id>.html, and the language picker of the home and getting-started pages
+# (views/Shared/_Languages.cshtml). A language whose page cannot be fetched (none yet, or no network) gets a card that
+# links to its README, so the site always builds. .NET's guide is this site's own (taxonomy/getting-started/dotnet.yml).
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+$languages = (Get-Content (Join-Path $here "languages.json") -Raw -Encoding utf8 | ConvertFrom-Json).languages
+$langContentDir = Join-Path $siteDir "content" "GettingStarted" "Languages"
+$gsTaxonomyDir = Join-Path $siteDir "taxonomy" "getting-started"
+New-Item -ItemType Directory -Force -Path $langContentDir | Out-Null
+Get-ChildItem $langContentDir -Filter "*.md" -ErrorAction SilentlyContinue | Remove-Item -Force
+Get-ChildItem $gsTaxonomyDir -Filter "*.yml" -ErrorAction SilentlyContinue | Where-Object { $_.Name -notin @("index.yml", "dotnet.yml") } | Remove-Item -Force
+$langHref = @{}
+$rank = 1
+foreach ($lang in $languages) {
+    if ($lang.local) { $langHref[$lang.id] = "/getting-started/$($lang.id).html"; continue }
+    $readme = "https://github.com/$($lang.repo)"
+    $langHref[$lang.id] = $readme
+    $tag = $null
+    $raw = $null
+    try {
+        $tag = (& gh api "repos/$($lang.repo)/releases/latest" --jq .tag_name 2>$null)
+        if ($LASTEXITCODE -eq 0 -and $tag) {
+            $raw = (& gh api "repos/$($lang.repo)/contents/$($lang.page)?ref=$tag" -H "Accept: application/vnd.github.raw" 2>$null) -join "`n"
+            if ($LASTEXITCODE -ne 0) { $raw = $null }
+        }
+    } catch { $raw = $null }
+    if (!$raw) { Write-Host "  $($lang.name): no page at its latest release - the card links its README" -ForegroundColor DarkYellow; continue }
+    if ($raw -match '^# (.+?)[\r\n]') { $title = $Matches[1].Trim() -replace '`', '' } else { $title = "Getting started with $($lang.name)" }
+    $body = ($raw -replace '^#[^\n]+\n\s*', '').TrimStart()
+    # A link relative to the page in its repository goes to the file in that repository at the same release.
+    $pageDir = [System.IO.Path]::GetDirectoryName($lang.page) -replace '\\', '/'
+    $base = "https://github.com/$($lang.repo)/blob/$tag/"
+    $body = [regex]::Replace($body, '\]\((?!https?://|#|mailto:)([^)]+)\)', {
+        param($m)
+        $target = [System.Uri]::new([System.Uri]::new("https://x/$pageDir/"), $m.Groups[1].Value).AbsolutePath.TrimStart('/')
+        "](${base}$target)"
+    })
+    $titleYaml = $title -replace '"', '\"'
+    $summary = $lang.summary -replace '"', '\"'
+    $frontmatter = "---`nContentType: `"application/vnd.endjin.ssg.content+md`"`nPublicationStatus: Published`nDate: 2026-10-29T00:00:00.0+00:00`nTitle: `"$titleYaml`"`n---`n"
+    [System.IO.File]::WriteAllText((Join-Path $langContentDir "$($lang.id).md"), ($frontmatter + $body), [System.Text.Encoding]::UTF8)
+    $yml = @"
+ContentType: application/vnd.endjin.ssg.page+yaml
+Title: "$titleYaml"
+Template: getting-started/language
+Navigation:
+  Title: "$($lang.name)"
+  Description: "$summary"
+  Parent: /getting-started/index.html
+  Url: /getting-started/$($lang.id).html
+  Rank: $rank
+  Header:
+    Visible: False
+    Link: False
+  Footer:
+    Visible: False
+    Link: False
+MetaData:
+  Title: "$titleYaml - Corvus.Regex.Ecma262"
+  Description: "$summary"
+  Keywords: [getting started, regex, ECMA-262, $($lang.name)]
+OpenGraph:
+  Title: "$titleYaml - Corvus.Regex.Ecma262"
+  Description: "$summary"
+  Image:
+ContentBlocks:
+  - ContentType: application/vnd.endjin.ssg.content+md
+    Id: $($lang.id)
+    Spec:
+      Path: ../../content/GettingStarted/Languages/$($lang.id).md
+"@
+    [System.IO.File]::WriteAllText((Join-Path $gsTaxonomyDir "$($lang.id).yml"), $yml, [System.Text.Encoding]::UTF8)
+    $langHref[$lang.id] = "/getting-started/$($lang.id).html"
+    $rank++
+    Write-Host "  $($lang.name) -> /getting-started/$($lang.id).html (at $tag)" -ForegroundColor Gray
+}
+# The picker: a card for each language, its package and how to install it. Razor reads '@' as code, so it is doubled.
+$enc = { param($t) ([System.Net.WebUtility]::HtmlEncode([string]$t)) -replace '@', '@@' }
+$cards = foreach ($lang in $languages) {
+    $href = $langHref[$lang.id]
+    $external = if ($href.StartsWith("https://")) { ' target="_blank" rel="noopener noreferrer"' } else { '' }
+    $note = if ($href.StartsWith("https://")) { '<span class="lang-card__note">README &#8599;</span>' } else { '' }
+    @"
+    <a class="lang-card" href="$(& $enc $href)"$external>
+        <span class="lang-card__name">$(& $enc $lang.name)$note</span>
+        <span class="lang-card__summary">$(& $enc $lang.summary)</span>
+        <code class="lang-card__install">$(& $enc $lang.install)</code>
+    </a>
+"@
+}
+$picker = "@* Generated by build.ps1 from languages.json. *@`n<div class=`"lang-grid`">`n$($cards -join "`n")`n</div>`n"
+[System.IO.File]::WriteAllText((Join-Path $siteDir "theme" "corvus" "views" "Shared" "_Languages.cshtml"), $picker, [System.Text.Encoding]::UTF8)
+Write-StepDuration "Languages ($($rank - 1) pages fetched)" $sw
 
 # -- Step 5: Run Vellum --------------------------------------------------------------------------------------------
 Write-Host "`n[5/10] Running Vellum..." -ForegroundColor Cyan
@@ -394,6 +522,14 @@ foreach ($dir in @("benchmarks", "benchmarks/ci", "benchmarks/ci/runs")) {
     [IO.File]::WriteAllText((Join-Path (Join-Path $outputDir $dir) "index.html"), $redirect)
 }
 if ($LASTEXITCODE -ne 0) { throw "The benchmark results page failed" }
+# .NET's documents moved under /docs/dotnet/: each old address sends a reader to the new one (relative, so the path
+# rewriting of a sub-path does not touch it).
+foreach ($descriptor in $descriptors) {
+    $slug = ConvertTo-KebabCase ([System.IO.Path]::GetFileNameWithoutExtension($descriptor['source']))
+    $to = "dotnet/$slug.html"
+    $moved = "<!doctype html><html lang=`"en`"><head><meta charset=`"utf-8`"><meta http-equiv=`"refresh`" content=`"0; url=$to`"><title>Moved</title></head><body><p>This page is now at <a href=`"$to`">$to</a>.</p></body></html>"
+    [IO.File]::WriteAllText((Join-Path $outputDir "docs" "$slug.html"), $moved)
+}
 
 # -- Step 6: Compile SCSS ------------------------------------------------------------------------------------------
 Write-Host "`n[6/10] Compiling SCSS..." -ForegroundColor Cyan

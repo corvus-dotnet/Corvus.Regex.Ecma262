@@ -304,6 +304,17 @@
   // ---- List item ----
   &__item {
     margin: 0;
+
+    // A language's documents, under its name.
+    &--nested > .sidebar__link {
+      padding-left: calc(var(--space-md) * 2);
+    }
+  }
+
+  // A language's name above its documents.
+  &__link--group {
+    color: var(--color-white);
+    font-weight: var(--font-weight-medium);
   }
 
   // ---- Navigation link ----

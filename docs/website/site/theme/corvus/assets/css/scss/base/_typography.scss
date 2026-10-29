@@ -6,6 +6,8 @@
 
 h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
+  // A long name with no break in it (an API member's) breaks rather than widening the page on a phone.
+  overflow-wrap: anywhere;
   font-weight: var(--font-weight-medium);
   line-height: var(--line-height-heading);
   color: var(--color-white);
@@ -50,6 +52,23 @@ p {
   margin-top: 0;
   margin-bottom: var(--space-md);
   color: var(--color-gray-med);
+}
+
+// A wide table scrolls sideways inside itself on a narrow screen, rather than widening the page.
+@media (max-width: 59.99rem) {
+  .doc__content table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+// In a table, a name in code keeps its words whole and the table scrolls, rather than squeezing a column until the
+// name breaks.
+.doc__content td code,
+.doc__content th code {
+  overflow-wrap: normal;
 }
 
 // ---- Links ----

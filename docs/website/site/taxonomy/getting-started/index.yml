@@ -2,7 +2,7 @@ ContentType: application/vnd.endjin.ssg.page+yaml
 Title: Getting Started
 Navigation:
   Title: Getting Started
-  Description: "Install the package, write a pattern with ECMA-262 flags, match over strings and UTF-8, and generate code at build time."
+  Description: "Choose your language: .NET, Rust, C, C++, Python, Ruby, PHP, Swift, Fortran, R, Java, Go, Julia, Object Pascal or OCaml."
   Parent: /
   Url: /getting-started/index.html
   Rank: 1
@@ -13,39 +13,15 @@ Navigation:
     Visible: True
     Link: True
 MetaData:
-  Title: "Getting Started — Corvus.Regex.Ecma262"
-  Description: "Install Corvus.Regex.Ecma262, write a pattern with the flags of ECMA-262, match over strings and over UTF-8 without allocating, and generate the matcher at build time with [GeneratedRegex]."
-  Keywords: [getting started, installation, regex, ECMA-262, source generator, C#, tutorial, UTF-8]
+  Title: "Getting Started - Corvus.Regex.Ecma262"
+  Description: "ECMA-262 regular expressions in fifteen languages, each with the same answers as V8: choose yours to install it and write your first pattern."
+  Keywords: [getting started, regex, ECMA-262, ECMAScript, Rust, Python, Go, Java, C, C++, .NET]
 OpenGraph:
-  Title: "Getting Started — Corvus.Regex.Ecma262"
-  Description: "Install the package, write a pattern, match over strings and UTF-8, and generate code at build time."
+  Title: "Getting Started - Corvus.Regex.Ecma262"
+  Description: "Choose your language and write your first ECMA-262 pattern."
   Image:
 ContentBlocks:
   - ContentType: application/vnd.endjin.ssg.content+md
-    Id: Introduction
+    Id: Choose
     Spec:
-      Path: ../../content/GettingStarted/Introduction.md
-  - ContentType: application/vnd.endjin.ssg.content+md
-    Id: Setup
-    Spec:
-      Path: ../../content/GettingStarted/Setup.md
-  - ContentType: application/vnd.endjin.ssg.content+md
-    Id: Patterns
-    Spec:
-      Path: ../../content/GettingStarted/Patterns.md
-  - ContentType: application/vnd.endjin.ssg.content+md
-    Id: Matching
-    Spec:
-      Path: ../../content/GettingStarted/Matching.md
-  - ContentType: application/vnd.endjin.ssg.content+md
-    Id: Utf8
-    Spec:
-      Path: ../../content/GettingStarted/Utf8.md
-  - ContentType: application/vnd.endjin.ssg.content+md
-    Id: Generator
-    Spec:
-      Path: ../../content/GettingStarted/Generator.md
-  - ContentType: application/vnd.endjin.ssg.content+md
-    Id: Differences
-    Spec:
-      Path: ../../content/GettingStarted/Differences.md
+      Path: ../../content/GettingStarted/Choose.md

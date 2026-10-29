@@ -66,6 +66,12 @@ body.page-home {
     gap: var(--space-lg);
     align-items: center;
 
+    // A grid item is never narrower than its content unless told: without this the code example's longest line
+    // widens the column, and the page, on a phone, where the example should scroll inside itself.
+    > * {
+      min-width: 0;
+    }
+
     @include breakpoint-md {
       grid-template-columns: 1fr 1fr;
       gap: var(--space-xl);

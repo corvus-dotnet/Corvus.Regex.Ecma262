@@ -3,7 +3,18 @@
     var docsParent = Model.SiteContext.Navigation?.Children?
         .FirstOrDefault(x => x.Url?.ToString()?.Contains("/docs/") == true);
     var docPages = docsParent?.Children?.OrderBy(x => x.Rank).ToList();
+    // The documentation's pages are one level under /docs/ (Vellum's navigation has two levels); each language's are in
+    // its folder, /docs/<language>/, whose index page names the language.
+    var docGroups = (docPages ?? new()).Where(x => x.Url?.ToString()?.EndsWith("/index.html") == true)
+        .Select(g => (Group: g, Folder: g.Url.ToString().Substring(0, g.Url.ToString().Length - "index.html".Length),
+                      Docs: docPages.Where(d => d.Url?.ToString()?.EndsWith("/index.html") == false
+                                                && d.Url.ToString().StartsWith(g.Url.ToString().Substring(0, g.Url.ToString().Length - "index.html".Length)))
+                                    .OrderBy(d => d.Rank).ToList()))
+        .ToList();
     var currentUrl = Model.PageContext.Navigation?.Url;
+    var startParent = Model.SiteContext.Navigation?.Children?
+        .FirstOrDefault(x => x.Url?.ToString()?.Contains("/getting-started/") == true);
+    var startPages = startParent?.Children?.OrderBy(x => x.Rank).ToList();
 }
 <button class="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false"></button>
 <div class="sidebar-backdrop"></div>
@@ -13,7 +24,17 @@
             <button class="sidebar__heading">Getting Started</button>
             <div class="sidebar__body">
                 <ul class="sidebar__list">
-                    <li class="sidebar__item"><a class="sidebar__link" href="/getting-started/index.html">Tutorial</a></li>
+                    <li class="sidebar__item"><a class="sidebar__link @(currentUrl != null && currentUrl.ToString().EndsWith("/getting-started/index.html") ? "is-active" : "")" href="/getting-started/index.html">Choose a language</a></li>
+                    @if (startPages != null)
+                    {
+                        @foreach (var start in startPages)
+                        {
+                            var isActive = currentUrl != null && Vellum.Cli.Domain.Url.AreEquivalent(start.Url, currentUrl);
+                            <li class="sidebar__item">
+                                <a class="sidebar__link @(isActive ? "is-active" : "")" href="@start.Url">@start.Title</a>
+                            </li>
+                        }
+                    }
                 </ul>
             </div>
         </div>
@@ -21,12 +42,17 @@
             <button class="sidebar__heading">Documentation</button>
             <div class="sidebar__body">
                 <ul class="sidebar__list">
-                    @if (docPages != null)
+                    @* The documents of each language, under its name (/docs/<language>/). *@
+                    @foreach (var g in docGroups)
                     {
-                        @foreach (var doc in docPages)
+                        var groupActive = currentUrl != null && Vellum.Cli.Domain.Url.AreEquivalent(g.Group.Url, currentUrl);
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group @(groupActive ? "is-active" : "")" href="@g.Group.Url">@g.Group.Title</a>
+                        </li>
+                        @foreach (var doc in g.Docs)
                         {
                             var isActive = currentUrl != null && Vellum.Cli.Domain.Url.AreEquivalent(doc.Url, currentUrl);
-                            <li class="sidebar__item">
+                            <li class="sidebar__item sidebar__item--nested">
                                 <a class="sidebar__link @(isActive ? "is-active" : "")" href="@doc.Url">@doc.Title</a>
                             </li>
                         }
