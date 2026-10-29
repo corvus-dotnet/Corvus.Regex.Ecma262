@@ -12,12 +12,12 @@ Navigation:
     Visible: True
     Link: True
 MetaData:
-  Title: "Corvus.Regex.Ecma262 — ECMA-262 regular expressions for .NET"
-  Description: "A drop-in replacement for System.Text.RegularExpressions that answers as ECMAScript does, with performance equal to or better than .NET's on equivalent expressions: native UTF-8 and UTF-16 matching, zero allocation per match, and a build-time source generator."
-  Keywords: [regex, regular expressions, ECMA-262, ECMAScript, .NET, C#, UTF-8, source generator, JSON Schema]
+  Title: "Corvus.Regex.Ecma262 - ECMA-262 regular expressions for every platform"
+  Description: "The grammar and the answers of JavaScript's RegExp for .NET, Rust, C, C++, Python, Ruby, PHP, Swift, Fortran, R, Java, Go, Julia, Object Pascal and OCaml, each held to V8's answers, over UTF-8 and UTF-16."
+  Keywords: [regex, regular expressions, ECMA-262, ECMAScript, JSON Schema, .NET, Rust, C, C++, Python, Ruby, PHP, Swift, Fortran, R, Java, Go, Julia, Pascal, OCaml, UTF-8]
 OpenGraph:
-  Title: "Corvus.Regex.Ecma262 — ECMA-262 regular expressions for .NET"
-  Description: "The grammar and answers of ECMAScript regular expressions in .NET, over UTF-8 and UTF-16, with no allocation per match."
+  Title: "Corvus.Regex.Ecma262 - ECMA-262 regular expressions for every platform"
+  Description: "The grammar and the answers of JavaScript's RegExp in fifteen languages, over UTF-8 and UTF-16."
   Image:
 ContentBlocks:
   - ContentType: application/vnd.endjin.ssg.hero+md

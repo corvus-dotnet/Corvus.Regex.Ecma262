@@ -26,3 +26,9 @@ node_modules/
 # OS
 Thumbs.db
 .DS_Store
+# The languages' getting-started pages and the picker (from languages.json and each engine repository)
+site/content/GettingStarted/Languages/
+site/taxonomy/getting-started/*.yml
+!site/taxonomy/getting-started/index.yml
+!site/taxonomy/getting-started/dotnet.yml
+site/theme/corvus/views/Shared/_Languages.cshtml

@@ -8,14 +8,14 @@
 <!-- Hero -->
 <section id="main-content" class="hero">
     <div class="hero__content">
-        <h1 class="hero__title">ECMA-262 <span class="brand">regular expressions</span> for .NET</h1>
+        <h1 class="hero__title">ECMA-262 <span class="brand">regular expressions</span> for every platform</h1>
         <p class="hero__subtitle">
-            A drop-in replacement for <code>System.Text.RegularExpressions</code> that answers as ECMAScript does,
-            with performance equal to or better than .NET's on equivalent expressions: over UTF-8 and over UTF-16,
-            with no allocation per match and a build-time source generator.
+            The grammar and the answers of JavaScript's <code>RegExp</code> in fifteen languages, each held to V8's
+            answers on the same test data: over UTF-8 and UTF-16, bounded in time and memory, with the grammar of
+            ECMAScript 2020 and the Unicode of your choice a setting away.
         </p>
         <div class="hero__actions">
-            <a href="/getting-started/index.html" class="btn btn--primary btn--lg">Get Started</a>
+            <a href="#languages" class="btn btn--primary btn--lg">Choose your language</a>
             <a href="/docs/index.html" class="btn btn--secondary btn--lg">Read the design</a>
             <a href="@ViewBag.GitHubUrl"
                class="btn btn--secondary btn--lg" target="_blank" rel="noopener noreferrer">View on GitHub</a>
@@ -23,24 +23,35 @@
     </div>
 </section>
 
+<!-- Languages -->
+<section id="languages" class="home-languages">
+    <div class="container">
+        <div class="home-features__heading">
+            <h2 class="home-features__title">Choose your language</h2>
+            <p class="home-features__subtitle">One engine design, the same answers everywhere. Each page shows how to install it and write your first pattern.</p>
+        </div>
+        @await Html.PartialAsync("_Languages").ConfigureAwait(false)
+    </div>
+</section>
+
 <!-- Stats -->
 <div class="container">
     <div class="home-stats">
         <div class="home-stats__item">
-            <div class="home-stats__value">26.9M</div>
+            <div class="home-stats__value">15</div>
+            <div class="home-stats__label">Languages, one design</div>
+        </div>
+        <div class="home-stats__item">
+            <div class="home-stats__value">29.9M</div>
             <div class="home-stats__label">V8 answers matched, 0 wrong</div>
         </div>
         <div class="home-stats__item">
-            <div class="home-stats__value">0 B</div>
-            <div class="home-stats__label">Allocated per match</div>
-        </div>
-        <div class="home-stats__item">
             <div class="home-stats__value">UTF-8</div>
-            <div class="home-stats__label">Matched without transcoding</div>
+            <div class="home-stats__label">and UTF-16, without transcoding</div>
         </div>
         <div class="home-stats__item">
-            <div class="home-stats__value">0.86</div>
-            <div class="home-stats__label"><a href="https://corvus-oss.org/corvus-regex-ecma262-benchmarks/">Median time against .NET's generated regex</a></div>
+            <div class="home-stats__value">2</div>
+            <div class="home-stats__label"><a href="https://corvus-oss.org/corvus-regex-ecma262-benchmarks/">Architectures benchmarked nightly</a></div>
         </div>
     </div>
 </div>
@@ -50,43 +61,38 @@
     <div class="container">
         <div class="home-features__heading">
             <h2 class="home-features__title">Built to answer as ECMAScript does</h2>
-            <p class="home-features__subtitle">A pattern written for JavaScript, or taken from a JSON Schema, matches the same texts here.</p>
-        </div>
-        <div class="home-simple">
-            <pre><code class="language-csharp">Regex regex = new(@@"\b[a-z]+ing\b", "giu");
-int count = regex.Count("Sherlock was walking and talking");   // 2</code></pre>
-            <p class="home-simple__footnote"><a href="/getting-started/index.html">Read the guide &rarr;</a></p>
+            <p class="home-features__subtitle">A pattern written for JavaScript, or taken from a JSON Schema, matches the same texts in every language.</p>
         </div>
         <div class="card-grid">
             <div class="card">
                 <div class="card__icon">📜</div>
                 <h3 class="card__title">The answers of ECMAScript</h3>
-                <p class="card__body">ECMAScript 2025: lookbehind, named groups, modifier groups, Unicode property escapes on Unicode 17 data, and the <code>u</code> and <code>v</code> flags. Tested against V8 on 104,359 patterns and 5.1 million texts.</p>
+                <p class="card__body">ECMAScript 2025: lookbehind, named groups, modifier groups, Unicode property escapes, and the <code>u</code> and <code>v</code> flags. Every engine answers the whole ECMA-262 test data as V8 does, test262 included, with none wrong.</p>
             </div>
             <div class="card">
                 <div class="card__icon">🔤</div>
                 <h3 class="card__title">UTF-8 and UTF-16</h3>
-                <p class="card__body">One matcher over <code>ReadOnlySpan&lt;byte&gt;</code> and over <code>string</code> or <code>ReadOnlySpan&lt;char&gt;</code>, with no transcoding either way and positions in the units of the text.</p>
+                <p class="card__body">One matcher over either encoding, with no transcoding and positions in the units of the text. Text that is not UTF-8 is refused, never read as U+FFFD.</p>
             </div>
             <div class="card">
-                <div class="card__icon">⚡</div>
-                <h3 class="card__title">Zero allocation</h3>
-                <p class="card__body">Nothing allocated per match once the per-thread working memory has grown. <code>EnumerateMatches</code>, <code>TryMatch</code>, <code>TryReplace</code> and <code>EnumerateSplits</code> are the allocation-free forms of every member.</p>
-            </div>
-            <div class="card">
-                <div class="card__icon">🧩</div>
-                <h3 class="card__title">The shape of .NET's Regex</h3>
-                <p class="card__body"><code>Regex</code>, <code>Match</code>, <code>Group</code>, <code>Capture</code>, <code>Matches</code>, <code>Replace</code>, <code>Split</code> and <code>EnumerateMatches</code>, so the library drops in where <code>System.Text.RegularExpressions</code> is used.</p>
-            </div>
-            <div class="card">
-                <div class="card__icon">🔧</div>
-                <h3 class="card__title">A source generator</h3>
-                <p class="card__body"><code>[GeneratedRegex]</code> writes the search for a start and the match as structured code at build time, with the pattern checked by the compiler. <a href="/getting-started/index.html">Read the guide &rarr;</a></p>
+                <div class="card__icon">🗓️</div>
+                <h3 class="card__title">ECMAScript 2020 and Unicode versions</h3>
+                <p class="card__body">The grammar of ECMAScript 2020, which JSON Schema 2020-12 names, and the tables of Unicode 13, 17 or 18, each a setting chosen when a pattern is compiled, at no cost to a match.</p>
             </div>
             <div class="card">
                 <div class="card__icon">⏱️</div>
                 <h3 class="card__title">Bounded in time and memory</h3>
-                <p class="card__body">A backtracking matcher that remembers where a way has failed, an automaton for the patterns that need no backtracking, and a limit of time and of memory on every match.</p>
+                <p class="card__body">A backtracking matcher that remembers where a way has failed, automata for the patterns that need no backtracking, a time limit on every match, and limits of size on every pattern. No pattern can overflow the stack.</p>
+            </div>
+            <div class="card">
+                <div class="card__icon">⚡</div>
+                <h3 class="card__title">Fast searches for a start</h3>
+                <p class="card__body">Rare-byte literal searches, Teddy fingerprints and reverse automata find where a match can start, vectorised on x86-64 and arm64 where the language allows.</p>
+            </div>
+            <div class="card">
+                <div class="card__icon">🔧</div>
+                <h3 class="card__title">.NET: a drop-in with a generator</h3>
+                <p class="card__body">The shape of <code>System.Text.RegularExpressions</code>, zero allocation per match, and <code>[GeneratedRegex]</code> writing the matcher as code at build time. <a href="/getting-started/dotnet.html">Read the .NET guide &rarr;</a></p>
             </div>
         </div>
     </div>
@@ -97,12 +103,12 @@ int count = regex.Count("Sherlock was walking and talking");   // 2</code></pre>
     <div class="container">
         <div class="home-code__inner">
             <div class="home-code__text">
-                <h2 class="home-code__title">From pattern to generated code</h2>
+                <h2 class="home-code__title">In .NET: from pattern to generated code</h2>
                 <p class="home-code__description">
                     Put the attribute on a partial method, and the generator writes the matcher as code. The same
                     flags, the same answers, over both encodings.
                 </p>
-                <a href="/getting-started/index.html" class="btn btn--primary">Get Started</a>
+                <a href="/getting-started/dotnet.html" class="btn btn--primary">The .NET guide</a>
             </div>
             <div class="home-code__example">
                 <pre><code class="language-csharp">using Corvus.Ecma262.RegularExpressions;
@@ -125,29 +131,12 @@ int n = Patterns.Email().Count(utf8);                   // 2</code></pre>
     </div>
 </section>
 
-<!-- Packages -->
-<section class="section">
-    <div class="container">
-        <div class="home-features__heading">
-            <h2 class="home-features__title">The package</h2>
-            <p class="home-features__subtitle">One package carries the library and the source generator</p>
-        </div>
-        <div class="card-grid">
-            <div class="card">
-                <h3 class="card__title"><a href="/getting-started/index.html" style="color:inherit">Corvus.Regex.Ecma262</a></h3>
-                <p class="card__body">The engine, the drop-in surface, the UTF-8 members and the generator. Targets net10.0 and netstandard2.0. <a href="/getting-started/index.html">Get started &rarr;</a></p>
-                <pre style="margin-top:var(--space-sm)"><code class="language-bash">dotnet add package Corvus.Regex.Ecma262</code></pre>
-            </div>
-        </div>
-    </div>
-</section>
-
 <!-- CTA -->
 <section class="home-cta">
     <div class="container">
         <div class="home-cta__inner">
             <h2 class="home-cta__title">Ready to get started?</h2>
-            <p class="home-cta__description">Install the package, write a pattern with ECMA-262's flags, and match over strings or UTF-8.</p>
+            <p class="home-cta__description">Choose your language, install its package, and write a pattern with ECMA-262's flags.</p>
             <div class="home-cta__actions">
                 <a href="/getting-started/index.html" class="btn btn--primary btn--lg">Get Started</a>
                 <a href="/api/index.html" class="btn btn--secondary btn--lg">API Reference</a>

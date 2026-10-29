@@ -103,3 +103,72 @@
     padding: var(--space-md);
   }
 }
+
+// ---- The language picker (views/Shared/_Languages.cshtml, generated from languages.json) ----
+
+.lang-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 var(--space-lg);
+  text-align: left;
+}
+
+.lang-card {
+  @include glass-surface;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-md);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    transform var(--transition-base);
+
+  &:hover,
+  &:focus-visible {
+    background: rgb(41 42 47 / 0.5);
+    border-color: var(--color-border-active);
+    transform: translateY(-2px);
+  }
+
+  &__name {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-xs);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-white);
+  }
+
+  &__note {
+    font-size: var(--font-size-xs);
+    font-weight: normal;
+    color: var(--color-gray-med);
+  }
+
+  &__summary {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-regular);
+    color: var(--color-gray-med);
+  }
+
+  // The install line: one line, scrolled inside the card when it is long.
+  &__install {
+    display: block;
+    margin-top: auto;
+    padding: 0.35em 0.6em;
+    overflow-x: auto;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    font-size: 0.75rem;
+  }
+}
+
+.home-languages {
+  padding: var(--space-xl) 0 var(--space-lg);
+}

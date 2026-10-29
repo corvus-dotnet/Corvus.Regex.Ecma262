@@ -4,6 +4,9 @@
         .FirstOrDefault(x => x.Url?.ToString()?.Contains("/docs/") == true);
     var docPages = docsParent?.Children?.OrderBy(x => x.Rank).ToList();
     var currentUrl = Model.PageContext.Navigation?.Url;
+    var startParent = Model.SiteContext.Navigation?.Children?
+        .FirstOrDefault(x => x.Url?.ToString()?.Contains("/getting-started/") == true);
+    var startPages = startParent?.Children?.OrderBy(x => x.Rank).ToList();
 }
 <button class="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false"></button>
 <div class="sidebar-backdrop"></div>
@@ -13,7 +16,17 @@
             <button class="sidebar__heading">Getting Started</button>
             <div class="sidebar__body">
                 <ul class="sidebar__list">
-                    <li class="sidebar__item"><a class="sidebar__link" href="/getting-started/index.html">Tutorial</a></li>
+                    <li class="sidebar__item"><a class="sidebar__link @(currentUrl != null && currentUrl.ToString().EndsWith("/getting-started/index.html") ? "is-active" : "")" href="/getting-started/index.html">Choose a language</a></li>
+                    @if (startPages != null)
+                    {
+                        @foreach (var start in startPages)
+                        {
+                            var isActive = currentUrl != null && Vellum.Cli.Domain.Url.AreEquivalent(start.Url, currentUrl);
+                            <li class="sidebar__item">
+                                <a class="sidebar__link @(isActive ? "is-active" : "")" href="@start.Url">@start.Title</a>
+                            </li>
+                        }
+                    }
                 </ul>
             </div>
         </div>

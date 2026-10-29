@@ -1,0 +1,155 @@
+{
+  "comment": "The languages the site features, in the order of the landing page's picker. Each engine repository owns its getting-started page (page, a path in that repository whose code samples its own CI runs); build.ps1 fetches it at the repository's latest release and publishes it as /getting-started/<id>.html. A language whose page is not there yet is linked to its README. .NET's page is this site's own guide (local).",
+  "languages": [
+    {
+      "id": "dotnet",
+      "name": ".NET",
+      "repo": "corvus-dotnet/Corvus.Regex.Ecma262",
+      "package": "Corvus.Regex.Ecma262",
+      "install": "dotnet add package Corvus.Regex.Ecma262",
+      "installLanguage": "bash",
+      "local": true,
+      "summary": "The drop-in shape of System.Text.RegularExpressions, with a source generator."
+    },
+    {
+      "id": "rust",
+      "name": "Rust",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-rs",
+      "package": "corvus-regex-ecma262",
+      "install": "cargo add corvus-regex-ecma262",
+      "installLanguage": "bash",
+      "page": "docs/getting-started.md",
+      "summary": "The engine the C library and its bindings are built on, over &str and &[u16]."
+    },
+    {
+      "id": "c",
+      "name": "C",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-rs",
+      "package": "libcorvus_regex_ecma262",
+      "install": "find_package(corvus_regex_ecma262)",
+      "installLanguage": "cmake",
+      "page": "docs/getting-started-c.md",
+      "summary": "A C ABI over the Rust engine, released as an archive for each platform."
+    },
+    {
+      "id": "cpp",
+      "name": "C++",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-cpp",
+      "package": "corvus_regex_ecma262_cpp",
+      "install": "FetchContent_MakeAvailable(corvus_regex_ecma262_cpp)",
+      "installLanguage": "cmake",
+      "page": "docs/getting-started.md",
+      "summary": "A C++20 binding over the C library, built with CMake."
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-py",
+      "package": "corvus-regex-ecma262",
+      "install": "pip install corvus-regex-ecma262",
+      "installLanguage": "bash",
+      "page": "docs/getting-started.md",
+      "summary": "A typed package with wheels for Linux, macOS and Windows, from Python 3.10."
+    },
+    {
+      "id": "ruby",
+      "name": "Ruby",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-ruby",
+      "package": "corvus_regex_ecma262",
+      "install": "gem install corvus_regex_ecma262",
+      "installLanguage": "bash",
+      "page": "docs/getting-started.md",
+      "summary": "A gem with native builds for Linux, macOS and Windows, for Ruby 3.3 and later."
+    },
+    {
+      "id": "php",
+      "name": "PHP",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-php",
+      "package": "corvus-dotnet/corvus-regex-ecma262",
+      "install": "pie install corvus-dotnet/corvus-regex-ecma262",
+      "installLanguage": "bash",
+      "page": "docs/getting-started.md",
+      "summary": "A PHP extension for PHP 8.2 to 8.5, installed with PIE."
+    },
+    {
+      "id": "swift",
+      "name": "Swift",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-swift",
+      "package": "CorvusRegexEcma262",
+      "install": ".package(url: \"https://github.com/corvus-dotnet/corvus-regex-ecma262-swift\", from: \"0.2.3\")",
+      "installLanguage": "swift",
+      "page": "docs/getting-started.md",
+      "summary": "A Swift package for Linux, macOS and iOS, over the C library."
+    },
+    {
+      "id": "fortran",
+      "name": "Fortran",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-fortran",
+      "package": "corvus_regex_ecma262_fortran",
+      "install": "corvus_regex_ecma262_fortran = { git = \"https://github.com/corvus-dotnet/corvus-regex-ecma262-fortran\" }",
+      "installLanguage": "toml",
+      "page": "docs/getting-started.md",
+      "summary": "A Fortran 2018 binding for gfortran and Intel ifx, with fpm and CMake."
+    },
+    {
+      "id": "r",
+      "name": "R",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-r",
+      "package": "corvusregexecma262",
+      "install": "install.packages(\"corvusregexecma262\", repos = c(\"https://corvus-dotnet.r-universe.dev\", \"https://cloud.r-project.org\"))",
+      "installLanguage": "r",
+      "page": "docs/getting-started.md",
+      "summary": "An R package, for R 4.2 and later."
+    },
+    {
+      "id": "java",
+      "name": "Java",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-java",
+      "package": "io.github.corvus-dotnet:corvus-regex-ecma262",
+      "install": "implementation(\"io.github.corvus-dotnet:corvus-regex-ecma262:0.1.2\")",
+      "installLanguage": "kotlin",
+      "page": "docs/getting-started.md",
+      "summary": "A Java 17 port with no dependencies."
+    },
+    {
+      "id": "go",
+      "name": "Go",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-go",
+      "package": "github.com/corvus-dotnet/corvus-regex-ecma262-go",
+      "install": "go get github.com/corvus-dotnet/corvus-regex-ecma262-go",
+      "installLanguage": "bash",
+      "page": "docs/getting-started.md",
+      "summary": "A pure Go port, for Go 1.25 and later."
+    },
+    {
+      "id": "julia",
+      "name": "Julia",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-jl",
+      "package": "CorvusRegexEcma262",
+      "install": "using Pkg; Pkg.add(\"CorvusRegexEcma262\")",
+      "installLanguage": "julia",
+      "page": "docs/getting-started.md",
+      "summary": "A pure Julia port, for Julia 1.10 and later."
+    },
+    {
+      "id": "pascal",
+      "name": "Object Pascal",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-pas",
+      "package": "corvus-regex-ecma262-pas",
+      "install": "fpc -Fucorvus-regex-ecma262-pas/src -Ficorvus-regex-ecma262-pas/src yourprogram.pas",
+      "installLanguage": "bash",
+      "page": "docs/getting-started.md",
+      "summary": "A Free Pascal port with no dependencies, written to compile with Delphi too."
+    },
+    {
+      "id": "ocaml",
+      "name": "OCaml",
+      "repo": "corvus-dotnet/corvus-regex-ecma262-ocaml",
+      "package": "corvus-regex-ecma262",
+      "install": "opam install corvus-regex-ecma262",
+      "installLanguage": "bash",
+      "page": "docs/getting-started.md",
+      "summary": "A native OCaml port, for OCaml 4.14 and later."
+    }
+  ]
+}
