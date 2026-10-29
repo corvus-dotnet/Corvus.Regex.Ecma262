@@ -292,9 +292,9 @@
     {
       "id": "julia",
       "name": "Julia",
-      "repo": "corvus-dotnet/corvus-regex-ecma262-jl",
-      "package": "CorvusRegexEcma262",
-      "install": "using Pkg; Pkg.add(\"CorvusRegexEcma262\")",
+      "repo": "corvus-dotnet/CorvusRegexECMA262.jl",
+      "package": "CorvusRegexECMA262",
+      "install": "using Pkg; Pkg.add(\"CorvusRegexECMA262\")",
       "installLanguage": "julia",
       "page": "docs/getting-started.md",
       "summary": "A pure Julia port, for Julia 1.10 and later.",
