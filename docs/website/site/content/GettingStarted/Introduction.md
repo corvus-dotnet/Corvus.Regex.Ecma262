@@ -10,9 +10,11 @@ Corvus.Regex.Ecma262 is a regular expression engine that answers as ECMAScript d
 
 This guide covers:
 
-- **Setup** — the one package, and what it brings.
-- **Patterns and flags** — the flags are ECMA-262's letters, not `RegexOptions`, and what each one does.
-- **Matching** — the members you know from `System.Text.RegularExpressions`, and the allocation-free forms beside them.
-- **UTF-8** — the same patterns over `ReadOnlySpan<byte>` with no transcoding.
-- **The source generator** — `[GeneratedRegex]` and what it generates.
-- **Differences from .NET's Regex** — what to expect when the two meet.
+- **Setup**: the one package, and what it brings.
+- **Patterns and flags**: the flags are ECMA-262's letters, not `RegexOptions`, and what each one does.
+- **The edition and the version of Unicode**: the grammar of ECMAScript 2020, and the Unicode tables a pattern reads.
+- **Matching**: the members you know from `System.Text.RegularExpressions`, and the allocation-free forms beside them.
+- **Timeouts**: the limit of time and of memory a match may take.
+- **UTF-8 and UTF-16**: the same patterns over strings and over `ReadOnlySpan<byte>`, with no transcoding.
+- **The source generator**: `[GeneratedRegex]` and what it generates.
+- **Differences from .NET's Regex**: what to expect when the two meet.

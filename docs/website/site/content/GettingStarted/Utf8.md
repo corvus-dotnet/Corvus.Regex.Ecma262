@@ -2,11 +2,11 @@
 ContentType: "application/vnd.endjin.ssg.content+md"
 PublicationStatus: Published
 Date: 2026-10-20T00:00:00.0+00:00
-Title: "UTF-8"
+Title: "UTF-8 and UTF-16"
 ---
-## UTF-8
+## UTF-8 and UTF-16
 
-Every member that takes a `ReadOnlySpan<char>` has a twin that takes UTF-8 bytes, and the engine matches the bytes as they are. Nothing is transcoded, and the positions it gives are byte offsets.
+A `string` or a `ReadOnlySpan<char>` is UTF-16, lone surrogates and all, with positions in code units. Every member that takes a `ReadOnlySpan<char>` has a twin that takes UTF-8 bytes, and the engine matches the bytes as they are. Nothing is transcoded, and the positions it gives are byte offsets.
 
 ```csharp
 Regex regex = new(@"\p{L}+", "gu");
@@ -23,3 +23,5 @@ regex.Replace(utf8, "_"u8, output);                                // "_ _"
 ```
 
 Under the `u` and `v` flags a character is a code point in both encodings, so a class, a dot or a quantifier takes a four-byte sequence as one character. With no flag ECMA-262 matches by UTF-16 code unit; over UTF-8 the engine keeps that meaning, so a pattern with no flag gives the same answers over the bytes of a text as over its chars, except where the text holds a lone surrogate, which UTF-8 cannot hold.
+
+UTF-8 is checked before it is read: text that is not UTF-8 throws `ArgumentException`, and is never matched or read as U+FFFD. The members whose names end in `Unchecked` skip the check, for text already checked.

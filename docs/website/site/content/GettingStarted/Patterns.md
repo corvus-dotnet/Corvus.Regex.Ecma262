@@ -35,6 +35,7 @@ if (!Regex.TryCreate(pattern, RegexFlags.Unicode, timeout, out Regex? regex, out
     throw new InvalidOperationException(error);
 }
 ```
+A pattern that is not valid throws `RegexParseException`, with the reason and the offset. Every pattern has deterministic limits of size, and `RegexPatternTooLargeException` says when one is passed.
 
 ## The edition and the version of Unicode
 
@@ -48,5 +49,3 @@ Regex r = new(pattern, RegexFlags.Unicode, timeout, RegexEdition.Es2020, RegexUn
 ```
 
 The source generator takes them as named arguments: `[GeneratedRegex(@"\p{Script=Greek}+", "u", Edition = RegexEdition.Es2020)]`.
-
-A pattern that is not valid throws `RegexParseException`, with the reason and the offset. Every pattern has deterministic limits of size, and `RegexPatternTooLargeException` says when one is passed.
