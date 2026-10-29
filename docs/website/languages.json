@@ -1,5 +1,5 @@
 {
-  "comment": "The languages the site features (listed by name wherever they appear). Each engine repository owns its pages, fetched by build.ps1 at the repository's latest release: its getting-started page (page), its API reference (api: a page the repository generates, or the url of its ecosystem's documentation host, linked only when that host answers), and any other documents written for a user of the package (docs: path, title, summary), never engineering notes such as design notes or port checklists. A page that is not there yet falls back to the repository. .NET's are this site's own (local).",
+  "comment": "The languages the site features (listed by name wherever they appear). Each engine repository owns its pages, fetched by build.ps1 at the repository's latest release: its getting-started page (page), its API reference (api: a page the repository generates, or the url of its ecosystem's documentation host, linked only when that host answers), and its design document and contributing guide (docs: path, title, summary), in the outlines docs/plan names; never engineering notes such as port checklists. A page that is not there yet falls back to the repository. .NET's are this site's own (local).",
   "languages": [
     {
       "id": "dotnet",
@@ -25,7 +25,19 @@
       "summary": "The engine the C library and its bindings are built on, over &str and &[u16].",
       "api": {
         "url": "https://docs.rs/corvus-regex-ecma262"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "c",
@@ -38,7 +50,19 @@
       "summary": "A C ABI over the Rust engine, released as an archive for each platform.",
       "api": {
         "page": "docs/api-c.md"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design-c.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "cpp",
@@ -51,7 +75,19 @@
       "summary": "A C++20 binding over the C library, built with CMake.",
       "api": {
         "page": "docs/api.md"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "python",
@@ -64,7 +100,19 @@
       "summary": "A typed package with wheels for Linux, macOS and Windows, from Python 3.10.",
       "api": {
         "page": "docs/api.md"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "ruby",
@@ -77,7 +125,19 @@
       "summary": "A gem with native builds for Linux, macOS and Windows, for Ruby 3.3 and later.",
       "api": {
         "url": "https://rubydoc.info/gems/corvus_regex_ecma262"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "php",
@@ -90,7 +150,19 @@
       "summary": "A PHP extension for PHP 8.2 to 8.5, installed with PIE.",
       "api": {
         "page": "docs/api.md"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "swift",
@@ -103,7 +175,19 @@
       "summary": "A Swift package for Linux, macOS and iOS, over the C library.",
       "api": {
         "url": "https://swiftpackageindex.com/corvus-dotnet/corvus-regex-ecma262-swift/documentation"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "fortran",
@@ -116,7 +200,19 @@
       "summary": "A Fortran 2018 binding for gfortran and Intel ifx, with fpm and CMake.",
       "api": {
         "page": "docs/api.md"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "r",
@@ -129,7 +225,19 @@
       "summary": "An R package, for R 4.2 and later.",
       "api": {
         "url": "https://corvus-dotnet.r-universe.dev/corvusregexecma262/doc/manual.html"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "java",
@@ -142,7 +250,19 @@
       "summary": "A Java 17 port with no dependencies.",
       "api": {
         "url": "https://javadoc.io/doc/io.github.corvus-dotnet/corvus-regex-ecma262"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "go",
@@ -155,7 +275,19 @@
       "summary": "A pure Go port, for Go 1.25 and later.",
       "api": {
         "url": "https://pkg.go.dev/github.com/corvus-dotnet/corvus-regex-ecma262-go"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "julia",
@@ -168,7 +300,19 @@
       "summary": "A pure Julia port, for Julia 1.10 and later.",
       "api": {
         "page": "docs/api.md"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "pascal",
@@ -181,7 +325,19 @@
       "summary": "A Free Pascal port with no dependencies, written to compile with Delphi too.",
       "api": {
         "page": "docs/api.md"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     },
     {
       "id": "ocaml",
@@ -194,7 +350,19 @@
       "summary": "A native OCaml port, for OCaml 4.14 and later.",
       "api": {
         "url": "https://ocaml.org/p/corvus-regex-ecma262/latest/doc/index.html"
-      }
+      },
+      "docs": [
+        {
+          "path": "docs/design.md",
+          "title": "Design",
+          "summary": "How the library is built and why: its surface, its engine, its testing and its benchmarks."
+        },
+        {
+          "path": "docs/contributing.md",
+          "title": "Contributing",
+          "summary": "Build it, run its tests and gates, and open a pull request."
+        }
+      ]
     }
   ]
 }

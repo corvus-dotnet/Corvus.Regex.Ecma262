@@ -547,6 +547,9 @@ foreach ($lang in $languages) {
     $lang.docTexts = $docs
 }
 
+# The one page of benchmark figures, which every language's documentation links.
+$benchmarksUrl = "https://corvus-oss.org/corvus-regex-ecma262-benchmarks/"
+
 # A page's body: its title line taken off, and each link made absolute: to the site's page where the site publishes
 # the file (this repository's or another's), else to the file in its repository at the same release.
 function Convert-Body($lang, $path, $raw) {
@@ -593,7 +596,7 @@ foreach ($lang in $languages) {
     $groupDir = Join-Path $docsTaxonomyDir $lang.id
     $start = if ($lang.pageText) { "/getting-started/$($lang.id).html" } else { $repoUrl }
     $api = if ($lang.apiHref) { $lang.apiHref } else { $repoUrl }
-    $groupBody = "- [Getting started]($start): install the package and write your first pattern.`n- [API reference]($api): every name, with its signature.`n- [The repository]($repoUrl), at $($lang.tag).`n"
+    $groupBody = "- [Getting started]($start): install the package and write your first pattern.`n- [API reference]($api): every name, with its signature.`n- [Benchmarks]($benchmarksUrl): every engine, measured each night on the central benchmark page.`n- [The repository]($repoUrl), at $($lang.tag).`n"
     Write-SitePage (Join-Path $groupDir "index.yml") (Join-Path $langContentDir "docs-$($lang.id).md") "../../../content/GettingStarted/Languages/docs-$($lang.id).md" `
         "docs/group" $lang.name $lang.name "The documentation of the $($lang.name) package: getting started, the API reference and the repository's documents." "/docs/index.html" "/docs/$($lang.id)/index.html" $rank $groupBody
     $docRank = 1
@@ -653,6 +656,7 @@ $docSections = foreach ($lang in $languages) {
         $cards += New-Card "Getting started" $start $(if ($lang.pageText) { "Install the package and write your first pattern." } else { "Not published yet: the repository." }) $null
         $cards += New-Card "API reference" $api $(if ($lang.apiHref -and $lang.apiHref.StartsWith("https://")) { "On " + ([System.Uri]$lang.apiHref).Host + "." } elseif ($lang.apiHref) { "Every name, with its signature." } else { "Not published yet: the repository." }) $null
         foreach ($d in $lang.docTexts) { $cards += New-Card $d.doc.title "/docs/$($lang.id)/$($d.slug).html" $d.doc.summary $null }
+        $cards += New-Card "Benchmarks" $benchmarksUrl "Every engine, measured each night." $null
     }
     "<h2 id=`"$($lang.id)`"><a href=`"/docs/$($lang.id)/index.html`">$(& $enc $lang.name)</a></h2>`n<div class=`"lang-grid`">`n$($cards -join "`n")`n</div>"
 }
