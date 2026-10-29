@@ -3,7 +3,9 @@
 // </copyright>
 
 using System.Reflection;
+#if !NETFRAMEWORK
 using System.Runtime.Loader;
+#endif
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -204,6 +206,21 @@ public class EmitterTests
     private static Assembly Compile(string source)
     {
         List<MetadataReference> references = [];
+#if NETFRAMEWORK
+        // The framework's assemblies the process has loaded, with the netstandard facade the library is built against
+        // and System.Memory, which the touches make sure of.
+        _ = typeof(System.Buffers.ArrayPool<byte>);
+        _ = typeof(System.Runtime.InteropServices.MemoryMarshal);
+        _ = Assembly.Load("netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51");
+        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            string name = assembly.GetName().Name;
+            if (!assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location) && (name.StartsWith("System", StringComparison.Ordinal) || name is "mscorlib" or "netstandard"))
+            {
+                references.Add(MetadataReference.CreateFromFile(assembly.Location));
+            }
+        }
+#else
         foreach (string path in ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator))
         {
             string name = Path.GetFileName(path);
@@ -212,6 +229,7 @@ public class EmitterTests
                 references.Add(MetadataReference.CreateFromFile(path));
             }
         }
+#endif
 
         references.Add(MetadataReference.CreateFromFile(typeof(Lib.Regex).Assembly.Location));
         CSharpCompilation compilation = CSharpCompilation.Create(
@@ -222,7 +240,11 @@ public class EmitterTests
         using MemoryStream stream = new();
         Microsoft.CodeAnalysis.Emit.EmitResult result = compilation.Emit(stream);
         Assert.IsTrue(result.Success, string.Join("\n", result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)));
+#if NETFRAMEWORK
+        return Assembly.Load(stream.ToArray());
+#else
         stream.Position = 0;
         return AssemblyLoadContext.Default.LoadFromStream(stream);
+#endif
     }
 }

@@ -5,7 +5,8 @@
     the emitter writes compiles against the library and answers as the library's interpreter does.
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- net481 runs the same tests against the netstandard2.0 build of the library, with the package's files compiled for .NET Framework. -->
+    <TargetFrameworks>net10.0;net481</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Corvus.Ecma262.RegularExpressions.CodeGeneration.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
@@ -17,6 +18,9 @@
     <!-- Built first, for the files it writes; its (empty) assembly is not referenced. -->
     <ProjectReference Include="..\Corvus.Regex.Ecma262.CodeGeneration.Sources\Corvus.Regex.Ecma262.CodeGeneration.Sources.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <PackageReference Include="System.Memory" />
   </ItemGroup>
   <Target Name="CompileThePackagesSources" BeforeTargets="CoreCompile">
     <ItemGroup>
