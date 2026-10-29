@@ -12,6 +12,8 @@ samp {
 }
 
 :not(pre) > code {
+  // A long path or name with no break in it breaks rather than widening the page on a phone.
+  overflow-wrap: anywhere;
   padding: 0.15em 0.4em;
   background: var(--color-bg-inline-code);
   color: var(--color-brand);

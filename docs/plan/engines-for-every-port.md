@@ -43,7 +43,7 @@ The shape of this repository, cut down to the engine:
   third anchor, the multi-literal needle, the fingerprint search, the alternation windows), the case-insensitive
   search with every form, the automaton with word boundaries, the memo that keeps patterns without backreferences
   linear, the allocation discipline, and where the language has a build-time step, the generated match code and
-  the emitted search. Sections 4 and 5 of the [design document](../design/design.md) are the specification; the
+  the emitted search. Sections 3 and 4 of the [design document](../design/design.md) are the specification; the
   per-port checklist of [sweeping optimisations across ports] is the method: every optimisation of the reference
   listed, each marked done, not applicable or to do, nothing skipped silently.
 - **Compliance**: the [ECMA-262 test data](https://github.com/corvus-dotnet/ecma262-regex-test-data) run in CI,

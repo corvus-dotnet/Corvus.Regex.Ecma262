@@ -215,8 +215,8 @@ safe to share between threads.
 ## Documentation
 
 - [The site](https://corvus-oss.org/Corvus.Regex.Ecma262/): getting started, the design and the API reference.
-- [docs/design/design.md](docs/design/design.md): what is ported and from where, the public surface, one matcher over
-  two encodings, the searches for where a match can start, the source generator, the test data and the benchmarks.
+- [docs/design/design.md](docs/design/design.md): an outline of the public surface, the engine, the searches for where a
+  match can start, the source generator, the tests and the benchmarks.
 - [docs/contributing/contributing.md](docs/contributing/contributing.md): the tools on each platform, the build and
   the gates step by step, and what a pull request needs.
 - [docs/benchmarks/industry.md](docs/benchmarks/industry.md): what the Industry benchmarks measure against

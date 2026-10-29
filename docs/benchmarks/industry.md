@@ -89,8 +89,7 @@ cd Solutions/Corvus.Regex.Ecma262.Benchmarks
 CORVUS_REGEX_WORKLOADS=aei dotnet run -c Release -- --filter '*GeneratedCount*' --job short
 ```
 
-A run whose figures are to be compared with the page follows the pinned-host procedure of the
-[design document](../design/design.md) (section 9): the machine pinned to its performance cores, a settle after the
+A run whose figures are to be compared with the page follows the pinned-host procedure: the machine pinned to its performance cores, a settle after the
 last build, nothing else running, the run under `taskset`. `tools/benchmarks/industry-results.py` then writes a
 page's data and table from the run's artifacts (`--host pinned`, with the probe readings), and
 `tools/benchmarks/results-page/generate_site.py` renders the page. `tools/benchmarks/run.sh` is the same steps as

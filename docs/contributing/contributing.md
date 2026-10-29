@@ -65,9 +65,8 @@ brew install git node@24 python gh
 ```
 
 Add `$(brew --prefix node@24)/bin` to `PATH` if Homebrew does not link the versioned Node. On Apple silicon the
-SDK is native arm64; the vectorised paths run on NEON through `Vector128`, and the searches that have an AVX2 form
-(the packed needle and the fingerprint search, section 4.3 of the design) take their `Vector128` form, so every
-test passes, but benchmark numbers are not comparable with the published run, which is on x64.
+SDK is native arm64; the vectorised paths run on NEON through `Vector128` and AdvSimd (design, section 3), so every
+test passes. Benchmark figures are comparable only with the benchmark page's arm64 run, not its x86-64 one.
 
 ## 2. Getting the sources
 
@@ -77,7 +76,7 @@ git clone https://github.com/corvus-dotnet/ecma262-regex-test-data.git   # besid
 cd Corvus.Regex.Ecma262
 ```
 
-The test data repository is the oracle for the engine (design, section 8). It is not vendored, so clone it beside
+The test data repository is the oracle for the engine (design, section 6). It is not vendored, so clone it beside
 the library; the commands below assume `../ecma262-regex-test-data`.
 
 ## 3. Building and testing, step by step
@@ -200,7 +199,7 @@ A new version of Unicode is added to that script's list, with its hashes, as wel
 ## 5. Benchmarks
 
 The benchmarks compare the library with `System.Text.RegularExpressions` on the workloads of `dotnet/performance`
-(design, section 9). A quick look at one row runs in a few minutes:
+(design, section 7). A quick look at one row runs in a few minutes:
 
 ```bash
 cd Solutions/Corvus.Regex.Ecma262.Benchmarks
@@ -252,7 +251,7 @@ benchmark compete for the same cores and the numbers are worthless.
 - Nothing on the match path allocates: no closures, no boxing, no LINQ, no iterator blocks. The allocation test
   and the `[MemoryDiagnoser]` benchmarks hold that line.
 - Wherever the current runtime has a faster way, the code takes it under `#if NET` and the `netstandard2.0`
-  build gets a plain fallback, never the other way round (design, section 6).
+  build gets a plain fallback, never the other way round (design, section 5).
 - Anything the source generator emits that calls a `net10.0`-only member is emitted under
   `#if NET10_0_OR_GREATER`, and the test project and the data set runner define those symbols when they compile
   generated code, so the emitted path is what the gates exercise.
