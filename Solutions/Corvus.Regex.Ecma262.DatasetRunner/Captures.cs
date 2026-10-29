@@ -37,6 +37,11 @@ internal static class Captures
         // The grammars this engine reads the pattern in as the data does; the answers are judged in those alone.
         bool unicodeMade = Verdict(pattern, flags + "u", valid.GetProperty("unicode").GetBoolean(), limit, wrong, ref refused, ref accepted);
         bool legacyMade = Verdict(pattern, flags, valid.GetProperty("legacy").GetBoolean(), limit, wrong, ref refused, ref accepted);
+        if (!Overlay.Enabled)
+        {
+            wrongCount += Validity.Check("captures.jsonl", pattern, flags + "u", valid.GetProperty("unicode").GetBoolean(), wrong);
+            wrongCount += Validity.Check("captures.jsonl", pattern, flags, valid.GetProperty("legacy").GetBoolean(), wrong);
+        }
 
         foreach (JsonElement t in r.GetProperty("tests").EnumerateArray())
         {

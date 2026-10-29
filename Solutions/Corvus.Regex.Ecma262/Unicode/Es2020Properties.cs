@@ -526,17 +526,30 @@ internal static class Es2020Properties
         int eq = expression.IndexOf('=');
         if (eq < 0)
         {
-            string lone = expression.ToString();
-            return Categories.Contains(lone) || BinaryNames.Contains(lone);
+            return Contains(Categories, expression) || Contains(BinaryNames, expression);
         }
 
-        string name = expression.Slice(0, eq).ToString();
-        string value = expression.Slice(eq + 1).ToString();
-        if (!NonBinary.Contains(name))
+        ReadOnlySpan<char> name = expression.Slice(0, eq);
+        ReadOnlySpan<char> value = expression.Slice(eq + 1);
+        if (!Contains(NonBinary, name))
         {
             return false;
         }
 
-        return name == "General_Category" || name == "gc" ? Categories.Contains(value) : Scripts.Contains(value);
+        return name.SequenceEqual("General_Category".AsSpan()) || name.SequenceEqual("gc".AsSpan()) ? Contains(Categories, value) : Contains(Scripts, value);
+    }
+
+    /// <summary>Whether a set of names holds a name given as characters, with nothing allocated.</summary>
+    private static bool Contains(HashSet<string> names, ReadOnlySpan<char> name)
+    {
+        foreach (string candidate in names)
+        {
+            if (name.SequenceEqual(candidate.AsSpan()))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
