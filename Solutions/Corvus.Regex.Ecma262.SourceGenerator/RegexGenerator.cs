@@ -168,17 +168,9 @@ public sealed class RegexGenerator : IIncrementalGenerator
             }
         }
 
-        if (edition is not (int)RegexEdition.Current and not (int)RegexEdition.Es2020)
+        if (diagnostics.Count == 0 && RegexEmitter.CheckSettings(flags, edition, unicodeVersion) is string settings)
         {
-            diagnostics.Add(Diagnostic.Create(Diagnostics.InvalidFlags, patternLocation, "the edition " + edition + " is not a RegexEdition"));
-        }
-        else if (unicodeVersion is not ((int)RegexUnicodeVersion.Default or (int)RegexUnicodeVersion.V13 or (int)RegexUnicodeVersion.V17 or (int)RegexUnicodeVersion.V18 or (int)RegexUnicodeVersion.Latest))
-        {
-            diagnostics.Add(Diagnostic.Create(Diagnostics.InvalidFlags, patternLocation, "the version " + unicodeVersion + " is not a RegexUnicodeVersion"));
-        }
-        else if (edition == (int)RegexEdition.Es2020 && (flags & (int)(RegexFlags.HasIndices | RegexFlags.UnicodeSets)) != 0)
-        {
-            diagnostics.Add(Diagnostic.Create(Diagnostics.InvalidFlags, patternLocation, "ECMAScript 2020 has no d or v flag"));
+            diagnostics.Add(Diagnostic.Create(Diagnostics.InvalidFlags, patternLocation, settings));
         }
 
         if (problem is null && (flags & ~0xFF) == 0 && diagnostics.Count == 0)
@@ -187,7 +179,7 @@ public sealed class RegexGenerator : IIncrementalGenerator
             // out as straight-line code.
             try
             {
-                runners = Runners(pattern, flags, (RegexEdition)edition, (RegexUnicodeVersion)unicodeVersion);
+                runners = RegexEmitter.Runners(pattern, flags, (RegexEdition)edition, (RegexUnicodeVersion)unicodeVersion);
             }
             catch (RegexPatternTooLargeException e)
             {
@@ -221,49 +213,6 @@ public sealed class RegexGenerator : IIncrementalGenerator
             unicodeVersion,
             runners,
             diagnostics.ToImmutableArray());
-    }
-
-    /// <summary>The two programs of a pattern (the bounds of a match, and every group) as runner classes.</summary>
-    /// <param name="pattern">The pattern.</param>
-    /// <param name="flags">The flags.</param>
-    /// <param name="edition">The edition of the grammar.</param>
-    /// <param name="unicodeVersion">The version of Unicode.</param>
-    /// <returns>The text of the classes, indented for a nested class.</returns>
-    internal static string Runners(string pattern, int flags, RegexEdition edition = RegexEdition.Current, RegexUnicodeVersion unicodeVersion = RegexUnicodeVersion.Default)
-    {
-        // The reader, the compiler and the emitters go a level deeper for each level of groups (and with the v flag,
-        // of classes), so a pattern that nests deeply is read on a stack of its own (see DeepStack).
-        return DeepStack.Run(pattern, (flags & (int)RegexFlags.UnicodeSets) != 0, () => RunnersOnThisStack(pattern, flags, edition, unicodeVersion));
-    }
-
-    private static string RunnersOnThisStack(string pattern, int flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
-    {
-        bool unicode = (flags & (int)(RegexFlags.Unicode | RegexFlags.UnicodeSets)) != 0;
-        EcmaRegexParser parser = new(
-            pattern.AsSpan(),
-            unicode,
-            ignoreCase: (flags & (int)RegexFlags.IgnoreCase) != 0,
-            multiline: (flags & (int)RegexFlags.Multiline) != 0,
-            dotAll: (flags & (int)RegexFlags.DotAll) != 0,
-            unicodeSets: (flags & (int)RegexFlags.UnicodeSets) != 0,
-            edition: edition,
-            unicodeVersion: unicodeVersion);
-        EcmaRegexNode root = parser.Parse();
-        Program bounds = Compiler.Compile(root, unicode, parser.GroupCount, trackAll: false);
-        Program captures = Compiler.Compile(root, unicode, parser.GroupCount, trackAll: true);
-        StringBuilder sb = new();
-        if (!TreeEmitter.TryEmitRunner(sb, 1, "Bounds", bounds))
-        {
-            RunEmitter.EmitRunner(sb, 1, "Bounds", bounds);
-        }
-
-        sb.AppendLine();
-        if (!TreeEmitter.TryEmitRunner(sb, 1, "Captures", captures))
-        {
-            RunEmitter.EmitRunner(sb, 1, "Captures", captures);
-        }
-
-        return sb.ToString();
     }
 
     private static string Declaration(INamedTypeSymbol type)
@@ -371,21 +320,8 @@ public sealed class RegexGenerator : IIncrementalGenerator
         }
 
         string holder = "CorvusRegex_" + target.Member;
-        string flags = "(global::Corvus.Ecma262.RegularExpressions.RegexFlags)" + target.Flags.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        string timeout = target.TimeoutMilliseconds is not int ms
-            ? "global::Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout"
-            : ms < 0
-            ? "global::Corvus.Ecma262.RegularExpressions.Regex.InfiniteMatchTimeout"
-            : "global::System.TimeSpan.FromMilliseconds(" + ms.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
-        string pattern = SymbolDisplay.FormatLiteral(target.Pattern, quote: true);
-
-        // The edition and the version of Unicode, when either is not the default.
-        string settings = target.Edition == 0 && target.UnicodeVersion == 0
-            ? string.Empty
-            : "(global::Corvus.Ecma262.RegularExpressions.RegexEdition)" + target.Edition.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                + ", (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)" + target.UnicodeVersion.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", ";
-
-        Indent(sb, indent).AppendLine("/// <summary>The regular expression " + Comment(target) + ", made once.</summary>");
+        string summary = RegexEmitter.Summary(target.Pattern, target.FlagsText ?? RegexEmitter.Letters(target.Flags));
+        Indent(sb, indent).AppendLine("/// <summary>The regular expression " + summary + ", made once.</summary>");
         Indent(sb, indent).AppendLine("[global::System.CodeDom.Compiler.GeneratedCode(\"Corvus.Regex.Ecma262.SourceGenerator\", \"1.0\")]");
         if (target.IsProperty)
         {
@@ -399,28 +335,7 @@ public sealed class RegexGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine();
-        Indent(sb, indent).AppendLine("/// <summary>Holds the regular expression " + Comment(target) + ".</summary>");
-        Indent(sb, indent).AppendLine("[global::System.CodeDom.Compiler.GeneratedCode(\"Corvus.Regex.Ecma262.SourceGenerator\", \"1.0\")]");
-        Indent(sb, indent).Append("private static class ").AppendLine(holder);
-        Indent(sb, indent).AppendLine("{");
-        Indent(sb, indent + 1).AppendLine("/// <summary>The regular expression.</summary>");
-        Indent(sb, indent + 1).Append("internal static readonly global::Corvus.Ecma262.RegularExpressions.Regex Instance = new(")
-            .Append(pattern).Append(", ").Append(flags).Append(", ").Append(timeout).Append(", ").Append(settings).AppendLine("new Bounds(), new Captures());");
-        sb.AppendLine();
-        foreach (string line in target.Runners.Split('\n'))
-        {
-            string trimmed = line.TrimEnd('\r');
-            if (trimmed.Length == 0)
-            {
-                sb.AppendLine();
-            }
-            else
-            {
-                Indent(sb, indent).AppendLine(trimmed);
-            }
-        }
-
-        Indent(sb, indent).AppendLine("}");
+        RegexEmitter.AppendHolder(sb, indent, holder, summary, target.Pattern, target.Flags, target.TimeoutMilliseconds, target.Edition, target.UnicodeVersion, target.Runners);
 
         for (int k = 0; k < target.Containers.Length; k++)
         {
@@ -435,26 +350,6 @@ public sealed class RegexGenerator : IIncrementalGenerator
 
         string name = (target.Namespace.Length > 0 ? target.Namespace + "." : string.Empty) + Path(target) + "." + target.Member + ".g.cs";
         spc.AddSource(name, SourceText.From(sb.ToString(), Encoding.UTF8));
-    }
-
-    private static string Comment(Target target)
-    {
-        string text = target.Pattern.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
-        return "<c>/" + text + "/" + (target.FlagsText ?? Letters(target.Flags)) + "</c>";
-    }
-
-    private static string Letters(int flags)
-    {
-        StringBuilder sb = new();
-        foreach ((RegexFlags flag, char letter) in new[] { (RegexFlags.HasIndices, 'd'), (RegexFlags.Global, 'g'), (RegexFlags.IgnoreCase, 'i'), (RegexFlags.Multiline, 'm'), (RegexFlags.DotAll, 's'), (RegexFlags.Unicode, 'u'), (RegexFlags.UnicodeSets, 'v'), (RegexFlags.Sticky, 'y') })
-        {
-            if ((flags & (int)flag) != 0)
-            {
-                sb.Append(letter);
-            }
-        }
-
-        return sb.ToString();
     }
 
     private static string Path(Target target)
@@ -482,15 +377,7 @@ public sealed class RegexGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private static StringBuilder Indent(StringBuilder sb, int level)
-    {
-        for (int k = 0; k < level; k++)
-        {
-            sb.Append("    ");
-        }
-
-        return sb;
-    }
+    private static StringBuilder Indent(StringBuilder sb, int level) => RegexEmitter.Indent(sb, level);
 
     private sealed record Target(
         string Namespace,

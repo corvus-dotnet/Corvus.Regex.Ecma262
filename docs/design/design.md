@@ -132,6 +132,12 @@ diagnostics CRE0001 to CRE0005 cover the pattern, the member's shape, the flags,
   group.
 - The emitted search uses members the library has only on `net10.0`, under `#if NET10_0_OR_GREATER`; a .NET
   Framework consumer gets the plain paths and the same answers.
+- *The emitter as source.* A source generator does not run on another's output, so a `[GeneratedRegex]` written
+  into generated code is never given its body. `RegexEmitter.TryEmit` writes the same code for a pattern, and the
+  `Corvus.Regex.Ecma262.CodeGeneration.Sources` package carries it, with the parser and compiler it needs, as C#
+  compiled into the code generator that takes it. Its types are internal and in a namespace of their own
+  (`Corvus.Ecma262.RegularExpressions.CodeGeneration`), so it loads no assembly beside a source generator and
+  never clashes with the library. One list of files (`EmitterSources.props`) feeds the generator and the package.
 
 ## 5. Targets and layout
 
@@ -145,7 +151,8 @@ target `net481` too.
 Solutions/
   Corvus.Regex.Ecma262/                     the library (Syntax/, Unicode/, Engine/, the public surface)
   Corvus.Regex.Ecma262.SourceGenerator/     packed into the library package as an analyzer
-  Corvus.Regex.Ecma262.Tests/, .SourceGenerator.Tests/
+  Corvus.Regex.Ecma262.CodeGeneration.Sources/  the emitter as a source package, compiled here as it ships
+  Corvus.Regex.Ecma262.Tests/, .SourceGenerator.Tests/, .CodeGeneration.Sources.Tests/
   Corvus.Regex.Ecma262.Benchmarks/          BenchmarkDotNet
   Corvus.Regex.Ecma262.DatasetRunner/       the ECMA-262 test data, interpreted and generated, both encodings
   Corvus.Regex.Ecma262.StackProbe/          patterns built to overflow the stack

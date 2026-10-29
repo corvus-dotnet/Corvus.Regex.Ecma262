@@ -1733,7 +1733,14 @@ internal sealed class EcmaRegexParser
     }
 
     /// <summary>The value of a class of the v flag's grammar: its code points, its strings (each of a length other than one, the empty string among them), and whether its syntax may hold a string.</summary>
-    private readonly record struct ClassSetValue(int[] Set, List<int[]> Strings, bool MayContainStrings);
+    private readonly struct ClassSetValue(int[] set, List<int[]> strings, bool mayContainStrings)
+    {
+        public int[] Set { get; } = set;
+
+        public List<int[]> Strings { get; } = strings;
+
+        public bool MayContainStrings { get; } = mayContainStrings;
+    }
 
     /// <summary>Reads one member of a class. Returns its character, or sets <see cref="atomSet"/> for a class escape.</summary>
     private int ClassAtom()
