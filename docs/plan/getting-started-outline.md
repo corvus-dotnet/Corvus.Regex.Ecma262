@@ -41,8 +41,10 @@ showing a result (an assertion, a `# =>` comment), as long as the tests check it
 
 ### 4. The edition and the version of Unicode
 
-- `Es2020` and what it refuses: the `d` and `v` flags, modifier groups, a group name used twice, property names
-  outside the 2020 tables.
+- First, the defaults, by the language's names: today's grammar (ECMAScript 2025) and V8's version of Unicode (17
+  today), and that either is overridden when the pattern is compiled, independently of the other.
+- `Es2020`, chosen in place of the default, and what it refuses: the `d` and `v` flags, modifier groups, a group name
+  used twice, property names outside the 2020 tables.
 - The versions of Unicode (13, 17, 18, latest, and the default that is V8's), what they decide, and how to read back
   the version a pattern was compiled with.
 - That both are read when the pattern is compiled, so a match costs the same.
