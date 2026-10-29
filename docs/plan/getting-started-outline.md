@@ -5,8 +5,9 @@ topic covers the same ground in that language's terms, using its own capabilitie
 Ruby block). After the standard topics come the language's extra topics, which no other language needs.
 
 The .NET page is in this repository (`docs/website/site/content/GettingStarted/`); every other language's is
-`docs/getting-started.md` in its own repository, fetched by the site at its latest release, with every example run by
-that repository's tests.
+`docs/getting-started.md` in its own repository, fetched by the site from its main branch, with every example run by
+that repository's tests. The pages on main describe the latest release, so a change to them alone is merged with
+`no_release` and published without a release of the library.
 
 ## The page
 

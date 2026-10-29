@@ -1,0 +1,45 @@
+name: build-website-only
+# Builds the documentation site from main and deploys it, without a release of the library: a change to the documents
+# alone (this repository's or a language repository's, which the site takes from each repository's main) is merged
+# with no_release and published by running this workflow. The documents on main describe the latest release.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write  # the gh-pages branch
+  pull-requests: read  # the open pull requests, whose previews the deploy keeps
+
+jobs:
+  build:
+    name: Build/Deploy Documentation Site
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd   # v6.0.2
+      with:
+        fetch-depth: 0
+    - uses: endjin/Endjin.RecommendedPractices.GitHubActions/actions/run-scripted-build@main
+      id: run_build
+      with:
+        displayName: Build Documentation Site
+        netSdkVersion: '10.0.x'
+        tasks: Build,BuildWebsite
+        configuration: Release
+      env:
+        BUILDVAR_BasePathPrefix: "${{ format('/{0}', github.event.repository.name) }}"
+        VELLUM_DOWNLOAD_TOKEN: "${{ secrets.ENDJIN_PACKAGES_TOKEN }}"
+        # The site's build reads each language repository's pages and latest release through the GitHub API.
+        GH_TOKEN: ${{ github.token }}
+    - name: Deploy to GitHub Pages
+      # gh-pages holds one commit, which every write replaces (.github/scripts/Update-GhPages.ps1 says why).
+      if: github.ref == 'refs/heads/main'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $open = gh pr list --repo $env:GITHUB_REPOSITORY --state open --limit 1000 --json number --jq '[.[].number]|join(",")'
+        if ($LASTEXITCODE -ne 0) { throw 'Could not list the open pull requests.' }
+        ./.github/scripts/Update-GhPages.ps1 -Mode Site -Source docs/website/.output -OpenPullRequests "$open"

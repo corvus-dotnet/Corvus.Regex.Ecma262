@@ -1,5 +1,5 @@
 {
-  "comment": "The languages the site features (listed by name wherever they appear). Each engine repository owns its pages, fetched by build.ps1 at the repository's latest release: its getting-started page (page), its API reference (api: a page the repository generates, or the url of its ecosystem's documentation host, linked only when that host answers), and its design document and contributing guide (docs: path, title, summary), in the outlines docs/plan names; never engineering notes such as port checklists. A page that is not there yet falls back to the repository. .NET's are this site's own (local).",
+  "comment": "The languages the site features (listed by name wherever they appear). Each engine repository owns its pages, fetched by build.ps1 from the repository's main branch, where they describe its latest release (so a change to them alone is published without a release): its getting-started page (page), its API reference (api: a page the repository generates, or the url of its ecosystem's documentation host, linked only when that host answers), and its design document and contributing guide (docs: path, title, summary), in the outlines docs/plan names; never engineering notes such as port checklists. A page that is not there yet falls back to the repository. .NET's are this site's own (local).",
   "languages": [
     {
       "id": "dotnet",

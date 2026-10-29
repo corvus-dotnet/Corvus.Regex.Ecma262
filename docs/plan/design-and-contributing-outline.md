@@ -7,7 +7,7 @@ PHP and R bind the crate itself; C is the crate behind a C ABI; C++, Swift and F
 where the engine is described, and points to the Rust crate's design for it, rather than describing it again.
 
 Every other language's documents are `docs/design.md` and `docs/contributing.md` in its own repository, fetched by
-the site at its latest release, as `docs/getting-started.md` is. Both describe the library as it is, never its
+the site from its main branch, as `docs/getting-started.md` is, and describe its latest release. Both describe the library as it is, never its
 history. The repository's working documents (port checklists, design notes) are not published.
 
 ## The design document

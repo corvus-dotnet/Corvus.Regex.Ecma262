@@ -440,7 +440,8 @@ $dotnetGroupBody = "---`nContentType: `"application/vnd.endjin.ssg.content+md`"`
 Write-StepDuration "Docs generation ($docCount pages)" $sw
 
 # The languages (languages.json), listed by name wherever they appear. Each engine repository owns its pages, fetched
-# here at its latest release: its getting-started page (/getting-started/<id>.html), its API reference (/api/<id>.html
+# here from its main branch, where they describe its latest release, so that a change to them alone is published
+# without a release of the library: its getting-started page (/getting-started/<id>.html), its API reference (/api/<id>.html
 # for a page it generates; or its ecosystem's documentation host, linked only when the host answers), and its other
 # documents (/docs/<id>/<slug>.html, under a page that names the language). A page that cannot be fetched (none yet,
 # or no network) falls back to the repository, so the site always builds. .NET's pages are this site's own.
@@ -458,8 +459,11 @@ Get-ChildItem $gsTaxonomyDir -Filter "*.yml" -ErrorAction SilentlyContinue | Whe
 Get-ChildItem $apiLangTaxonomyDir -Filter "*.yml" -ErrorAction SilentlyContinue | Remove-Item -Force
 Get-ChildItem $docsTaxonomyDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "dotnet" } | Remove-Item -Recurse -Force
 
-function Get-RepoFile($repo, $tag, $path) {
-    $text = (& gh api "repos/$repo/contents/${path}?ref=$tag" -H "Accept: application/vnd.github.raw" 2>$null) -join "`n"
+# The branch each repository's pages are read from: its main branch, whose pages describe its latest release.
+$pagesRef = "main"
+
+function Get-RepoFile($repo, $ref, $path) {
+    $text = (& gh api "repos/$repo/contents/${path}?ref=$ref" -H "Accept: application/vnd.github.raw" 2>$null) -join "`n"
     if ($LASTEXITCODE -ne 0 -or !$text) { return $null }
     return $text
 }
@@ -525,11 +529,11 @@ foreach ($lang in $languages) {
     if ($LASTEXITCODE -ne 0 -or !$tag) { Write-Host "  $($lang.name): no release could be read - every card links its repository" -ForegroundColor DarkYellow; continue }
     $lang.tag = $tag
     if ($lang.page) {
-        $lang.pageText = Get-RepoFile $lang.repo $tag $lang.page
+        $lang.pageText = Get-RepoFile $lang.repo $pagesRef $lang.page
         if ($lang.pageText) { $siteUrlOf["$($lang.repo)|$($lang.page)"] = "/getting-started/$($lang.id).html" }
     }
     if ($lang.api.page) {
-        $lang.apiText = Get-RepoFile $lang.repo $tag $lang.api.page
+        $lang.apiText = Get-RepoFile $lang.repo $pagesRef $lang.api.page
         if ($lang.apiText) { $siteUrlOf["$($lang.repo)|$($lang.api.page)"] = "/api/$($lang.id).html"; $lang.apiHref = "/api/$($lang.id).html" }
     } elseif ($lang.api.url) {
         if (Test-Host $lang.api.url) { $lang.apiHref = $lang.api.url }
@@ -538,7 +542,7 @@ foreach ($lang in $languages) {
     $docs = @()
     foreach ($doc in @($lang.docs)) {
         if (!$doc) { continue }
-        $text = Get-RepoFile $lang.repo $tag $doc.path
+        $text = Get-RepoFile $lang.repo $pagesRef $doc.path
         if (!$text) { continue }
         $slug = ConvertTo-KebabCase ([System.IO.Path]::GetFileNameWithoutExtension($doc.path))
         $siteUrlOf["$($lang.repo)|$($doc.path)"] = "/docs/$($lang.id)/$slug.html"
@@ -551,7 +555,7 @@ foreach ($lang in $languages) {
 $benchmarksUrl = "https://corvus-oss.org/corvus-regex-ecma262-benchmarks/"
 
 # A page's body: its title line taken off, and each link made absolute: to the site's page where the site publishes
-# the file (this repository's or another's), else to the file in its repository at the same release.
+# the file (this repository's or another's), else to the file in its repository's main branch, where it was read.
 function Convert-Body($lang, $path, $raw) {
     if ($raw -match '^# (.+?)[\r\n]') { $title = $Matches[1].Trim() -replace '`', '' } else { $title = $null }
     $body = ($raw -replace '^#[^\n]+\n\s*', '').TrimStart()
@@ -567,7 +571,7 @@ function Convert-Body($lang, $path, $raw) {
         else { $key = "$($lang.repo)|" + [System.Uri]::new([System.Uri]::new("https://x/$dir/"), $target).AbsolutePath.TrimStart('/') }
         if ($siteUrlOf.ContainsKey($key)) { return "]($($siteUrlOf[$key])$fragment)" }
         if ($target -match '^https?://') { return $m.Value }
-        return "](https://github.com/$($lang.repo)/blob/$($lang.tag)/$($key.Split('|')[1])$fragment)"
+        return "](https://github.com/$($lang.repo)/blob/$pagesRef/$($key.Split('|')[1])$fragment)"
     })
     return @{ title = $title; body = $body }
 }
