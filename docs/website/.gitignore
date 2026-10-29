@@ -32,3 +32,7 @@ site/taxonomy/getting-started/*.yml
 !site/taxonomy/getting-started/index.yml
 !site/taxonomy/getting-started/dotnet.yml
 site/theme/corvus/views/Shared/_Languages.cshtml
+site/taxonomy/api-languages/
+site/theme/corvus/views/Shared/_ApiLanguages.cshtml
+site/theme/corvus/views/api/dotnet.cshtml
+site/theme/corvus/views/Shared/_DocsLanguages.cshtml

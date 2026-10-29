@@ -16,7 +16,10 @@
     <main id="main-content" class="layout-docs__main">
         <div class="doc__content">
             <h1>@Model.PageContext.Title documentation</h1>
-            <p>@group?.Description</p>
+            @foreach (var contentFragment in Model.PageContext.GetAllMarkdownContent())
+            {
+                @Html.Raw(contentFragment.Body)
+            }
             <div class="card-grid" style="margin-top:var(--space-lg)">
                 @if (docPages != null)
                 {

@@ -74,7 +74,7 @@ p {
 // ---- Links ----
 
 .content a,
-.doc__content a:not(.card--link):not(.api-browser__item-link),
+.doc__content a:not(.card--link):not(.api-browser__item-link):not(.lang-card),
 .text-content a,
 a.link {
   color: var(--color-brand);
@@ -93,9 +93,9 @@ a.link {
   }
 }
 
-// External link indicator — small icon after links to external sites
-.doc__content a[href^="https://"],
-.doc__content a[href^="http://"] {
+// External link indicator — small icon after links to external sites (a language card shows its own)
+.doc__content a[href^="https://"]:not(.lang-card),
+.doc__content a[href^="http://"]:not(.lang-card) {
   &::after {
     content: "\2009\2197"; // thin space + ↗
     font-size: 0.75em;
