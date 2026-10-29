@@ -1,0 +1,34 @@
+@model SiteViewModel
+@{
+    Layout = "../Shared/_Layout.cshtml";
+    ViewBag.MetaTitle = Model.PageContext.MetaData.Title;
+    var currentUrl = Model.PageContext.Navigation?.Url;
+    var docsParent = Model.SiteContext.Navigation?.Children?
+        .FirstOrDefault(x => x.Url?.ToString()?.Contains("/docs/") == true);
+    var group = docsParent?.Children?.FirstOrDefault(x => currentUrl != null && Vellum.Cli.Domain.Url.AreEquivalent(x.Url, currentUrl));
+    var folder = group?.Url?.ToString() is string u && u.EndsWith("index.html") ? u.Substring(0, u.Length - "index.html".Length) : null;
+    var docPages = folder == null ? null : docsParent.Children
+        .Where(x => x.Url?.ToString()?.StartsWith(folder) == true && x.Url.ToString().EndsWith("/index.html") == false)
+        .OrderBy(x => x.Rank).ToList();
+}
+<div class="layout-docs container">
+    @await Html.PartialAsync("_Sidebar").ConfigureAwait(false)
+    <main id="main-content" class="layout-docs__main">
+        <div class="doc__content">
+            <h1>@Model.PageContext.Title documentation</h1>
+            <p>@group?.Description</p>
+            <div class="card-grid" style="margin-top:var(--space-lg)">
+                @if (docPages != null)
+                {
+                    @foreach (var doc in docPages)
+                    {
+                        <a class="card card--link" href="@doc.Url">
+                            <h3 class="card__title">@doc.Title</h3>
+                            <p class="card__body">@doc.Description</p>
+                        </a>
+                    }
+                }
+            </div>
+        </div>
+    </main>
+</div>
