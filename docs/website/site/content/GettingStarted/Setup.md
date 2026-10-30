@@ -17,3 +17,11 @@ The library targets `net10.0` and `netstandard2.0`. The vectorised searches and 
 ```csharp
 using Corvus.Ecma262.RegularExpressions;
 ```
+
+### Start-up under ReadyToRun
+
+An application published with ReadyToRun runs most of the library from code compiled ahead of time, but not the
+matchers themselves. They are generic over the text's code unit (`byte` for UTF-8, `char` for UTF-16), and ReadyToRun
+compiles no instantiation of them over those types, so the JIT compiles them the first time a pattern is compiled
+or matched in the process. That is a one-time cost at start-up, and steady-state speed is unaffected. Native AOT
+compiles everything ahead of time and has no such cost.

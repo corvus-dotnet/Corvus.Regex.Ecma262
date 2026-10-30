@@ -24,8 +24,9 @@
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://corvus-oss.org/Corvus.Regex.Ecma262/</PackageProjectUrl>
-    <!-- A package with no assembly. -->
+    <!-- A package with no assembly, so no symbols: nuget.org refuses a symbol package with no .pdb in it. -->
     <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <IncludeSymbols>false</IncludeSymbols>
     <EmitterSourcesDir>$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)EmitterSources\</EmitterSourcesDir>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackEmitterSources</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
