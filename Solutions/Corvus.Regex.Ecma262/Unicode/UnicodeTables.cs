@@ -198,16 +198,7 @@ internal sealed class UnicodeTables
     {
         set = [];
         strings = [];
-        int index = -1;
-        for (int k = 0; k < this.stringNames.Length; k++)
-        {
-            if (name.SequenceEqual(this.stringNames[k].AsSpan()))
-            {
-                index = k;
-            }
-        }
-
-        bool all = index < 0 && name.SequenceEqual(RgiEmoji.AsSpan());
+        int index = this.StringPropertyIndex(name, out bool all);
         if (index < 0 && !all)
         {
             return false;
@@ -275,6 +266,22 @@ internal sealed class UnicodeTables
 
         return sequences;
     }
+
+    /// <summary>Whether a name is a property of strings of this version (see <see cref="StringProperty"/>), with nothing built.</summary>
+    /// <param name="name">The property name, which is case-sensitive.</param>
+    /// <returns><see langword="true"/> when it is.</returns>
+    public bool IsStringProperty(ReadOnlySpan<char> name)
+    {
+        return this.StringPropertyIndex(name, out bool all) >= 0 || all;
+    }
+
+    /// <summary>
+    /// Whether the expression between the braces of <c>\p{...}</c> names a property, or a property and a value, of
+    /// this version (see <see cref="Property"/>), with nothing built.
+    /// </summary>
+    /// <param name="expression">The expression.</param>
+    /// <returns><see langword="true"/> when it does.</returns>
+    public bool HasProperty(ReadOnlySpan<char> expression) => this.ResolveName(expression) != None;
 
     /// <summary>
     /// Resolves the expression between the braces of <c>\p{...}</c> as ECMA-262 does: a name and a value of
@@ -515,6 +522,22 @@ internal sealed class UnicodeTables
 
             shift += 5;
         }
+    }
+
+    /// <summary>The index of a property of strings among <see cref="stringNames"/>, or -1, with whether the name is RGI_Emoji, the union of them.</summary>
+    private int StringPropertyIndex(ReadOnlySpan<char> name, out bool all)
+    {
+        int index = -1;
+        for (int k = 0; k < this.stringNames.Length; k++)
+        {
+            if (name.SequenceEqual(this.stringNames[k].AsSpan()))
+            {
+                index = k;
+            }
+        }
+
+        all = index < 0 && name.SequenceEqual(RgiEmoji.AsSpan());
+        return index;
     }
 
     private static int Find(string[] names, ReadOnlySpan<char> name)

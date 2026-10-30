@@ -1,0 +1,32 @@
+<Project Sdk="MSTest.Sdk">
+  <!--
+    The emitter as the source package carries it, compiled here beside a reference to the library, as a code
+    generator that takes the package and generates code for the library compiles it: the two never clash, and what
+    the emitter writes compiles against the library and answers as the library's interpreter does.
+  -->
+  <PropertyGroup>
+    <!-- net481 runs the same tests against the netstandard2.0 build of the library, with the package's files compiled for .NET Framework. -->
+    <TargetFrameworks>net10.0;net481</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Corvus.Ecma262.RegularExpressions.CodeGeneration.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <UseAppHost>false</UseAppHost>
+    <NoWarn>$(NoWarn);CS1591;CA1707;CA1812</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Corvus.Regex.Ecma262\Corvus.Regex.Ecma262.csproj" />
+    <!-- Built first, for the files it writes; its (empty) assembly is not referenced. -->
+    <ProjectReference Include="..\Corvus.Regex.Ecma262.CodeGeneration.Sources\Corvus.Regex.Ecma262.CodeGeneration.Sources.csproj" ReferenceOutputAssembly="false" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <PackageReference Include="System.Memory" />
+  </ItemGroup>
+  <Target Name="CompileThePackagesSources" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <_PackageSource Include="..\Corvus.Regex.Ecma262.CodeGeneration.Sources\obj\EmitterSources\**\*.cs" />
+      <Compile Remove="@(_PackageSource)" />
+      <Compile Include="@(_PackageSource)" />
+    </ItemGroup>
+  </Target>
+</Project>

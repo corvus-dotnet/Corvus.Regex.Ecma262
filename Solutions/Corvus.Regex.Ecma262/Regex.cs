@@ -346,6 +346,60 @@ public sealed partial class Regex
     public static bool IsValid(string pattern, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
         => TryCreate(pattern, flags, InfiniteMatchTimeout, edition, unicodeVersion, out _, out _);
 
+    /// <summary>
+    /// Whether a pattern is valid in the grammar of ECMA-262 for the flags, decided with nothing allocated. It asks
+    /// the grammar only: unlike <see cref="IsValid(string, RegexFlags)"/>, which compiles the pattern, it does not apply
+    /// this engine's limits of size, so a pattern too large to compile is valid here.
+    /// </summary>
+    /// <param name="pattern">The pattern, as UTF-16.</param>
+    /// <param name="flags">The flags: <see cref="RegexFlags.Unicode"/> or <see cref="RegexFlags.UnicodeSets"/> choose the
+    /// grammar, and the others do not change it.</param>
+    /// <returns><see langword="true"/> when it is; <see langword="false"/> too when the flags are not valid together.</returns>
+    public static bool IsValidPattern(ReadOnlySpan<char> pattern, RegexFlags flags)
+        => IsValidPattern(pattern, flags, RegexEdition.Current, RegexUnicodeVersion.Default);
+
+    /// <summary>
+    /// Whether a pattern is valid in the grammar of ECMA-262 for the flags, of an edition and under a version of
+    /// Unicode, decided with nothing allocated (see <see cref="IsValidPattern(ReadOnlySpan{char}, RegexFlags)"/>).
+    /// </summary>
+    /// <param name="pattern">The pattern, as UTF-16.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="edition">The edition of ECMA-262 whose grammar the pattern is read with.</param>
+    /// <param name="unicodeVersion">The version of Unicode whose character database the pattern is read with.</param>
+    /// <returns><see langword="true"/> when it is; <see langword="false"/> too when the flags, the edition or the
+    /// version are not valid together.</returns>
+    public static bool IsValidPattern(ReadOnlySpan<char> pattern, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
+    {
+        return AreValidSettings(flags, edition, unicodeVersion)
+            && EcmaRegexValidator.IsValid(pattern, (flags & RegexFlags.Unicode) != 0, (flags & RegexFlags.UnicodeSets) != 0, edition, unicodeVersion);
+    }
+
+    /// <summary>
+    /// Whether a UTF-8 pattern is valid in the grammar of ECMA-262 for the flags, decided with nothing allocated and
+    /// with no transcoding (see <see cref="IsValidPattern(ReadOnlySpan{char}, RegexFlags)"/>). Bytes that are not
+    /// UTF-8 are not a pattern.
+    /// </summary>
+    /// <param name="utf8Pattern">The pattern, as UTF-8.</param>
+    /// <param name="flags">The flags.</param>
+    /// <returns><see langword="true"/> when it is.</returns>
+    public static bool IsValidPattern(ReadOnlySpan<byte> utf8Pattern, RegexFlags flags)
+        => IsValidPattern(utf8Pattern, flags, RegexEdition.Current, RegexUnicodeVersion.Default);
+
+    /// <summary>
+    /// Whether a UTF-8 pattern is valid in the grammar of ECMA-262 for the flags, of an edition and under a version
+    /// of Unicode, decided with nothing allocated and with no transcoding. Bytes that are not UTF-8 are not a pattern.
+    /// </summary>
+    /// <param name="utf8Pattern">The pattern, as UTF-8.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="edition">The edition of ECMA-262 whose grammar the pattern is read with.</param>
+    /// <param name="unicodeVersion">The version of Unicode whose character database the pattern is read with.</param>
+    /// <returns><see langword="true"/> when it is.</returns>
+    public static bool IsValidPattern(ReadOnlySpan<byte> utf8Pattern, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
+    {
+        return AreValidSettings(flags, edition, unicodeVersion)
+            && EcmaRegexValidator.IsValid(utf8Pattern, (flags & RegexFlags.Unicode) != 0, (flags & RegexFlags.UnicodeSets) != 0, edition, unicodeVersion);
+    }
+
     /// <summary>Whether a pattern matches anywhere in a text, with no flags.</summary>
     /// <param name="input">The text.</param>
     /// <param name="pattern">The pattern.</param>
@@ -537,6 +591,20 @@ public sealed partial class Regex
             throw new RegexParseException("Invalid regular expression flags", 0);
         }
 
+    }
+
+    /// <summary>
+    /// Whether flags, an edition and a version of Unicode go together, as <see cref="ValidateFlags"/> and
+    /// <see cref="ValidateEdition"/> decide it, with nothing thrown.
+    /// </summary>
+    private static bool AreValidSettings(RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
+    {
+        const RegexFlags Known = RegexFlags.HasIndices | RegexFlags.Global | RegexFlags.IgnoreCase | RegexFlags.Multiline | RegexFlags.DotAll | RegexFlags.Unicode | RegexFlags.UnicodeSets | RegexFlags.Sticky;
+        return (flags & ~Known) == 0
+            && !((flags & RegexFlags.Unicode) != 0 && (flags & RegexFlags.UnicodeSets) != 0)
+            && edition is RegexEdition.Current or RegexEdition.Es2020
+            && !(edition == RegexEdition.Es2020 && (flags & (RegexFlags.HasIndices | RegexFlags.UnicodeSets)) != 0)
+            && unicodeVersion is RegexUnicodeVersion.Default or RegexUnicodeVersion.V13 or RegexUnicodeVersion.V17 or RegexUnicodeVersion.V18 or RegexUnicodeVersion.Latest;
     }
 
     /// <summary>Refuses an edition that is not one, and the flags ECMAScript 2020 does not have: <c>d</c> (2022) and <c>v</c> (2024).</summary>

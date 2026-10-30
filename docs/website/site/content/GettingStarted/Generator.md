@@ -24,3 +24,11 @@ int n = Patterns.Dates().Count("on 11/18/2019 and 1/2/03");       // 2
 The member returns one `Regex` each time, built on the generated code. The generated code is the search for where a match can start and the match itself as structured code, over both encodings. A pattern too large for straight-line code (a class of thousands of strings, such as `\p{RGI_Emoji}`) is handed to the interpreter by its generated runner, so every pattern compiles.
 
 The generator ships in the same package and runs on the `netstandard2.0` build of the library, as a source generator must.
+
+### In generated code
+
+A source generator does not run on another generator's output, so a `[GeneratedRegex]` member written by a code generator is never given its body. A code generator writes the body itself with the `Corvus.Regex.Ecma262.CodeGeneration.Sources` package: `RegexEmitter.TryEmit` returns the same code the source generator writes, as a class to nest in the generated type, or the reason the pattern does not compile. The package is C# compiled into the code generator, with no assembly, so a source generator can take it.
+
+```xml
+<PackageReference Include="Corvus.Regex.Ecma262.CodeGeneration.Sources" PrivateAssets="all" />
+```

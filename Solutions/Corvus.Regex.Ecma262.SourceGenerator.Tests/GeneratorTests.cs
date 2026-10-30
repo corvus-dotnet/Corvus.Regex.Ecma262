@@ -17,6 +17,26 @@ namespace Corvus.Ecma262.RegularExpressions.SourceGenerator.Tests;
 public class GeneratorTests
 {
     [TestMethod]
+    public void APatternWithLineBreaksOrALoneSurrogateStillCompiles()
+    {
+        // The pattern's text is in the summary of what is generated: a line break there would end the comment, and
+        // a lone surrogate cannot be written at all.
+        (Compilation output, ImmutableArray<Diagnostic> diagnostics, _) = Run("""
+            using Corvus.Ecma262.RegularExpressions;
+            namespace Sample
+            {
+                public static partial class Patterns
+                {
+                    [GeneratedRegex("a\nb\rc\u2028d\u0085e\uD800f")]
+                    public static partial Regex Lines();
+                }
+            }
+            """);
+        Assert.AreEqual(0, diagnostics.Length, string.Join("\n", diagnostics));
+        AssertCompiles(output);
+    }
+
+    [TestMethod]
     public void AStaticPartialMethodIsGivenABody()
     {
         (Compilation output, ImmutableArray<Diagnostic> diagnostics, string generated) = Run("""

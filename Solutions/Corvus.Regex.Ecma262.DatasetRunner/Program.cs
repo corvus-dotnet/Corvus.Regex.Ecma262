@@ -140,6 +140,11 @@ foreach (string file in Directory.GetFiles(directory, filter).OrderBy(f => f, St
         foreach ((string suffix, string answerName, bool expectedValid) in modes)
         {
             string modeFlags = flags + suffix;
+            if (!Overlay.Enabled)
+            {
+                Interlocked.Add(ref fileWrong, Validity.Check(name, pattern, modeFlags, expectedValid, wrongCases.Enqueue));
+            }
+
             Regex? regex = null;
             string? error = null;
             try

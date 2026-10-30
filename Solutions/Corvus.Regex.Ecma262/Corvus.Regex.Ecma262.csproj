@@ -70,6 +70,7 @@
     <Compile Include="Syntax\DeepStack.cs" />
     <Compile Include="Syntax\EcmaRegexNode.cs" />
     <Compile Include="Syntax\EcmaRegexParser.cs" />
+    <Compile Include="Syntax\EcmaRegexValidator.cs" />
     <Compile Include="Unicode\EcmaRegexUnicode.cs" />
     <Compile Include="Unicode\EcmaRegexUnicodeData13.cs" />
     <Compile Include="Unicode\EcmaRegexUnicodeData17.cs" />

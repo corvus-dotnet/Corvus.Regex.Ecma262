@@ -129,7 +129,7 @@ internal static class Factory
             string runners;
             try
             {
-                runners = Gen::Corvus.Ecma262.RegularExpressions.SourceGenerator.RegexGenerator.Runners(batch[k].Pattern, (int)batch[k].Flags, (Gen::Corvus.Ecma262.RegularExpressions.RegexEdition)(int)Edition, (Gen::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)(int)UnicodeVersion);
+                runners = Gen::Corvus.Ecma262.RegularExpressions.SourceGenerator.RegexEmitter.Runners(batch[k].Pattern, (int)batch[k].Flags, (Gen::Corvus.Ecma262.RegularExpressions.RegexEdition)(int)Edition, (Gen::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)(int)UnicodeVersion);
             }
             catch (Exception)
             {

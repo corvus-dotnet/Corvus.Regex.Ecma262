@@ -42,7 +42,7 @@ internal static class Engines
 
     private static (GeneratedRunner Bounds, GeneratedRunner Captures) Compile(string pattern, RegexFlags flags)
     {
-        string runners = Gen::Corvus.Ecma262.RegularExpressions.SourceGenerator.RegexGenerator.Runners(pattern, (int)flags);
+        string runners = Gen::Corvus.Ecma262.RegularExpressions.SourceGenerator.RegexEmitter.Runners(pattern, (int)flags);
         string source = "#nullable enable\n#pragma warning disable CS0162, CS0164, CS0168, CS0219, CS8321, CS1522\nnamespace G\n{\n    internal static class R\n    {\n        internal static readonly global::Corvus.Ecma262.RegularExpressions.GeneratedRunner B = new Bounds();\n        internal static readonly global::Corvus.Ecma262.RegularExpressions.GeneratedRunner C = new Captures();\n" + runners + "    }\n}\n";
         CSharpCompilation compilation = CSharpCompilation.Create(
             "G" + Guid.NewGuid().ToString("N"),

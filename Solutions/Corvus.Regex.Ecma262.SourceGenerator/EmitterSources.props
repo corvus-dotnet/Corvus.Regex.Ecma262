@@ -1,0 +1,40 @@
+<Project>
+  <!--
+    The emitter's sources: the parser, the compiler and the emitters, which the source generator compiles and the
+    Corvus.Regex.Ecma262.CodeGeneration.Sources package carries as source. One list for both.
+  -->
+  <ItemGroup>
+    <EmitterSource Include="$(MSBuildThisFileDirectory)RegexEmitter.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)RunEmitter.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)TreeEmitter.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\GeneratedRunner.cs" Link="Shared\GeneratedRunner.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\Adfa.cs" Link="Shared\Engine\Adfa.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\CaseFolding.cs" Link="Shared\Engine\CaseFolding.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\CharSet.cs" Link="Shared\Engine\CharSet.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\Matcher.cs" Link="Shared\Engine\Matcher.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\Needle.cs" Link="Shared\Engine\Needle.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\AlternationSearch.cs" Link="Shared\Engine\AlternationSearch.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\Teddy.cs" Link="Shared\Engine\Teddy.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\Program.cs" Link="Shared\Engine\Program.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\TextEncoding.cs" Link="Shared\Engine\TextEncoding.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\RegexFlags.cs" Link="Shared\RegexFlags.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\RegexEdition.cs" Link="Shared\RegexEdition.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\RegexUnicodeVersion.cs" Link="Shared\RegexUnicodeVersion.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\RegexParseException.cs" Link="Shared\RegexParseException.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\RegexPatternTooLargeException.cs" Link="Shared\RegexPatternTooLargeException.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Syntax\EcmaRegexLimits.cs" Link="Shared\Syntax\EcmaRegexLimits.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Syntax\DeepStack.cs" Link="Shared\Syntax\DeepStack.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\StackBuffer.cs" Link="Shared\StackBuffer.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Syntax\EcmaRegexNode.cs" Link="Shared\Syntax\EcmaRegexNode.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Syntax\EcmaRegexParser.cs" Link="Shared\Syntax\EcmaRegexParser.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicode.cs" Link="Shared\Unicode\EcmaRegexUnicode.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeData13.cs" Link="Shared\Unicode\EcmaRegexUnicodeData13.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeData17.cs" Link="Shared\Unicode\EcmaRegexUnicodeData17.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeData18.cs" Link="Shared\Unicode\EcmaRegexUnicodeData18.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeStrings13.cs" Link="Shared\Unicode\EcmaRegexUnicodeStrings13.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeStrings17.cs" Link="Shared\Unicode\EcmaRegexUnicodeStrings17.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Unicode\EcmaRegexUnicodeStrings18.cs" Link="Shared\Unicode\EcmaRegexUnicodeStrings18.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Unicode\Es2020Properties.cs" Link="Shared\Unicode\Es2020Properties.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Unicode\UnicodeTables.cs" Link="Shared\Unicode\UnicodeTables.cs" />
+  </ItemGroup>
+</Project>
