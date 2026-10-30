@@ -24,6 +24,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
   <!-- The generator's output carries its own System.Memory beside it (for a .NET Framework build host); referenced as a library on net481 that copy would be a second System.Memory beside the package's, and every ReadOnlySpan in the library's signatures would then be a different type from the test's. The package's is kept. -->
   <Target Name="DropTheGeneratorsSystemMemory" AfterTargets="ResolveAssemblyReferences" Condition="'$(TargetFramework)' == 'net481'">

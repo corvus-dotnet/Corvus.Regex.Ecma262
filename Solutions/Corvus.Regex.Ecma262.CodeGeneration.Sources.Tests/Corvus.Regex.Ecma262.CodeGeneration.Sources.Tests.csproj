@@ -21,6 +21,7 @@
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
     <PackageReference Include="System.Memory" />
+    <PackageReference Include="System.Text.Json" VersionOverride="10.0.14" />
   </ItemGroup>
   <Target Name="CompileThePackagesSources" BeforeTargets="CoreCompile">
     <ItemGroup>
