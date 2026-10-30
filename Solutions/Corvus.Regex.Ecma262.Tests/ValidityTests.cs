@@ -212,6 +212,52 @@ public class ValidityTests
     }
 
     [TestMethod]
+    [DataRow(@"(?<a>x)|(?<a>y)", true, false)]
+    [DataRow(@"(?<a>x)|(?<a>y)|(?<a>z)", true, false)]
+    [DataRow(@"(?:(?<a>x)|(?<a>y))|(?<a>z)", true, false)]
+    [DataRow(@"((?<a>x)|(?<a>y))(?<a>z)", false, false)]
+    [DataRow(@"(?:(?<a>x)|y)(?:(?<a>z)|w)", false, false)]
+    [DataRow(@"(?:(?<a>x)|(?<b>y))(?<b>z)", false, false)]
+    [DataRow(@"(?<a>x)(?:(?<b>y)|(?<a>z))", false, false)]
+    [DataRow(@"(?<\u0061>x)\k<a>", true, true)]
+    [DataRow(@"(?<\u0061>x)(?<a>y)", false, false)]
+    [DataRow(@"\k<a>(?<a>x)", true, true)]
+    [DataRow(@"(?<a>x)\k<b>", false, false)]
+    public void AGroupNameIsUsedAgainOnlyInAnotherAlternative(string pattern, bool valid, bool validInEs2020)
+    {
+        Assert.AreEqual(valid, Regex.IsValidPattern(pattern, RegexFlags.Unicode), pattern);
+        Assert.AreEqual(validInEs2020, Regex.IsValidPattern(pattern, RegexFlags.Unicode, RegexEdition.Es2020, RegexUnicodeVersion.Default), pattern);
+        Assert.AreEqual(valid, Regex.IsValidPattern(System.Text.Encoding.UTF8.GetBytes(pattern), RegexFlags.Unicode), pattern);
+    }
+
+    [TestMethod]
+    [DataRow("names")]
+    [DataRow("names and references")]
+    [DataRow("one name in many alternatives")]
+    public void ManyGroupNamesAreReadInTimeInProportionToThePattern(string shape)
+    {
+        // Each name was compared with every name before it, so 40,000 names took seconds where 4,000 took
+        // milliseconds. The bound is far above what a linear check takes on a busy machine.
+        var builder = new System.Text.StringBuilder();
+        for (int i = 0; i < 40_000; i++)
+        {
+            builder.Append(shape switch
+            {
+                "names" => $"(?<n{i}>a)",
+                "names and references" => $"(?<n{i}>a)\\k<n{i}>",
+                _ => i == 0 ? "(?<n>a)" : "|(?<n>a)",
+            });
+        }
+
+        string pattern = builder.ToString();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        bool valid = Regex.IsValidPattern(pattern, RegexFlags.Unicode);
+        stopwatch.Stop();
+        Assert.IsTrue(valid, shape);
+        Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(1), $"{shape}: {pattern.Length:N0} characters took {stopwatch.Elapsed.TotalSeconds:F2} s.");
+    }
+
+    [TestMethod]
     public void TheFlagsStringIsReadAndWritten()
     {
         Regex r = new("a", "yusmig");

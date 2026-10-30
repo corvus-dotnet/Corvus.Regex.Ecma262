@@ -59,9 +59,16 @@ internal ref struct EcmaRegexValidator
     // The groups open at the position: the kind of each.
     private IntStack frames;
 
-    // Each named group: the start and the end of its name, and the start and the length of its path in namePaths.
+    // Each named group: the start and the end of its name, the start and the length of its path in namePaths, and the
+    // hash of its name.
     private IntStack names;
     private IntStack namePaths;
+
+    // Each name, by its hash: one more than the place in names of the last group with that name (0 for none). A table
+    // of open addressing, a power of two long and at most half full.
+    private Span<int> nameTable;
+    private int[]? rentedNameTable;
+    private int distinctNames;
 
     // Each named reference: the start and the end of its name.
     private IntStack references;
@@ -89,6 +96,10 @@ internal ref struct EcmaRegexValidator
         this.namePaths = new IntStack(scratch.Slice(160, 64));
         this.references = new IntStack(scratch.Slice(224, 32));
         this.classes = new IntStack(scratch.Slice(256, 64));
+        this.nameTable = scratch.Slice(320, 32);
+        this.nameTable.Clear();
+        this.rentedNameTable = null;
+        this.distinctNames = 0;
     }
 
     /// <summary>Whether a UTF-16 pattern is valid in the grammar.</summary>
@@ -100,7 +111,7 @@ internal ref struct EcmaRegexValidator
     /// <returns><see langword="true"/> when it is.</returns>
     public static bool IsValid(ReadOnlySpan<char> pattern, bool unicode, bool unicodeSets, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
     {
-        Span<int> scratch = stackalloc int[320];
+        Span<int> scratch = stackalloc int[352];
         EcmaRegexValidator validator = new(pattern, default, false, unicode, unicodeSets, edition, unicodeVersion, scratch);
         try
         {
@@ -126,7 +137,7 @@ internal ref struct EcmaRegexValidator
             return false;
         }
 
-        Span<int> scratch = stackalloc int[320];
+        Span<int> scratch = stackalloc int[352];
         EcmaRegexValidator validator = new(default, pattern, true, unicode, unicodeSets, edition, unicodeVersion, scratch);
         try
         {
@@ -170,6 +181,11 @@ internal ref struct EcmaRegexValidator
         this.namePaths.Dispose();
         this.references.Dispose();
         this.classes.Dispose();
+        if (this.rentedNameTable is not null)
+        {
+            ArrayPool<int>.Shared.Return(this.rentedNameTable);
+            this.rentedNameTable = null;
+        }
     }
 
     /// <summary>The element at a position (a code point with the u flag's grammar, a UTF-16 code unit without), and the position after it.</summary>
@@ -336,13 +352,7 @@ internal ref struct EcmaRegexValidator
         // Every named reference names a group somewhere in the pattern.
         for (int r = 0; r < this.references.Count; r += 2)
         {
-            bool found = false;
-            for (int n = 0; n < this.names.Count && !found; n += 4)
-            {
-                found = this.SameName(this.references[r], this.references[r + 1], this.names[n], this.names[n + 1]);
-            }
-
-            if (!found)
+            if (!this.FindName(this.references[r], this.references[r + 1], this.NameHash(this.references[r], this.references[r + 1]), out _))
             {
                 return false;
             }
@@ -612,22 +622,38 @@ internal ref struct EcmaRegexValidator
 
             // Two groups may share a name only when they are in separate alternatives of one disjunction, so that
             // no match can go through both. The 2020 grammar refuses a name used twice, wherever the groups are.
-            for (int n = 0; n < this.names.Count; n += 4)
+            // The last group with the name is the only one to ask: the groups before it lie in alternatives apart
+            // from it, of a disjunction this group is either outside, where its alternatives are all one to this
+            // group, or inside, in an alternative after theirs.
+            int hash = this.NameHash(start, stop);
+            bool used = this.FindName(start, stop, hash, out int slot);
+            if (used)
             {
-                if (this.SameName(start, stop, this.names[n], this.names[n + 1])
-                    && (this.es2020 || !this.SeparateAlternatives(this.names[n + 2], this.names[n + 3])))
+                int last = this.nameTable[slot] - 1;
+                if (this.es2020 || !this.SeparateAlternatives(this.names[last + 2], this.names[last + 3]))
                 {
                     return -1;
                 }
             }
 
+            int entry = this.names.Count;
             this.names.Push(start);
             this.names.Push(stop);
             this.names.Push(this.namePaths.Count);
             this.names.Push(this.path.Count);
+            this.names.Push(hash);
             for (int k = 0; k < this.path.Count; k++)
             {
                 this.namePaths.Push(this.path[k]);
+            }
+
+            if (used)
+            {
+                this.nameTable[slot] = entry + 1;
+            }
+            else
+            {
+                this.AddName(slot, entry);
             }
 
             return KindGroup;
@@ -744,6 +770,80 @@ internal ref struct EcmaRegexValidator
         }
 
         return c;
+    }
+
+    /// <summary>The hash of a name, by the positions of its characters, over its code points.</summary>
+    private int NameHash(int start, int stop)
+    {
+        int saved = this.i;
+        uint hash = 2166136261;
+        this.i = start;
+        while (this.i < stop)
+        {
+            hash = (hash ^ (uint)this.NameCharacter(out _)) * 16777619;
+        }
+
+        this.i = saved;
+        return (int)hash;
+    }
+
+    /// <summary>
+    /// Finds a name in the table: whether a group has it, and the slot that holds its last group, or the empty slot
+    /// it would take.
+    /// </summary>
+    private bool FindName(int start, int stop, int hash, out int slot)
+    {
+        int mask = this.nameTable.Length - 1;
+        for (slot = hash & mask; ; slot = (slot + 1) & mask)
+        {
+            int held = this.nameTable[slot];
+            if (held == 0)
+            {
+                return false;
+            }
+
+            int n = held - 1;
+            if (this.names[n + 4] == hash && this.SameName(start, stop, this.names[n], this.names[n + 1]))
+            {
+                return true;
+            }
+        }
+    }
+
+    /// <summary>Puts a new name's group in the empty slot found for it, and doubles the table when it is half full.</summary>
+    private void AddName(int slot, int entry)
+    {
+        this.nameTable[slot] = entry + 1;
+        if (++this.distinctNames * 2 <= this.nameTable.Length)
+        {
+            return;
+        }
+
+        int[] bigger = ArrayPool<int>.Shared.Rent(this.nameTable.Length * 2);
+        Span<int> table = bigger.AsSpan(0, this.nameTable.Length * 2);
+        table.Clear();
+        int mask = table.Length - 1;
+        foreach (int held in this.nameTable)
+        {
+            if (held != 0)
+            {
+                int s = this.names[held - 1 + 4] & mask;
+                while (table[s] != 0)
+                {
+                    s = (s + 1) & mask;
+                }
+
+                table[s] = held;
+            }
+        }
+
+        if (this.rentedNameTable is not null)
+        {
+            ArrayPool<int>.Shared.Return(this.rentedNameTable);
+        }
+
+        this.rentedNameTable = bigger;
+        this.nameTable = table;
     }
 
     /// <summary>Whether two names, by the positions of their characters, are the same code points.</summary>
