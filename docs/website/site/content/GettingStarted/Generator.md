@@ -23,6 +23,8 @@ int n = Patterns.Dates().Count("on 11/18/2019 and 1/2/03");       // 2
 
 The member returns one `Regex` each time, built on the generated code. The generated code is the search for where a match can start and the match itself as structured code, over both encodings. A pattern too large for straight-line code (a class of thousands of strings, such as `\p{RGI_Emoji}`) is handed to the interpreter by its generated runner, so every pattern compiles.
 
+The generator also writes the compiled regular expression into the generated code as data: the programs, the automaton that answers `IsMatch` over ASCII text, and the automata that speed a search, all worked out at build time. The `Regex` is made from that data with nothing parsed, compiled or built at run time, so its first match costs what a later one does, under the JIT, ReadyToRun and native AOT alike. The data records the version of the engine that wrote it; a library that is not that version ignores it and compiles the pattern, with the same answers.
+
 The generator ships in the same package and runs on the `netstandard2.0` build of the library, as a source generator must.
 
 ### In generated code

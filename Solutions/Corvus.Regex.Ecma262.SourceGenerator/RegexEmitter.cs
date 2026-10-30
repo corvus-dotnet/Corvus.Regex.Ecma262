@@ -20,6 +20,9 @@ public static class RegexEmitter
 {
     private const string Ns = "global::Corvus.Ecma262.RegularExpressions.";
 
+    /// <summary>The largest image of a compiled regular expression written into generated code: 64 KiB.</summary>
+    private const int MostImageBytes = 64 * 1024;
+
     /// <summary>
     /// Writes the class that holds a pattern's regular expression, with the process-wide default match timeout.
     /// </summary>
@@ -211,11 +214,8 @@ public static class RegexEmitter
             ? Ns + "Regex.InfiniteMatchTimeout"
             : "global::System.TimeSpan.FromMilliseconds(" + ms.ToString(CultureInfo.InvariantCulture) + ")";
 
-        // The edition and the version of Unicode, when either is not the default.
-        string settings = edition == 0 && unicodeVersion == 0
-            ? string.Empty
-            : "(" + Ns + "RegexEdition)" + edition.ToString(CultureInfo.InvariantCulture)
-                + ", (" + Ns + "RegexUnicodeVersion)" + unicodeVersion.ToString(CultureInfo.InvariantCulture) + ", ";
+        string settings = "(" + Ns + "RegexEdition)" + edition.ToString(CultureInfo.InvariantCulture)
+            + ", (" + Ns + "RegexUnicodeVersion)" + unicodeVersion.ToString(CultureInfo.InvariantCulture) + ", ";
 
         Indent(sb, indent).AppendLine("/// <summary>Holds the regular expression " + summary + ".</summary>");
         Indent(sb, indent).AppendLine("[global::System.CodeDom.Compiler.GeneratedCode(\"Corvus.Regex.Ecma262.SourceGenerator\", \"1.0\")]");
@@ -223,7 +223,7 @@ public static class RegexEmitter
         Indent(sb, indent).AppendLine("{");
         Indent(sb, indent + 1).AppendLine("/// <summary>The regular expression.</summary>");
         Indent(sb, indent + 1).Append("internal static readonly " + Ns + "Regex Instance = new(")
-            .Append(FormatLiteral(pattern)).Append(", ").Append(flagsText).Append(", ").Append(timeout).Append(", ").Append(settings).AppendLine("new Bounds(), new Captures());");
+            .Append(FormatLiteral(pattern)).Append(", ").Append(flagsText).Append(", ").Append(timeout).Append(", ").Append(settings).AppendLine("new Bounds(), new Captures(), Compiled);");
         sb.AppendLine();
         foreach (string line in runners.Split('\n'))
         {
@@ -392,6 +392,43 @@ public static class RegexEmitter
             RunEmitter.EmitRunner(sb, 1, "Captures", captures);
         }
 
+        sb.AppendLine();
+        AppendImage(sb, 1, RegexImage.Write(pattern, (RegexFlags)flags, edition, unicodeVersion));
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Appends the image of the compiled regular expression (see <see cref="RegexImage"/>) as a property the holder
+    /// passes to the constructor: a span over the bytes, which the compiler keeps in the assembly's data, so nothing is
+    /// made when it is read. An image larger than <see cref="MostImageBytes"/> is left out, and that regular expression
+    /// is compiled from its pattern when first used, as one made at run time is.
+    /// </summary>
+    /// <param name="sb">The output.</param>
+    /// <param name="indent">The indentation.</param>
+    /// <param name="image">The image.</param>
+    private static void AppendImage(StringBuilder sb, int indent, byte[] image)
+    {
+        Indent(sb, indent).AppendLine("/// <summary>The compiled regular expression, read by the constructor in place of the pattern.</summary>");
+        if (image.Length > MostImageBytes)
+        {
+            Indent(sb, indent).AppendLine("internal static global::System.ReadOnlySpan<byte> Compiled => default;");
+            return;
+        }
+
+        Indent(sb, indent).AppendLine("internal static global::System.ReadOnlySpan<byte> Compiled => new byte[]");
+        Indent(sb, indent).AppendLine("{");
+        for (int k = 0; k < image.Length; k += 24)
+        {
+            Indent(sb, indent + 1);
+            int end = Math.Min(image.Length, k + 24);
+            for (int j = k; j < end; j++)
+            {
+                sb.Append("0x").Append(image[j].ToString("X2", CultureInfo.InvariantCulture)).Append(j + 1 < image.Length ? (j + 1 < end ? ", " : ",") : string.Empty);
+            }
+
+            sb.AppendLine();
+        }
+
+        Indent(sb, indent).AppendLine("};");
     }
 }

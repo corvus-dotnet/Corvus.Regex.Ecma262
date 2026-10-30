@@ -1,6 +1,6 @@
 # The compiled regular expression as data
 
-Status: proposed, 2026-10-30. For agreement before any code.
+Status: agreed and implemented, 2026-10-30, for 1.0.10. Revised to the implemented state: the version check is a fingerprint of the engine's sources rather than the library's version.
 
 ## 1. The problem
 
@@ -91,9 +91,12 @@ internal static readonly Regex Instance = new(pattern, flags, timeout, edition, 
 
 - A `ReadOnlySpan<byte>` literal of bytes is stored in the assembly's data and costs nothing to initialise, under the
   JIT, ReadyToRun and native AOT alike.
-- The image starts with a magic number, the format's version, and the facts it was made under: the library version
-  that wrote it, the edition, the resolved Unicode version (`RegexUnicodeVersion.Default` resolves per library
-  version), and the flags.
+- The image starts with a magic number, the format's version, and the facts it was made under: the fingerprint of
+  the engine that wrote it, the edition, the resolved Unicode version (`RegexUnicodeVersion.Default` resolves per
+  library version), and the flags. The fingerprint is a SHA-256 over the sources of the reader, the compiler, the
+  engine and the Unicode tables, written into each build by `EngineFingerprint.targets`; the library, the source
+  generator and the source package compile the same files, so they agree exactly when their engines are the same,
+  with nothing to remember to bump. A development build of a changed engine gets a new fingerprint too.
 - **Mismatch falls back.** If the reading library does not know the format version, or any recorded fact differs from
   what it would resolve now, it ignores the image and parses the pattern as today. A regular expression made either
   way gives the same answers; the image only saves work.
@@ -109,9 +112,8 @@ internal static readonly Regex Instance = new(pattern, flags, timeout, edition, 
 unicodeVersion, GeneratedRunner? bounds, GeneratedRunner? captures, ReadOnlySpan<byte> compiled)`. It validates the
 settings as the others do, then reads the image or falls back.
 
-**Size.** The DFA has at most 255 states and the search automata are bounded likewise; the image is measured per
-pattern in the implementation, and a pattern whose image would pass a limit (to be set from the test data's
-distribution, for instance its 99.9th percentile) is emitted without one, as today.
+**Size.** The DFA has at most 255 states and the search automata are bounded likewise. A pattern whose image passes
+64 KiB is emitted without one and compiled from its pattern on first use, as before.
 
 **Robustness.** The image is read by code that checks every length and index against the image's bounds and refuses
 (falls back) on anything out of range, so a damaged image cannot corrupt the engine's state.

@@ -1,0 +1,51 @@
+<Project>
+  <!--
+    The fingerprint of the engine: a hash of the sources whose output an image of a compiled regular expression
+    records (the reader, the compiler, the engine and the Unicode tables; see Engine/RegexImage.cs). The library, the
+    source generator and the source package each compile it from the same files, so an image written by one engine is
+    read only by the same engine; any other ignores it and parses the pattern. Imported by the library, the source
+    generator and the source package; the source package sets EngineFingerprintAsEmitterSource so that the file is
+    rewritten and packed with the other sources of the emitter.
+  -->
+  <ItemGroup>
+    <EngineFingerprintSource Include="$(MSBuildThisFileDirectory)Engine\**\*.cs" />
+    <EngineFingerprintSource Include="$(MSBuildThisFileDirectory)Syntax\**\*.cs" />
+    <EngineFingerprintSource Include="$(MSBuildThisFileDirectory)Unicode\**\*.cs" />
+    <EngineFingerprintSource Include="$(MSBuildThisFileDirectory)RegexFlags.cs;$(MSBuildThisFileDirectory)RegexEdition.cs;$(MSBuildThisFileDirectory)RegexUnicodeVersion.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(EngineFingerprintAsEmitterSource)' != 'true'">
+    <Compile Include="$(IntermediateOutputPath)EngineFingerprint.g.cs" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(EngineFingerprintAsEmitterSource)' == 'true'">
+    <EmitterSource Include="$(IntermediateOutputPath)EngineFingerprint.g.cs" Link="EngineFingerprint.g.cs" Visible="false" />
+  </ItemGroup>
+
+  <Target Name="WriteEngineFingerprint" BeforeTargets="BeforeBuild;CoreCompile;WriteEmitterSources">
+    <GetFileHash Files="@(EngineFingerprintSource)" Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_EngineFingerprintHash" />
+    </GetFileHash>
+    <Hash ItemsToHash="@(_EngineFingerprintHash->'%(RecursiveDir)%(Filename)%(Extension)=%(FileHash)')">
+      <Output TaskParameter="HashResult" PropertyName="_EngineFingerprint" />
+    </Hash>
+    <PropertyGroup>
+      <_EngineFingerprintText>
+// &lt;auto-generated&gt;
+// The fingerprint of the engine, a hash of its sources, written by EngineFingerprint.targets.
+// &lt;/auto-generated&gt;
+
+namespace Corvus.Ecma262.RegularExpressions%3B
+
+/// &lt;summary&gt;The fingerprint of the engine, recorded in an image of a compiled regular expression (see &lt;see cref="RegexImage"/&gt;).&lt;/summary&gt;
+internal static class EngineFingerprint
+{
+    /// &lt;summary&gt;The hash of the sources of the reader, the compiler, the engine and the Unicode tables.&lt;/summary&gt;
+    internal const string Value = "$(_EngineFingerprint)"%3B
+}
+</_EngineFingerprintText>
+    </PropertyGroup>
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)EngineFingerprint.g.cs" Lines="$(_EngineFingerprintText)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
+</Project>

@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(EndjinProjectPropsPath)" Condition="$(EndjinProjectPropsPath) != ''" />
+  <Import Project="EngineFingerprint.targets" />
 
   <PropertyGroup>
     <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
@@ -37,6 +38,7 @@
     <Compile Include="Engine\CaseFolding.cs" />
     <Compile Include="Engine\CharSet.cs" />
     <Compile Include="Engine\Dfa.cs" />
+    <Compile Include="Engine\RegexImage.cs" />
     <Compile Include="Engine\Matcher.cs" />
     <Compile Include="Engine\Program.cs" />
     <Compile Include="Engine\TextEncoding.cs" />
@@ -58,6 +60,7 @@
     <Compile Include="ValueMatchEnumerator.cs" />
     <Compile Include="RegexFlags.cs" />
     <Compile Include="RegexEdition.cs" />
+    <Compile Include="RegexBuildOptions.cs" />
     <Compile Include="RegexUnicodeVersion.cs" />
     <Compile Include="GeneratedRegexAttribute.cs" />
     <Compile Include="GeneratedRunner.cs" />
@@ -107,6 +110,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Corvus.Regex.Ecma262.Tests" />
+    <InternalsVisibleTo Include="Corvus.Regex.Ecma262.DatasetRunner" />
     <InternalsVisibleTo Include="probe" />
   </ItemGroup>
 </Project>

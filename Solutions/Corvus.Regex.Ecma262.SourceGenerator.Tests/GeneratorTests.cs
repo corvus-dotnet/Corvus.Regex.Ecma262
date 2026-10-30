@@ -59,10 +59,11 @@ public class GeneratorTests
         Assert.AreEqual(0, diagnostics.Length, string.Join("\n", diagnostics));
         AssertCompiles(output);
         StringAssert.Contains(generated, "public static partial global::Corvus.Ecma262.RegularExpressions.Regex Digits() => CorvusRegex_Digits.Instance;");
+        StringAssert.Contains(generated, "internal static global::System.ReadOnlySpan<byte> Compiled => new byte[]", "Each holder carries its compiled regular expression.");
         // No timeout in the attribute is the default match timeout, and -1 is none.
-        StringAssert.Contains(generated, "new(\"\\\\d+\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)34, global::Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout, new Bounds(), new Captures());");
-        StringAssert.Contains(generated, "new(\"x\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)0, global::Corvus.Ecma262.RegularExpressions.Regex.InfiniteMatchTimeout, new Bounds(), new Captures());");
-        StringAssert.Contains(generated, "(global::Corvus.Ecma262.RegularExpressions.RegexFlags)36, global::System.TimeSpan.FromMilliseconds(250), new Bounds(), new Captures());");
+        StringAssert.Contains(generated, "new(\"\\\\d+\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)34, global::Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout, (global::Corvus.Ecma262.RegularExpressions.RegexEdition)0, (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)0, new Bounds(), new Captures(), Compiled);");
+        StringAssert.Contains(generated, "new(\"x\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)0, global::Corvus.Ecma262.RegularExpressions.Regex.InfiniteMatchTimeout, (global::Corvus.Ecma262.RegularExpressions.RegexEdition)0, (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)0, new Bounds(), new Captures(), Compiled);");
+        StringAssert.Contains(generated, "(global::Corvus.Ecma262.RegularExpressions.RegexFlags)36, global::System.TimeSpan.FromMilliseconds(250), (global::Corvus.Ecma262.RegularExpressions.RegexEdition)0, (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)0, new Bounds(), new Captures(), Compiled);");
     }
 
     [TestMethod]
@@ -130,11 +131,11 @@ public class GeneratorTests
             """);
         Assert.AreEqual(0, diagnostics.Length, string.Join("\n", diagnostics));
         AssertCompiles(output);
-        StringAssert.Contains(generated, "Regex.DefaultMatchTimeout, (global::Corvus.Ecma262.RegularExpressions.RegexEdition)1, (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)13, new Bounds(), new Captures());");
-        StringAssert.Contains(generated, "Regex.DefaultMatchTimeout, (global::Corvus.Ecma262.RegularExpressions.RegexEdition)0, (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)18, new Bounds(), new Captures());");
+        StringAssert.Contains(generated, "Regex.DefaultMatchTimeout, (global::Corvus.Ecma262.RegularExpressions.RegexEdition)1, (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)13, new Bounds(), new Captures(), Compiled);");
+        StringAssert.Contains(generated, "Regex.DefaultMatchTimeout, (global::Corvus.Ecma262.RegularExpressions.RegexEdition)0, (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)18, new Bounds(), new Captures(), Compiled);");
         StringAssert.Contains(generated, "(global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)18");
         // The defaults are not written, so the code of a member without them is as it was.
-        StringAssert.Contains(generated, "new(\"x\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)0, global::Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout, new Bounds(), new Captures());");
+        StringAssert.Contains(generated, "new(\"x\", (global::Corvus.Ecma262.RegularExpressions.RegexFlags)0, global::Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout, (global::Corvus.Ecma262.RegularExpressions.RegexEdition)0, (global::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)0, new Bounds(), new Captures(), Compiled);");
     }
 
     [TestMethod]

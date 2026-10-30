@@ -42,14 +42,56 @@ internal static class Factory
     /// <summary>Gets the number of patterns with generated code.</summary>
     public static int Count => Runners.Count;
 
-    /// <summary>A regular expression: with the generated code for its pattern when there is some, by the constructor otherwise.</summary>
+    /// <summary>Gets or sets a value indicating whether each regular expression is read from an image the source generator's engine writes (--images), as a generated one is.</summary>
+    public static bool Images { get; set; }
+
+    /// <summary>The regular expressions read from their images.</summary>
+    public static long ImagesRead;
+
+    /// <summary>The patterns whose image was written but not read, each with its flags.</summary>
+    public static readonly ConcurrentQueue<string> ImagesNotRead = new();
+
+    /// <summary>
+    /// A regular expression: with the generated code for its pattern when there is some, by the constructor otherwise;
+    /// with --images, read from the image of it the source generator's engine writes.
+    /// </summary>
     /// <param name="pattern">The pattern.</param>
     /// <param name="flags">The flags.</param>
     /// <param name="limit">The limit of time.</param>
     /// <returns>The regular expression.</returns>
     public static Regex Make(string pattern, RegexFlags flags, TimeSpan limit)
     {
-        return Runners.TryGetValue((pattern, Key(flags)), out (GeneratedRunner Bounds, GeneratedRunner Captures) r)
+        bool generated = Runners.TryGetValue((pattern, Key(flags)), out (GeneratedRunner Bounds, GeneratedRunner Captures) r);
+        if (Images)
+        {
+            // The generator's copy of the engine writes the image; a pattern it refuses is compiled below, which
+            // refuses it with the library's exception.
+            byte[]? image = null;
+            try
+            {
+                image = Gen::Corvus.Ecma262.RegularExpressions.RegexImage.Write(pattern, (Gen::Corvus.Ecma262.RegularExpressions.RegexFlags)(int)flags, (Gen::Corvus.Ecma262.RegularExpressions.RegexEdition)(int)Edition, (Gen::Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion)(int)UnicodeVersion);
+            }
+            catch (Exception)
+            {
+            }
+
+            if (image is not null)
+            {
+                Regex fromImage = new(pattern, flags, limit, Edition, UnicodeVersion, generated ? r.Bounds : null, generated ? r.Captures : null, image);
+                if (fromImage.ReadFromImage)
+                {
+                    Interlocked.Increment(ref ImagesRead);
+                }
+                else
+                {
+                    ImagesNotRead.Enqueue($"/{pattern}/{flags}");
+                }
+
+                return fromImage;
+            }
+        }
+
+        return generated
             ? new Regex(pattern, flags, limit, Edition, UnicodeVersion, r.Bounds, r.Captures)
             : new Regex(pattern, flags, limit, Edition, UnicodeVersion);
     }

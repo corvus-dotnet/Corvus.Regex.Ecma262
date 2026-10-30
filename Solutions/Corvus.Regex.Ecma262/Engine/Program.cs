@@ -609,11 +609,19 @@ public sealed class Program
     /// </summary>
     public bool AfterLoopEveryStart { get; internal set; }
 
+    /// <summary>Gets the literals <see cref="SetShape"/> was given, kept for an image of the program (see <see cref="RegexImage"/>).</summary>
+    internal string[] ShapeAlternatives { get; private set; } = [];
+
+    /// <summary>Gets the forms <see cref="SetShape"/> was given, kept for an image of the program.</summary>
+    internal int[][][] ShapeCaseAlternatives { get; private set; } = [];
+
     /// <summary>Decides <see cref="Shape"/> from the instructions.</summary>
     /// <param name="alternatives">The literals of an alternation that is the whole pattern, or empty.</param>
     /// <param name="caseAlternatives">The alternatives of an alternation that is the whole pattern as the forms of their characters (see <see cref="Compiler.CaseAlternatives"/>), or empty.</param>
     internal void SetShape(string[] alternatives, int[][][] caseAlternatives)
     {
+        this.ShapeAlternatives = alternatives;
+        this.ShapeCaseAlternatives = caseAlternatives;
         Inst[] insts = this.Insts;
         if (this.Groups != 0 || this.Anchored || insts.Length < 2 || insts[insts.Length - 1].Op != Op.Match)
         {
@@ -816,11 +824,22 @@ public sealed class Program
     /// <summary>Gets or sets, for the search of a literal so many to so many characters after the start (<see cref="RequiredCountMax"/>, or <see cref="RequiredAlternation"/> with <see cref="RequiredAlternationHi"/> above 0), the terms before each literal, which the reverse automaton reads back from an occurrence; null otherwise.</summary>
     internal EcmaRegexNode[][]? WindowPrefixes { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the search may read the terms before a required literal backwards from
+    /// each of its occurrences: <see cref="WindowPrefixes"/> was found, and the reverse automaton is built from it (or
+    /// read from an image, which keeps no tree).
+    /// </summary>
+    internal bool HasWindow { get; set; }
+
     /// <summary>Gets or sets, for that search, the alternation of each literal and the terms after it, which the rest check reads from an occurrence; null where every literal ends its alternative.</summary>
     internal EcmaRegexNode? WindowRest { get; set; }
 
     /// <summary>Gets the automata of the program's search, built on the first call.</summary>
     /// <returns>The automata.</returns>
+    /// <summary>Gives the program its automata, read from an image rather than built on first use.</summary>
+    /// <param name="automata">The automata.</param>
+    internal void SetAutomata(SearchAutomata automata) => this.automata = automata;
+
     internal SearchAutomata Automata()
     {
         SearchAutomata? a = System.Threading.Volatile.Read(ref this.automata);
@@ -1099,6 +1118,7 @@ internal sealed class Compiler
             if (parts is not null)
             {
                 program.WindowPrefixes = [.. parts.Select(part => part.Prefix)];
+                program.HasWindow = true;
                 if (parts.Any(part => part.After.Length > part.Characters))
                 {
                     EcmaRegexNode rest = new(EcmaRegexNodeKind.Alt)

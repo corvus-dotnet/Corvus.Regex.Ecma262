@@ -9,6 +9,8 @@
     <EmitterSource Include="$(MSBuildThisFileDirectory)TreeEmitter.cs" />
     <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\GeneratedRunner.cs" Link="Shared\GeneratedRunner.cs" />
     <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\Adfa.cs" Link="Shared\Engine\Adfa.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\Dfa.cs" Link="Shared\Engine\Dfa.cs" />
+    <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\RegexImage.cs" Link="Shared\Engine\RegexImage.cs" />
     <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\CaseFolding.cs" Link="Shared\Engine\CaseFolding.cs" />
     <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\CharSet.cs" Link="Shared\Engine\CharSet.cs" />
     <EmitterSource Include="$(MSBuildThisFileDirectory)..\Corvus.Regex.Ecma262\Engine\Matcher.cs" Link="Shared\Engine\Matcher.cs" />
