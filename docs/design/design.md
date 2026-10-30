@@ -124,8 +124,21 @@ on a partial method or property. It ships in the same package as an analyzer, so
 It compiles the library's own parser, so a pattern is checked at build time by the parser that will run it;
 diagnostics CRE0001 to CRE0005 cover the pattern, the member's shape, the flags, a non-partial type and size limits.
 
-- The generated member returns an instance built by the `Regex` constructor on first use. A serialised program would
-  freeze the program's shape into every consumer's build to save a few microseconds per process.
+- *The compiled regular expression as data* (`Engine/RegexImage.cs`). The generator compiles the pattern and builds
+  everything its first matches would (the two programs, the automaton over ASCII that answers `IsMatch`, and the
+  search automata), and writes it all into the holder as an image: a `ReadOnlySpan<byte>` literal, which the compiler
+  keeps in the assembly's data. The holder passes it to the constructor, which reads it in place of parsing,
+  compiling and building, so a generated regular expression's first match costs what a later one does. The image
+  carries values only (instructions, the sets as ranges, literals, the automata's tables); the searchers that depend
+  on the machine are made from them as from a pattern. It records the fingerprint of the engine that wrote it, a hash
+  of the sources of the reader, the compiler, the engine and the Unicode tables (`EngineFingerprint.targets`), and the
+  settings, so an image from another engine (an emitter from `CodeGeneration.Sources` older or newer than the library
+  the application loads) or for other settings is ignored and the pattern compiled, with the same answers. A checksum
+  and checks on every index guard against damage. An image over 64 KiB is left out. The automaton was 96% of the work
+  of a regular expression's first match over the patterns of the jsonschema-benchmark corpora
+  (docs/plan/compiled-regex-as-data.md).
+- `RegexBuildOptions.Eager` gives a regular expression made at run time the same first match: it builds the automata
+  and the program that tracks every group in the constructor rather than on first use.
 - *The match as code* (`TreeEmitter`): structured code from the tree, in the shape .NET's generator uses. Each
   construct that can be retried keeps its state in locals and owns a label, so nothing is pushed for it; the memo
   marks are kept at the interpreter's points. Patterns outside that shape (a loop over a group, a lookbehind, a very

@@ -69,6 +69,43 @@ internal static class Adfa
     /// <summary>The same flag in the premultiplied table.</summary>
     internal const uint FastMatched = 0x8000_0000;
 
+    /// <summary>
+    /// Whether an automaton's tables read from an image hold together: every class is a column of the table, and every
+    /// transition, less its flag, is the start of a row of one of its states.
+    /// </summary>
+    /// <param name="classes">The classes of the units.</param>
+    /// <param name="shift">The log of the width of a row.</param>
+    /// <param name="fast">The transitions.</param>
+    /// <param name="states">The number of states.</param>
+    /// <returns><see langword="true"/> when they do.</returns>
+    internal static bool TablesHold(byte[] classes, int shift, uint[] fast, int states)
+    {
+        if (shift < 0 || shift > 16 || states <= 0 || (long)states << shift != fast.Length)
+        {
+            return false;
+        }
+
+        foreach (byte c in classes)
+        {
+            if (c >= 1 << shift)
+            {
+                return false;
+            }
+        }
+
+        uint rowMask = (1u << shift) - 1;
+        foreach (uint t in fast)
+        {
+            uint row = t & ~FastMatched;
+            if ((row & rowMask) != 0 || (row >> shift) >= (uint)states)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>The most positions looked at for a window (see <see cref="Skip"/>).</summary>
     private const int SkipPositions = 16;
 
@@ -1094,6 +1131,51 @@ internal sealed class AnchoredAutomaton
     private readonly bool[] accelMatched;
 #endif
 
+    /// <summary>Writes the automaton's tables into an image (see <see cref="RegexImage"/>).</summary>
+    /// <param name="w">The writer.</param>
+    internal void WriteTo(RegexImage.Writer w)
+    {
+        w.Bytes(this.classes);
+        w.Int(this.shift);
+        w.UInts(this.fast);
+        w.Bools(this.atEnd);
+        w.UShorts(this.starts);
+        w.Bool(this.context);
+        w.Bools(this.startLike);
+    }
+
+    /// <summary>Reads an automaton's tables from an image, checking that every state they name is one of its states.</summary>
+    /// <param name="r">The reader, failed when the tables do not hold together.</param>
+    /// <param name="forward">Whether it is a forward automaton, the only kind with a table of the states that are like a start.</param>
+    /// <returns>The automaton, or null.</returns>
+    internal static AnchoredAutomaton? ReadFrom(ref RegexImage.Reader r, bool forward)
+    {
+        byte[] classes = r.Bytes();
+        int shift = r.Int();
+        uint[] fast = r.UInts();
+        bool[] atEnd = r.Bools();
+        ushort[] starts = r.UShorts();
+        bool context = r.Bool();
+        bool[] startLike = r.Bools();
+        int states = atEnd.Length;
+        if (!r.Ok || !Adfa.TablesHold(classes, shift, fast, states) || startLike.Length != (forward ? states : 0))
+        {
+            r.Fail();
+            return null;
+        }
+
+        foreach (ushort s in starts)
+        {
+            if (s >= states)
+            {
+                r.Fail();
+                return null;
+            }
+        }
+
+        return new AnchoredAutomaton(classes, shift, fast, atEnd, starts, context, startLike);
+    }
+
     internal AnchoredAutomaton(byte[] classes, int shift, uint[] fast, bool[] atEnd, ushort[] starts, bool context, bool[] startLike)
     {
         this.classes = classes;
@@ -1356,6 +1438,34 @@ internal sealed class ReverseAutomaton
     /// <summary>Whether the first state accepts (an empty run of terms).</summary>
     private readonly bool acceptFirst;
 
+    /// <summary>Writes the automaton's tables into an image (see <see cref="RegexImage"/>).</summary>
+    /// <param name="w">The writer.</param>
+    internal void WriteTo(RegexImage.Writer w)
+    {
+        w.Bytes(this.classes);
+        w.Int(this.shift);
+        w.UInts(this.fast);
+        w.Bool(this.acceptFirst);
+    }
+
+    /// <summary>Reads an automaton's tables from an image, checking that every state they name is one of its states.</summary>
+    /// <param name="r">The reader, failed when the tables do not hold together.</param>
+    /// <returns>The automaton, or null.</returns>
+    internal static ReverseAutomaton? ReadFrom(ref RegexImage.Reader r)
+    {
+        byte[] classes = r.Bytes();
+        int shift = r.Int();
+        uint[] fast = r.UInts();
+        bool acceptFirst = r.Bool();
+        if (!r.Ok || shift < 0 || shift > 16 || !Adfa.TablesHold(classes, shift, fast, fast.Length >> shift))
+        {
+            r.Fail();
+            return null;
+        }
+
+        return new ReverseAutomaton(classes, shift, fast, acceptFirst);
+    }
+
     internal ReverseAutomaton(byte[] classes, int shift, uint[] fast, bool acceptFirst)
     {
         this.classes = classes;
@@ -1424,6 +1534,34 @@ internal sealed class Skip(int hi, int length, bool[] table, bool wide)
     private readonly bool[] table = table;
     private readonly bool wide = wide;
 
+    /// <summary>Writes the window into an image (see <see cref="RegexImage"/>).</summary>
+    /// <param name="w">The writer.</param>
+    internal void WriteTo(RegexImage.Writer w)
+    {
+        w.Int(this.Hi);
+        w.Int(this.Length);
+        w.Bools(this.table);
+        w.Bool(this.wide);
+    }
+
+    /// <summary>Reads a window from an image.</summary>
+    /// <param name="r">The reader.</param>
+    /// <returns>The window, or null.</returns>
+    internal static Skip? ReadFrom(ref RegexImage.Reader r)
+    {
+        int hi = r.Int();
+        int length = r.Int();
+        bool[] table = r.Bools();
+        bool wide = r.Bool();
+        if (!r.Ok || hi < 0 || length < 0)
+        {
+            r.Fail();
+            return null;
+        }
+
+        return new Skip(hi, length, table, wide);
+    }
+
     /// <summary>Gets the window's last position, the one read.</summary>
     public int Hi { get; } = hi;
 
@@ -1475,6 +1613,10 @@ internal sealed class RestCheck(AnchoredAutomaton dfa)
     private int checks;
     private int rejects;
 
+    /// <summary>Writes the check's automaton into an image (see <see cref="RegexImage"/>).</summary>
+    /// <param name="w">The writer.</param>
+    internal void WriteTo(RegexImage.Writer w) => this.dfa.WriteTo(w);
+
     /// <summary>Whether nothing from the occurrence at <paramref name="q"/> on can match.</summary>
     /// <typeparam name="TUnit">The unit of the text.</typeparam>
     /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
@@ -1520,6 +1662,35 @@ internal sealed class SearchAutomata
     /// <summary>Gets or sets a value indicating whether the programs whose automata are built on this thread have none, so that the tests can compare the searches the automata speed with the plain ones.</summary>
     [ThreadStatic]
     internal static bool Off;
+
+    /// <summary>Writes the automata into an image (see <see cref="RegexImage"/>), each preceded by whether it is there.</summary>
+    /// <param name="w">The writer.</param>
+    internal void WriteTo(RegexImage.Writer w)
+    {
+        w.Bool(this.Anchored is not null);
+        this.Anchored?.WriteTo(w);
+        w.Bool(this.Forward is not null);
+        this.Forward?.WriteTo(w);
+        w.Bool(this.Skip is not null);
+        this.Skip?.WriteTo(w);
+        w.Bool(this.Reverse is not null);
+        this.Reverse?.WriteTo(w);
+        w.Bool(this.Rest is not null);
+        this.Rest?.WriteTo(w);
+    }
+
+    /// <summary>Reads the automata from an image.</summary>
+    /// <param name="r">The reader.</param>
+    /// <returns>The automata, or null when the reader failed.</returns>
+    internal static SearchAutomata? ReadFrom(ref RegexImage.Reader r)
+    {
+        AnchoredAutomaton? anchored = r.Bool() ? AnchoredAutomaton.ReadFrom(ref r, forward: false) : null;
+        AnchoredAutomaton? forward = r.Bool() ? AnchoredAutomaton.ReadFrom(ref r, forward: true) : null;
+        Skip? skip = r.Bool() ? Skip.ReadFrom(ref r) : null;
+        ReverseAutomaton? reverse = r.Bool() ? ReverseAutomaton.ReadFrom(ref r) : null;
+        RestCheck? rest = r.Bool() && AnchoredAutomaton.ReadFrom(ref r, forward: false) is { } check ? new RestCheck(check) : null;
+        return r.Ok ? new SearchAutomata(anchored, forward, skip, reverse, rest) : null;
+    }
 
     /// <summary>Gets the anchored automaton, which finds where the match from a start ends, for a program that tracks no group.</summary>
     public AnchoredAutomaton? Anchored { get; }

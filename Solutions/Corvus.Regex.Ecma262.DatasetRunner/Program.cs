@@ -5,7 +5,7 @@
 // Runs the library over the ECMA-262 regular expression test data (github.com/corvus-dotnet/ecma262-regex-test-data).
 //
 //   DatasetRunner <data directory> <wrong-cases output file> [file filter] [utf16|utf8|both] [--answers <file>]
-//                 [--compliance <file>] [--edition current|es2020] [--unicode 13|17|18|latest]
+//                 [--compliance <file>] [--edition current|es2020] [--unicode 13|17|18|latest] [--images]
 //
 // Each record is asked about under each grammar V8 found it valid in: the record's flags with u added (the
 // `unicode` answers) and the record's flags alone (the `legacy` answers). A text is matched as UTF-16 and as UTF-8.
@@ -17,12 +17,21 @@
 // answers where they differ from the data's (Overlay.cs), from which the data's overlays for other versions of Unicode
 // are made. With --edition and --unicode, the patterns are read with that edition's grammar and that version's
 // character database, and the data is the data as `node edition.js apply` or `node unicode.js apply` writes it for them.
+// With --images, each regular expression is read from the image of it the source generator's engine writes (as a
+// generated one is), and a pattern whose image is not read is listed as IMAGE-NOT-READ.
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Corvus.Ecma262.RegularExpressions;
+
+int imagesAt = Array.IndexOf(args, "--images");
+if (imagesAt >= 0)
+{
+    args = [.. args.Take(imagesAt), .. args.Skip(imagesAt + 1)];
+    Factory.Images = true;
+}
 
 int complianceAt = Array.IndexOf(args, "--compliance");
 string? compliancePath = complianceAt >= 0 ? args[complianceAt + 1] : null;
@@ -275,6 +284,16 @@ if ((filter == "*.jsonl" || filter.StartsWith("exec", StringComparison.Ordinal))
     limited += exec.Limited;
     records += exec.Records;
     Console.WriteLine($"{Exec.File,-24} right {exec.Right,10:N0}  wrong {exec.Wrong,6:N0}  refused-valid {exec.Refused,4}  accepted-invalid {0,4}  limit {exec.Limited,4}  {clock.Elapsed:mm\\:ss}");
+}
+
+if (Factory.Images)
+{
+    foreach (string notRead in Factory.ImagesNotRead)
+    {
+        wrongCases.Enqueue($"IMAGE-NOT-READ\t{notRead}");
+    }
+
+    Console.WriteLine($"images read {Factory.ImagesRead:N0}  not read {Factory.ImagesNotRead.Count:N0}");
 }
 
 File.WriteAllLines(wrongPath, wrongCases.OrderBy(c => c, StringComparer.Ordinal));

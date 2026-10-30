@@ -1541,7 +1541,7 @@ public static class Matcher
                 return ScanWith<TUnit, TEncoding>(p, st, input, ref scan, out from, out to);
             }
 
-            if (hi > 0 && !extras && p.WindowPrefixes is not null && p.RequiredAlternationHi <= ReverseWindow)
+            if (hi > 0 && !extras && p.HasWindow && p.RequiredAlternationHi <= ReverseWindow)
             {
                 int found = SearchReverse<TUnit, TEncoding>(p, st, input, pos, p.RequiredAlternationLo, p.RequiredAlternationHi, alternation, out from, out to);
                 if (found >= 0)
@@ -1624,7 +1624,7 @@ public static class Matcher
             // order from the farthest.
             int lo = p.RequiredCount;
             int hi = p.RequiredCountMax;
-            if (p.WindowPrefixes is not null && hi <= ReverseWindow)
+            if (p.HasWindow && hi <= ReverseWindow)
             {
                 int found = SearchReverse<TUnit, TEncoding>(p, st, input, pos, lo, hi, null, out from, out to);
                 if (found >= 0)

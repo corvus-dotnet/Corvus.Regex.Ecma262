@@ -67,6 +67,59 @@ internal sealed class Dfa
     {
     }
 
+    /// <summary>Writes the automaton's tables into an image (see <see cref="RegexImage"/>).</summary>
+    /// <param name="w">The writer.</param>
+    internal void WriteTo(RegexImage.Writer w)
+    {
+        w.Bytes(this.classes);
+        w.Bytes(this.trans);
+        w.Int(this.shift);
+        w.Byte(this.start);
+        w.Bools(this.atEnd);
+        w.Bool(this.empty);
+    }
+
+    /// <summary>Reads an automaton's tables from an image, checking that every state they name is one of its states.</summary>
+    /// <param name="r">The reader, failed when the tables do not hold together.</param>
+    /// <returns>The automaton, or null.</returns>
+    internal static Dfa? ReadFrom(ref RegexImage.Reader r)
+    {
+        byte[] classes = r.Bytes();
+        byte[] trans = r.Bytes();
+        int shift = r.Int();
+        byte start = r.Byte();
+        bool[] atEnd = r.Bools();
+        bool empty = r.Bool();
+        int states = atEnd.Length;
+        if (!r.Ok || classes.Length != 256 || shift < 0 || shift > 8 || states == 0 || trans.Length != states << shift || start >= states)
+        {
+            r.Fail();
+            return null;
+        }
+
+        foreach (byte c in classes)
+        {
+            if (c >= 1 << shift)
+            {
+                r.Fail();
+                return null;
+            }
+        }
+
+        foreach (byte t in trans)
+        {
+            if (t >= states)
+            {
+                r.Fail();
+                return null;
+            }
+        }
+
+        Dfa dfa = new() { trans = trans, shift = shift, start = start, atEnd = atEnd, empty = empty };
+        classes.CopyTo(dfa.classes, 0);
+        return dfa;
+    }
+
     private enum NfaKind : byte
     {
         /// <summary>Reads one unit of its set and goes to <c>Out</c>.</summary>

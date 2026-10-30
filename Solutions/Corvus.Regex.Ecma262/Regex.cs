@@ -29,7 +29,7 @@ public sealed partial class Regex
     private static long defaultMatchTimeoutTicks = long.MinValue;
 
     private readonly Program program;
-    private readonly EcmaRegexNode root;
+    private readonly EcmaRegexNode? root;
     private readonly bool linear;
     private readonly TimeSpan limit;
     private readonly bool unicode;
@@ -130,6 +130,50 @@ public sealed partial class Regex
     /// <param name="captures">The generated code for the program that tracks every group, or null.</param>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public Regex(string pattern, RegexFlags flags, TimeSpan matchTimeout, RegexEdition edition, RegexUnicodeVersion unicodeVersion, GeneratedRunner? bounds, GeneratedRunner? captures)
+        : this(pattern, flags, matchTimeout, edition, unicodeVersion, bounds, captures, default, RegexBuildOptions.None)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Regex"/> class with a match timeout, the edition of the grammar,
+    /// the version of Unicode, and when what its matches use is built: with <see cref="RegexBuildOptions.Eager"/>,
+    /// in the constructor, so that the first match costs what a later one does.
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="matchTimeout">The time a match may take before it is abandoned with <see cref="RegexMatchTimeoutException"/>, or <see cref="InfiniteMatchTimeout"/>.</param>
+    /// <param name="edition">The edition of ECMA-262 whose grammar the pattern is read with.</param>
+    /// <param name="unicodeVersion">The version of Unicode whose character database the pattern is read with.</param>
+    /// <param name="buildOptions">When what the matches use is built.</param>
+    /// <exception cref="RegexParseException">The pattern is not valid in the grammar of its flags and edition.</exception>
+    /// <exception cref="RegexPatternTooLargeException">The pattern is over a limit of size.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The build options are not <see cref="RegexBuildOptions"/>.</exception>
+    public Regex(string pattern, RegexFlags flags, TimeSpan matchTimeout, RegexEdition edition, RegexUnicodeVersion unicodeVersion, RegexBuildOptions buildOptions)
+        : this(pattern, flags, matchTimeout, edition, unicodeVersion, null, null, default, buildOptions)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Regex"/> class from the compiled form the source generator wrote,
+    /// with its programs run as the generated code given: the seam for the source generator, not for use by hand.
+    /// Nothing is parsed or built when the image was written by this version of the engine for these settings;
+    /// otherwise the image is ignored and the pattern is parsed, with the same answers.
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="matchTimeout">The limit of time on a match.</param>
+    /// <param name="edition">The edition of the grammar.</param>
+    /// <param name="unicodeVersion">The version of Unicode.</param>
+    /// <param name="bounds">The generated code for the program that finds a match's bounds, or null.</param>
+    /// <param name="captures">The generated code for the program that tracks every group, or null.</param>
+    /// <param name="compiled">The image of the compiled regular expression, or empty.</param>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public Regex(string pattern, RegexFlags flags, TimeSpan matchTimeout, RegexEdition edition, RegexUnicodeVersion unicodeVersion, GeneratedRunner? bounds, GeneratedRunner? captures, ReadOnlySpan<byte> compiled)
+        : this(pattern, flags, matchTimeout, edition, unicodeVersion, bounds, captures, compiled, RegexBuildOptions.None)
+    {
+    }
+
+    private Regex(string pattern, RegexFlags flags, TimeSpan matchTimeout, RegexEdition edition, RegexUnicodeVersion unicodeVersion, GeneratedRunner? bounds, GeneratedRunner? captures, ReadOnlySpan<byte> compiled, RegexBuildOptions buildOptions)
     {
         this.captureRunner = captures;
         if (pattern is null)
@@ -140,47 +184,53 @@ public sealed partial class Regex
         ValidateFlags(flags);
         ValidateMatchTimeout(matchTimeout);
         ValidateEdition(flags, edition);
+        ValidateBuildOptions(buildOptions);
         this.UnicodeVersion = UnicodeTables.Resolve(unicodeVersion);
         this.Pattern = pattern;
         this.Flags = flags;
         this.MatchTimeout = matchTimeout;
         this.Edition = edition;
-        bool unicode = (flags & (RegexFlags.Unicode | RegexFlags.UnicodeSets)) != 0;
-
-        // The reader and the compiler go a level deeper for each level of groups (and with the v flag, of classes),
-        // so a pattern that nests deeply is read and compiled on a stack of its own (see DeepStack).
-        (EcmaRegexParser parser, EcmaRegexNode root, Program program) = DeepStack.Run(
-            pattern,
-            (flags & RegexFlags.UnicodeSets) != 0,
-            () =>
-            {
-                EcmaRegexParser parser = new(
-                    pattern.AsSpan(),
-                    unicode,
-                    ignoreCase: (flags & RegexFlags.IgnoreCase) != 0,
-                    multiline: (flags & RegexFlags.Multiline) != 0,
-                    dotAll: (flags & RegexFlags.DotAll) != 0,
-                    unicodeSets: (flags & RegexFlags.UnicodeSets) != 0,
-                    edition: edition,
-                    unicodeVersion: unicodeVersion);
-                EcmaRegexNode root = parser.Parse();
-                return (parser, root, Compiler.Compile(root, unicode, parser.GroupCount, trackAll: false));
-            });
-        this.root = root;
-        this.linear = !parser.HasBackreferences;
+        this.unicode = (flags & (RegexFlags.Unicode | RegexFlags.UnicodeSets)) != 0;
 
         // Every pattern has its timeout. One without a backreference takes time in proportion to its size times the
         // text, but a count is not size: (?:a?){2147483647} keeps a choice for each of its iterations.
         this.limit = matchTimeout == InfiniteMatchTimeout ? TimeSpan.Zero : matchTimeout;
-        this.unicode = unicode;
-        this.GroupCount = parser.GroupCount;
-        this.GroupNames = parser.GroupNames;
-        this.program = program;
+        if (!compiled.IsEmpty && RegexImage.TryRead(compiled, flags, edition, this.UnicodeVersion, out RegexImage.Parts parts))
+        {
+            // Everything the first matches would build is in the image, so nothing is kept to build it from.
+            this.root = null;
+            this.linear = parts.Linear;
+            this.GroupCount = parts.GroupCount;
+            this.GroupNames = parts.GroupNames;
+            this.program = parts.Bounds;
+            this.captureProgram = parts.Captures;
+            this.captureProgram.Runner = captures;
+            this.dfa = parts.Dfa;
+            this.dfaTried = true;
+            this.ReadFromImage = true;
+        }
+        else
+        {
+            (EcmaRegexParser parser, EcmaRegexNode root, Program program) = RegexImage.Compile(pattern, flags, edition, unicodeVersion);
+            this.root = root;
+            this.linear = !parser.HasBackreferences;
+            this.GroupCount = parser.GroupCount;
+            this.GroupNames = parser.GroupNames;
+            this.program = program;
+        }
+
         this.program.Runner = bounds;
+        if ((buildOptions & RegexBuildOptions.Eager) != 0)
+        {
+            this.BuildEverything();
+        }
     }
 
     /// <summary>Gets the pattern.</summary>
     public string Pattern { get; }
+
+    /// <summary>Gets a value indicating whether the regular expression was read from an image rather than compiled from its pattern (see <see cref="RegexImage"/>).</summary>
+    internal bool ReadFromImage { get; }
 
     /// <summary>Gets the flags.</summary>
     public RegexFlags Flags { get; }
@@ -310,10 +360,27 @@ public sealed partial class Regex
     /// <param name="error">Why the pattern was refused, or null.</param>
     /// <returns><see langword="true"/> when the pattern is valid in the grammar of its flags and edition and not over a limit of size.</returns>
     public static bool TryCreate(string pattern, RegexFlags flags, TimeSpan matchTimeout, RegexEdition edition, RegexUnicodeVersion unicodeVersion, out Regex? regex, out string? error)
+        => TryCreate(pattern, flags, matchTimeout, edition, unicodeVersion, RegexBuildOptions.None, out regex, out error);
+
+    /// <summary>
+    /// Creates a regular expression with a match timeout, the edition of the grammar, the version of Unicode and when
+    /// what its matches use is built, without throwing for a pattern that is not valid.
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="matchTimeout">The time a match may take before it is abandoned with <see cref="RegexMatchTimeoutException"/>, or <see cref="InfiniteMatchTimeout"/>.</param>
+    /// <param name="edition">The edition of ECMA-262 whose grammar the pattern is read with.</param>
+    /// <param name="unicodeVersion">The version of Unicode whose character database the pattern is read with.</param>
+    /// <param name="buildOptions">When what the matches use is built (see <see cref="RegexBuildOptions"/>).</param>
+    /// <param name="regex">The regular expression, or null.</param>
+    /// <param name="error">Why the pattern was refused, or null.</param>
+    /// <returns><see langword="true"/> when the pattern is valid in the grammar of its flags and edition and not over a limit of size.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The build options are not <see cref="RegexBuildOptions"/>.</exception>
+    public static bool TryCreate(string pattern, RegexFlags flags, TimeSpan matchTimeout, RegexEdition edition, RegexUnicodeVersion unicodeVersion, RegexBuildOptions buildOptions, out Regex? regex, out string? error)
     {
         try
         {
-            regex = new Regex(pattern, flags, matchTimeout, edition, unicodeVersion);
+            regex = new Regex(pattern, flags, matchTimeout, edition, unicodeVersion, buildOptions);
             error = null;
             return true;
         }
@@ -608,6 +675,14 @@ public sealed partial class Regex
     }
 
     /// <summary>Refuses an edition that is not one, and the flags ECMAScript 2020 does not have: <c>d</c> (2022) and <c>v</c> (2024).</summary>
+    private static void ValidateBuildOptions(RegexBuildOptions buildOptions)
+    {
+        if ((buildOptions & ~RegexBuildOptions.Eager) != 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(buildOptions), buildOptions, "The build options are not RegexBuildOptions.");
+        }
+    }
+
     private static void ValidateEdition(RegexFlags flags, RegexEdition edition)
     {
         if (edition is not RegexEdition.Current and not RegexEdition.Es2020)
@@ -666,6 +741,14 @@ public sealed partial class Regex
 
     private RegexMatchTimeoutException Abandoned(MatchStop stop) => new(this.Pattern, this.MatchTimeout, stop == MatchStop.Memory);
 
+    /// <summary>Builds what the first matches would: the automaton over ASCII, the program that tracks every group, and the search automata of both programs.</summary>
+    private void BuildEverything()
+    {
+        this.Automaton();
+        this.program.Automata();
+        this.CaptureProgram().Automata();
+    }
+
     /// <summary>The program that tracks every group, for the members that report captures.</summary>
     private Program CaptureProgram()
     {
@@ -674,7 +757,7 @@ public sealed partial class Regex
         {
             // Simplify changes the tree in place, and did so when the first program was compiled; compiling the
             // same tree again gives the same program apart from the groups it tracks.
-            cp = DeepStack.Run(this.Pattern, (this.Flags & RegexFlags.UnicodeSets) != 0, () => Compiler.Compile(this.root, this.unicode, this.GroupCount, trackAll: true));
+            cp = DeepStack.Run(this.Pattern, (this.Flags & RegexFlags.UnicodeSets) != 0, () => Compiler.Compile(this.root!, this.unicode, this.GroupCount, trackAll: true));
             cp.Runner = this.captureRunner;
             Interlocked.CompareExchange(ref this.captureProgram, cp, null);
             cp = this.captureProgram;
@@ -689,7 +772,7 @@ public sealed partial class Regex
         {
             if (this.linear)
             {
-                Dfa? built = DeepStack.Run(this.Pattern, (this.Flags & RegexFlags.UnicodeSets) != 0, () => Dfa.Build(this.root));
+                Dfa? built = DeepStack.Run(this.Pattern, (this.Flags & RegexFlags.UnicodeSets) != 0, () => Dfa.Build(this.root!));
                 Interlocked.CompareExchange(ref this.dfa, built, null);
             }
 
