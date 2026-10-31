@@ -136,7 +136,7 @@ internal static class Instructions
     private static bool[] MakeKnown()
     {
         bool[] known = new bool[256];
-#if NET
+#if NET10_0_OR_GREATER
         foreach (Op op in Enum.GetValues<Op>())
 #else
         foreach (Op op in (Op[])Enum.GetValues(typeof(Op)))
@@ -269,7 +269,7 @@ public struct Quick : IEquatable<Quick>
     /// <summary>Gets or sets a value indicating whether a way reaches the end of its match at the end of the text.</summary>
     public bool End { get; set; }
 
-#if NET
+#if NET10_0_OR_GREATER
     private System.Buffers.SearchValues<byte>? allowedBytes;
     private System.Buffers.SearchValues<char>? allowedChars;
 
@@ -706,7 +706,7 @@ public sealed class Program
             }
         }
 
-#if NET
+#if NET10_0_OR_GREATER
         if (this.CaseCharacters != 0 && this.CaseCharacters == insts.Length - 1 && this.CaseNeedleUtf16 is not null && this.CaseNeedleUtf8 is not null)
         {
             this.Shape = SimpleShape.CaseLiteral;

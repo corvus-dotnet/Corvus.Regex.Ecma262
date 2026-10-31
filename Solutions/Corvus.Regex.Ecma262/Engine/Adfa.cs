@@ -382,7 +382,7 @@ internal static class Adfa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int TrailingZeros(ulong x)
     {
-#if NET
+#if NET10_0_OR_GREATER
         return System.Numerics.BitOperations.TrailingZeroCount(x);
 #else
         int n = 0;
@@ -1094,7 +1094,7 @@ internal static class Adfa
 /// <summary>The anchored automaton of a pattern, and the forward automaton (see <see cref="Adfa"/>).</summary>
 internal sealed class AnchoredAutomaton
 {
-#if NET
+#if NET10_0_OR_GREATER
     /// <summary>The fewest units a state must loop on to be accelerated: a large set, such as a class of letters, words or anything but a few units, whose runs are long.</summary>
     private const int AccelMembers = 24;
 
@@ -1120,7 +1120,7 @@ internal sealed class AnchoredAutomaton
     /// <summary>For the forward automaton, whether each state is a start state: no thread of an earlier start is alive in it.</summary>
     private readonly bool[] startLike;
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <summary>
     /// For each state that loops on a large set of units, those units, so that a long run of them is passed over by
     /// one vectorised search rather than a table read a unit (the accelerated states of the <c>regex</c> crate's
@@ -1185,7 +1185,7 @@ internal sealed class AnchoredAutomaton
         this.starts = starts;
         this.context = context;
         this.startLike = startLike;
-#if NET
+#if NET10_0_OR_GREATER
         int states = atEnd.Length;
         this.accel8 = new System.Buffers.SearchValues<byte>?[states];
         this.accel16 = new System.Buffers.SearchValues<char>?[states];
@@ -1254,7 +1254,7 @@ internal sealed class AnchoredAutomaton
 
         // The state is kept premultiplied by the stride, so a step is one load and an add.
         uint at = (uint)s << this.shift;
-#if NET
+#if NET10_0_OR_GREATER
         int run = 0;
 #endif
         while (p < input.Length)
@@ -1278,7 +1278,7 @@ internal sealed class AnchoredAutomaton
             }
 
             p++;
-#if NET
+#if NET10_0_OR_GREATER
             if (next != at)
             {
                 run = 0;

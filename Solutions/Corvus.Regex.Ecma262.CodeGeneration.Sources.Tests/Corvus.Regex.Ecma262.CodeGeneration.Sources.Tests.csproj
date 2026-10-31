@@ -5,8 +5,10 @@
     the emitter writes compiles against the library and answers as the library's interpreter does.
   -->
   <PropertyGroup>
-    <!-- net481 runs the same tests against the netstandard2.0 build of the library, with the package's files compiled for .NET Framework. -->
-    <TargetFrameworks>net10.0;net481</TargetFrameworks>
+    <!-- net481 runs the same tests against the netstandard2.0 build of the library, with the package's files compiled for .NET Framework.
+         net8.0 compiles the package's files for a project on .NET 8, whose runtime lacks members of .NET 10 the engine
+         takes under NET10_0_OR_GREATER: a code generator there compiles the package as this does. -->
+    <TargetFrameworks>net10.0;net8.0;net481</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Corvus.Ecma262.RegularExpressions.CodeGeneration.Tests</RootNamespace>
     <IsPackable>false</IsPackable>

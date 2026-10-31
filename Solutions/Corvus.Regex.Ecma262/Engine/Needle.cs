@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if NET
+#if NET10_0_OR_GREATER
 using System.Buffers;
 using System.Runtime.Intrinsics;
 #endif
@@ -34,7 +34,7 @@ public sealed class Needle<T>
 
     private readonly T[][] rows;
     private readonly bool prefersString;
-#if NET
+#if NET10_0_OR_GREATER
     private readonly SearchValues<string>? spanString;
 #endif
     private readonly int[] starts;
@@ -198,7 +198,7 @@ public sealed class Needle<T>
                 // kept for a literal that is matched exactly.
                 this.mode = Mode.Span;
                 this.prefersString = typeof(T) == typeof(ushort) && n >= 2 && n <= 8 && (long)shares[0] * shares[n - 1] > 500;
-#if NET
+#if NET10_0_OR_GREATER
                 if (this.prefersString)
                 {
                     // Both ends common letters: the span search's first-and-last comparison lets many starts
@@ -450,20 +450,20 @@ public sealed class Needle<T>
             case Mode.Three:
             case Mode.TwoFolded:
             case Mode.ThreeFolded:
-#if NET
+#if NET10_0_OR_GREATER
                 return this.Scan(input, from, last);
 #else
                 break;
 #endif
             case Mode.Pair:
-#if NET
+#if NET10_0_OR_GREATER
                 return this.ScanPair(input, from, last);
 #else
                 break;
 #endif
             case Mode.Span:
             {
-#if NET
+#if NET10_0_OR_GREATER
                 if (this.spanString is not null)
                 {
                     // The runtime's search for a string by its fingerprints (Teddy): for a short literal of common
@@ -480,7 +480,7 @@ public sealed class Needle<T>
                 throw new InvalidOperationException("The needle cannot search.");
         }
 
-#if !NET
+#if !NET10_0_OR_GREATER
         for (int i = from; i <= last; i++)
         {
             if (this.Verify(input, i))
@@ -688,7 +688,7 @@ public sealed class Needle<T>
         }
     }
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <summary>
     /// The anchored search: a vector of starts at a time, in a loop that holds nothing but the comparisons (the
     /// constants are its arguments, and it makes no call, so everything stays in registers); the full comparison
@@ -1253,7 +1253,7 @@ public sealed class Needle<T>
 #endif
 }
 
-#if NET
+#if NET10_0_OR_GREATER
 /// <summary>
 /// The search over UTF-8 for any of up to six pairs of adjacent bytes, each compared as one sixteen-bit value:
 /// the text is loaded at both alignments, so every start is a lane of one load or the other. A pair of bytes is
@@ -1379,7 +1379,7 @@ public sealed class MultiNeedle<T>
     private readonly int o2;
     private readonly bool two;
     private readonly int minLength;
-#if NET
+#if NET10_0_OR_GREATER
     private readonly bool pair;
     private readonly ushort[] pairs = [];
     private readonly SearchValues<byte>? anyBytes;
@@ -1494,7 +1494,7 @@ public sealed class MultiNeedle<T>
             }
         }
 
-#if NET
+#if NET10_0_OR_GREATER
         // Over UTF-8, two adjacent positions can be compared as one sixteen-bit value, which admits only the
         // literals' own pairs of bytes rather than every pairing of a unit of one position with a unit of the
         // other: the starts let through fall by the number of literals. For literals matched exactly.
@@ -1561,7 +1561,7 @@ public sealed class MultiNeedle<T>
             this.a2[i] = needles[i].UnitAt(this.o2);
         }
 
-#if NET
+#if NET10_0_OR_GREATER
         if (typeof(T) == typeof(byte) && this.exact && this.two && !this.pair && this.values1.Length <= 2 && this.values2.Length <= 2 && Vector256.IsHardwareAccelerated)
         {
             this.narrowPair = true;
@@ -1594,7 +1594,7 @@ public sealed class MultiNeedle<T>
     /// <summary>Gets the cost of the search by the model, per unit of text, in the units of a vector operation (see <see cref="StartCost"/>).</summary>
     public double Cost { get; }
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <summary>
     /// The earliest position at or after a position where one of the literals is, over UTF-8, and its length: for the
     /// generated code, which calls it at every start it needs. Never inlined, nor its scan: inlined into the generated
@@ -1734,7 +1734,7 @@ public sealed class MultiNeedle<T>
         }
 
         int i = from;
-#if NET
+#if NET10_0_OR_GREATER
         if (this.pair)
         {
             return this.ScanPair(input, from, last, out length);
@@ -1840,7 +1840,7 @@ public sealed class MultiNeedle<T>
         return -1;
     }
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <summary>The most distinct units at a position the straight-line two-position scan takes; more go to the loop over the arrays.</summary>
     private const int Straight = 6;
 
@@ -2209,7 +2209,7 @@ public sealed class MultiNeedle<T>
         masks.Add(mask);
     }
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <summary>The length of the first literal, in the pattern's order, at a position of UTF-8 text, or -1.</summary>
     private int LiteralAt(ReadOnlySpan<byte> input, int start)
     {

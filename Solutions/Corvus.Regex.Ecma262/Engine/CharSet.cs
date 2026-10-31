@@ -5,7 +5,7 @@
 // A port of charset.rs of the Rust ECMA-262 engine of Corvus.JsonSchema (itself a port of charset.go).
 
 using System;
-#if NET
+#if NET10_0_OR_GREATER
 using System.Buffers;
 #endif
 using System.Collections.Generic;
@@ -25,7 +25,7 @@ public sealed class CharSet
     private readonly ulong ascii0;
     private readonly ulong ascii1;
     private readonly int coversAbove128To;
-#if NET
+#if NET10_0_OR_GREATER
     private SearchValues<byte>? memberBytes;
     private SearchValues<byte>? nonMemberBytes;
     private SearchValues<char>? memberChars;
@@ -169,7 +169,7 @@ public sealed class CharSet
     /// <summary>Gets a value indicating whether the set is every character but a line terminator (<c>.</c> without the s flag), whose runs the matcher scans with the cursor for the rare terminators.</summary>
     public bool IsLineRest => this.ranges.Length == 8 && this.ranges[0] == 0 && this.ranges[1] == 9 && this.ranges[2] == 11 && this.ranges[3] == 12 && this.ranges[4] == 14 && this.ranges[5] == 0x2027 && this.ranges[6] == 0x202A && (this.ranges[7] == 0xFFFF || this.ranges[7] == 0x10FFFF);
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <summary>Gets the ASCII members, for a vectorised search over UTF-8.</summary>
     public SearchValues<byte> MemberBytes => this.memberBytes ??= SearchValues.Create(this.AsciiUnits<byte>(members: true));
 

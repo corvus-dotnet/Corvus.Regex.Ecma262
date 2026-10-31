@@ -253,8 +253,10 @@ benchmark compete for the same cores and the numbers are worthless.
   file-scoped namespaces and `this.` on instance members. A new file follows the style of the files around it.
 - Nothing on the match path allocates: no closures, no boxing, no LINQ, no iterator blocks. The allocation test
   and the `[MemoryDiagnoser]` benchmarks hold that line.
-- Wherever the current runtime has a faster way, the code takes it under `#if NET` and the `netstandard2.0`
-  build gets a plain fallback, never the other way round (design, section 5).
+- Wherever the current runtime has a faster way, the code takes it under `#if NET10_0_OR_GREATER` and the
+  `netstandard2.0` build gets a plain fallback, never the other way round (design, section 5). Not `#if NET`: the
+  engine's files are also compiled as source by whoever takes `CodeGeneration.Sources`, on whatever .NET they target,
+  and .NET 8 lacks members of .NET 10 the engine uses. The source package's tests compile them for `net8.0` too.
 - Anything the source generator emits that calls a `net10.0`-only member is emitted under
   `#if NET10_0_OR_GREATER`, and the test project and the data set runner define those symbols when they compile
   generated code, so the emitted path is what the gates exercise.

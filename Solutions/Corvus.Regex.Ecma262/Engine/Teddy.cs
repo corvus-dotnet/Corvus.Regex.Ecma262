@@ -2,7 +2,7 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
-#if NET
+#if NET10_0_OR_GREATER
 using System;
 using System.Collections.Generic;
 using System.Numerics;

@@ -6,7 +6,7 @@
 // takes from the unicode/utf8 package), generalised over the two encodings the library matches natively.
 
 using System;
-#if NET
+#if NET10_0_OR_GREATER
 using System.Buffers;
 #endif
 using System.Runtime.CompilerServices;
@@ -115,7 +115,7 @@ public interface ITextEncoding<TUnit>
     /// <returns>The position.</returns>
     int AdvanceUnit(ReadOnlySpan<TUnit> input, int pos);
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <summary>The ASCII members of a set, in the unit of the text, for a vectorised search.</summary>
     /// <param name="set">The set.</param>
     /// <returns>The members.</returns>
@@ -536,7 +536,7 @@ public readonly struct Utf8Encoding : ITextEncoding<byte>
         return pos + width;
     }
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SearchValues<byte> Members(CharSet set) => set.MemberBytes;
@@ -672,7 +672,7 @@ public readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     public int IndexOfAlternation(ReadOnlySpan<byte> input, int from, AlternationSearch alternation, out int length)
     {
-#if NET
+#if NET10_0_OR_GREATER
         if (alternation.TeddyUtf8 is not null)
         {
             return alternation.TeddyUtf8.IndexOf(input, from, out length);
@@ -713,7 +713,7 @@ public readonly struct Utf8Encoding : ITextEncoding<byte>
     /// <inheritdoc/>
     public int WalkBack(ReadOnlySpan<byte> input, int from, int count, int floor, bool units)
     {
-#if NET
+#if NET10_0_OR_GREATER
         // Where the units before the position are all ASCII, they are the characters.
         if (from - count >= floor && !input.Slice(from - count, count).ContainsAnyInRange((byte)0x80, (byte)0xFF))
         {
@@ -744,7 +744,7 @@ public readonly struct Utf8Encoding : ITextEncoding<byte>
         return at < floor ? -1 : at;
     }
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int IndexOfCasePrefix(ReadOnlySpan<byte> input, int from, Program program) => program.CaseNeedleUtf8!.IndexOf(input, from);
@@ -877,7 +877,7 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int AdvanceUnit(ReadOnlySpan<char> input, int pos) => pos + 1;
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SearchValues<char> Members(CharSet set) => set.MemberChars;
@@ -972,7 +972,7 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
     /// <inheritdoc/>
     public int IndexOfAlternation(ReadOnlySpan<char> input, int from, AlternationSearch alternation, out int length)
     {
-#if NET
+#if NET10_0_OR_GREATER
         // The runtime's search for any of several ASCII strings (Teddy) is the fastest there is.
         if (alternation.Strings is not null)
         {
@@ -1042,7 +1042,7 @@ public readonly struct Utf16Encoding : ITextEncoding<char>
     public int WalkBack(ReadOnlySpan<char> input, int from, int count, int floor, bool units)
     {
         int at = from;
-#if NET
+#if NET10_0_OR_GREATER
         if (!units && from - count >= floor && input.Slice(from - count, count).IndexOfAnyInRange('\uD800', '\uDFFF') < 0)
         {
             // No surrogate among the units walked back over: every character is one unit.

@@ -168,8 +168,9 @@ diagnostics CRE0001 to CRE0005 cover the pattern, the member's shape, the flags,
 
 `net10.0` and `netstandard2.0`. The `netstandard2.0` build serves .NET Framework and the generator, which is a
 netstandard2.0 Roslyn component compiling the same source. The modern target never pays for it: a faster runtime
-path (`SearchValues`, `Vector128`/`Vector256`, AdvSimd) is taken under `#if NET` with a plain fallback for
-netstandard2.0. The `netstandard2.0` build is held to the same answers, not the same speed: tests and the data run
+path (`SearchValues`, `Vector128`/`Vector256`, AdvSimd) is taken under `#if NET10_0_OR_GREATER` with a plain
+fallback for netstandard2.0. The guard names .NET 10 rather than any .NET because `CodeGeneration.Sources` compiles the
+same files into a project on whatever .NET it targets, and a project on .NET 8 or 9 then takes the fallback. The `netstandard2.0` build is held to the same answers, not the same speed: tests and the data run
 target `net481` too.
 
 ```

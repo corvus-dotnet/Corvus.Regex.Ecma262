@@ -35,7 +35,7 @@ public sealed class AlternationSearch
         this.ExtrasUtf8 = extras8.Length == 0 ? null : Needles.Multi<byte>(Array.ConvertAll(extras8, Rune), true, leadOnly: true);
         this.WindowUtf8 = window8;
         this.WindowUtf16 = window16;
-#if NET
+#if NET10_0_OR_GREATER
         // The runtime's search for any of several strings is vectorised (Teddy) for ASCII literals and far slower
         // than the needle for others, so it is kept for ASCII; and the needle beats it where the needle's anchors
         // are rare enough (two or three literals starting with capitals: Sher|Hol, Sherlock|Street, Holmes|Watson
@@ -120,7 +120,7 @@ public sealed class AlternationSearch
     /// <summary>Gets the most UTF-16 units an alternative can take in any of its forms.</summary>
     public int WindowUtf16 { get; }
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <summary>Gets the runtime's search for any of the alternatives over UTF-16, for ASCII literals, exact or ignoring case as the runtime knows it, or null.</summary>
     public System.Buffers.SearchValues<string>? Strings { get; }
 

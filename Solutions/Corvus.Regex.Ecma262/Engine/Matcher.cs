@@ -650,7 +650,7 @@ public static class Matcher
                 int pos = start;
                 while (pos < len)
                 {
-#if NET
+#if NET10_0_OR_GREATER
                     if (!sticky)
                     {
                         int i = enc.IndexOfCandidate(input, pos, set, p.FirstIsSmall);
@@ -711,7 +711,7 @@ public static class Matcher
 
                 while (pos < len)
                 {
-#if NET
+#if NET10_0_OR_GREATER
                     if (!sticky)
                     {
                         int i = enc.IndexOfCandidate(input, pos, set, p.FirstIsSmall);
@@ -761,7 +761,7 @@ public static class Matcher
                 while (pos < len)
                 {
                     int known = -1;
-#if NET
+#if NET10_0_OR_GREATER
                     if (!sticky)
                     {
                         AlternationSearch? alternation = p.Alternation;
@@ -849,7 +849,7 @@ public static class Matcher
                 return false;
             }
 
-#if NET
+#if NET10_0_OR_GREATER
             case SimpleShape.CaseLiteral:
             {
                 // The anchored search for the literal in its forms, and where a form the search leaves out exists
@@ -1262,7 +1262,7 @@ public static class Matcher
         CharSet? first = p.First;
         bool units = p.Units;
         int pos = start;
-#if NET
+#if NET10_0_OR_GREATER
         if (enc.HasCaseNeedle(p))
         {
             // Every match starts with the literal in one of its forms: the anchored search is vectorised. A form
@@ -1926,7 +1926,7 @@ public static class Matcher
                 at = skip.Ahead<TUnit, TEncoding>(input, at);
             }
 
-#if NET
+#if NET10_0_OR_GREATER
             if (first is not null)
             {
                 // Every match starts with a member of the first set; the scan for one is vectorised.
@@ -1974,7 +1974,7 @@ public static class Matcher
             // order, as the plain search would.
             while (at <= place && at <= len)
             {
-#if NET
+#if NET10_0_OR_GREATER
                 if (at < len)
                 {
                     at = enc.AlignStart(input, at, units);
@@ -2138,7 +2138,7 @@ public static class Matcher
         return i;
     }
 
-#if NET
+#if NET10_0_OR_GREATER
     /// <summary>As <see cref="ExtraStart{TUnit, TEncoding}"/>, for the literal every match starts with in its forms: over UTF-8 the long s and the Kelvin sign take more bytes than the letters they fold to, so the needle leaves them to this pass.</summary>
     /// <typeparam name="TUnit">The unit of the text.</typeparam>
     /// <typeparam name="TEncoding">The encoding of the text.</typeparam>
@@ -2329,7 +2329,7 @@ public static class Matcher
                         return false;
                     }
 
-#if NET
+#if NET10_0_OR_GREATER
                     if (first is not null)
                     {
                         int i = enc.IndexOfCandidate(input, pos, first, p.FirstIsSmall);
@@ -2404,7 +2404,7 @@ public static class Matcher
                 return first is null && Run<TUnit, TEncoding>(p, st, input, pos, out to);
             }
 
-#if NET
+#if NET10_0_OR_GREATER
             if (first is not null)
             {
                 // A start is a unit that can begin a member of the first set (looked at below). The scan for one
@@ -2479,7 +2479,7 @@ public static class Matcher
     {
         TEncoding enc = default;
         int len = input.Length;
-#if NET
+#if NET10_0_OR_GREATER
         bool all = set.HoldsAllNonAscii(units);
         while (at < len)
         {
@@ -2553,7 +2553,7 @@ public static class Matcher
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
-#if NET
+#if NET10_0_OR_GREATER
         TEncoding enc = default;
         int len = input.Length;
         if (at >= len)
@@ -2594,7 +2594,7 @@ public static class Matcher
         where TEncoding : struct, ITextEncoding<TUnit>
     {
         TEncoding enc = default;
-#if NET
+#if NET10_0_OR_GREATER
         int i = input.Slice(from, to - from).LastIndexOfAny(enc.Members(set));
         return i < 0 ? -1 : from + i;
 #else
@@ -2849,7 +2849,7 @@ public static class Matcher
         where TEncoding : struct, ITextEncoding<TUnit>
     {
         TEncoding enc = default;
-#if NET
+#if NET10_0_OR_GREATER
         int i = input.Slice(at).IndexOfAnyExcept(enc.AsciiUnit(c));
         return i < 0 ? input.Length : at + i;
 #else
@@ -3854,7 +3854,7 @@ public static class Matcher
         where TUnit : unmanaged, IEquatable<TUnit>
         where TEncoding : struct, ITextEncoding<TUnit>
     {
-#if NET
+#if NET10_0_OR_GREATER
         TEncoding enc = default;
 #endif
         Inst[] insts = p.Insts;
@@ -3889,7 +3889,7 @@ public static class Matcher
                     }
 
                     int at;
-#if NET
+#if NET10_0_OR_GREATER
                     if (!marked && e.Pos - e.A >= 16 && quick[e.Pc].AsciiOnly)
                     {
                         // What follows can go on only from a character below 128: the last such position in
