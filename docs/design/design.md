@@ -50,8 +50,9 @@ global timeout.
 
 **Validity without allocation.** `IsValidPattern(pattern, flags, [edition, unicodeVersion])` takes a pattern as UTF-16
 or UTF-8 and says whether it is valid in the grammar, with nothing allocated: a reader of its own follows the parser's
-decisions with no tree and no sets, keeps groups and nested classes on stacks rather than recursing, and needs no
-string. It asks the grammar only, so a pattern too large to compile is valid here; `IsValid` compiles. The data-set
+decisions with no tree and no sets, keeps groups and nested classes on stacks rather than recursing, keeps a named
+group as the disjunction and the alternative it lies in (so its memory is in proportion to the pattern however deeply
+named groups nest), and needs no string. It asks the grammar only, so a pattern too large to compile is valid here; `IsValid` compiles. The data-set
 runner holds it to V8's verdict on every pattern.
 
 **ECMA-262 algorithms.** `Replace` substitutes as `GetSubstitution` does (`$$`, `$&`, `` $` ``, `$'`, `$n`, `$nn`,
