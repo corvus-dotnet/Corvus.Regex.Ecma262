@@ -147,7 +147,7 @@ saving the work it was written to save.
 | Change | What to do | Enforced by |
 |---|---|---|
 | A refactoring, a comment, the validator, anything that changes no output | Nothing. | The output-pinned test passes. |
-| The compiler's output changes, answers unchanged (smaller, faster) | Raise `CompilerRevision`. Write a new golden file at release. | Output pinned to the revision. |
+| The compiler's output changes, answers unchanged (smaller, faster) | Raise `CompilerRevision`. | Output pinned to the revision. |
 | The compiler's output changes because it gave wrong answers | Raise `CompilerRevision` and set `MinimumTrustedRevision` to it. Say so in the release notes. | Output pinned, and the golden images test, which then expects older images to fall back. |
 | A new kind of instruction | A new opcode with the next number. | Opcodes pinned. |
 | A new stored fact | Derive it from older fields, or default it conservatively, or put it in a new section (required only if neither is possible). | Golden images. |
