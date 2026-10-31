@@ -1,0 +1,14 @@
+<Project>
+  <!--
+    The package's C# is compiled into the project that takes it, and supports what the library's own builds support:
+    .NET 10 and later, and .NET Standard 2.0, which Roslyn source generators and .NET Framework projects use. The engine
+    takes members only .NET 10 has, so a project on an earlier .NET is refused here, with this message, rather than by
+    the compiler inside the package's files.
+  -->
+  <Target Name="CorvusRegexEcma262SourcesCheckTargetFramework"
+          BeforeTargets="ResolveAssemblyReferences;CoreCompile"
+          Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp' AND $([MSBuild]::VersionLessThan('$(TargetFrameworkVersion.TrimStart(`vV`))', '10.0'))">
+    <Error Code="CRES0001"
+           Text="Corvus.Regex.Ecma262.CodeGeneration.Sources compiles into a project on .NET 10 or later, or on .NET Standard 2.0 (as a Roslyn source generator or a .NET Framework project is). This project targets $(TargetFramework). Target net10.0 or later, or netstandard2.0." />
+  </Target>
+</Project>

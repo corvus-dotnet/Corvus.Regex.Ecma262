@@ -14,7 +14,9 @@ library's source generator writes.
 The package has no assembly. Its C# is compiled into the project that takes it, with its types `internal` and in
 the namespace `Corvus.Ecma262.RegularExpressions.CodeGeneration`, so it loads nothing beside a source generator and
 never clashes with the library in a project that references both. It needs C# 12 or later (`LangVersion` 12) and,
-on .NET Standard 2.0, `System.Memory`, which it brings as a dependency.
+on .NET Standard 2.0, `System.Memory`, which it brings as a dependency. It compiles into a project on .NET 10 or
+later, or on .NET Standard 2.0 (as a Roslyn source generator or a .NET Framework project is). A project on .NET 8 or
+9 is refused with the error `CRES0001`.
 
 The emitter's settings are the package's own copies of the library's enums, in its namespace, so a file that uses
 both namespaces names them in full.

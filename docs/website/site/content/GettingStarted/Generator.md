@@ -29,7 +29,7 @@ The generator ships in the same package and runs on the `netstandard2.0` build o
 
 ### In generated code
 
-A source generator does not run on another generator's output, so a `[GeneratedRegex]` member written by a code generator is never given its body. A code generator writes the body itself with the `Corvus.Regex.Ecma262.CodeGeneration.Sources` package: `RegexEmitter.TryEmit` returns the same code the source generator writes, as a class to nest in the generated type, or the reason the pattern does not compile. The package is C# compiled into the code generator, with no assembly, so a source generator can take it.
+A source generator does not run on another generator's output, so a `[GeneratedRegex]` member written by a code generator is never given its body. A code generator writes the body itself with the `Corvus.Regex.Ecma262.CodeGeneration.Sources` package: `RegexEmitter.TryEmit` returns the same code the source generator writes, as a class to nest in the generated type, or the reason the pattern does not compile. The package is C# compiled into the code generator, with no assembly, so a source generator can take it. It compiles into a project on .NET 10 or later, or on .NET Standard 2.0, which a source generator targets; a project on .NET 8 or 9 is refused with the error `CRES0001`.
 
 ```xml
 <PackageReference Include="Corvus.Regex.Ecma262.CodeGeneration.Sources" PrivateAssets="all" />
