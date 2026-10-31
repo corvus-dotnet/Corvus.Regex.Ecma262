@@ -271,7 +271,7 @@ minor one, and a fix a patch.
 
 After a release is on NuGet, a pull request records it for the compatibility checks: it is added to
 `ReleasedVersions.txt`, becomes the `PackageValidationBaselineVersion`, and its new public members move to
-`PublicAPI.Shipped.txt` ([compatibility, section 4](compatibility.md#4-at-a-release)).
+`PublicAPI.Shipped.txt` ([compatibility, section 4](compatibility.md#at-a-release)).
 
 `main` is protected by a ruleset: changes arrive by pull request with one approving review, the `.NET build
 gate` and `ECMA-262 test data` checks must be green on the branch as it will merge, and the branch is never
