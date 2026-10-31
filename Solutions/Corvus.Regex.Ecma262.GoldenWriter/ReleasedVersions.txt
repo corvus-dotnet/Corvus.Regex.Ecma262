@@ -2,3 +2,4 @@
 # the first to write images. A release adds its line.
 1.0.10
 1.0.11
+1.0.12

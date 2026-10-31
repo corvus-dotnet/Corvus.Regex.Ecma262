@@ -39,7 +39,7 @@
   -->
   <PropertyGroup>
     <EnablePackageValidation>true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>1.0.11</PackageValidationBaselineVersion>
+    <PackageValidationBaselineVersion>1.0.12</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <ItemGroup>
