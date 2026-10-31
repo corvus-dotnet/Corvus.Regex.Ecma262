@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1C1D21" />
+    <meta name="description" content="The tools on Windows, Linux and macOS, the build and the tests step by step, the test data and benchmark gates, and what a pull request needs." />
+    <meta name="keywords" content="documentation, Corvus.Regex.Ecma262" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:description" content="The tools on Windows, Linux and macOS, the build and the tests step by step, the test data and benchmark gates, and what a pull request needs." />
+    <meta name="twitter:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta name="twitter:title" content="Contributing - Corvus.Regex.Ecma262" />
+    <meta property="article:tag" content="documentation" />
+    <meta property="article:tag" content="Corvus.Regex.Ecma262" />
+    <meta property="og:description" content="The tools on Windows, Linux and macOS, the build and the tests step by step, the test data and benchmark gates, and what a pull request needs." />
+    <meta property="og:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta property="og:title" content="Contributing - Corvus.Regex.Ecma262" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://corvus-oss.org/Corvus.Regex.Ecma262/docs/dotnet/contributing/" />
+    <title>Contributing - Corvus.Regex.Ecma262</title>
+    <link itemprop="url" href="https://corvus-oss.org/Corvus.Regex.Ecma262/docs/dotnet/contributing/" />
+    <link rel="canonical" href="https://corvus-oss.org/Corvus.Regex.Ecma262/docs/dotnet/contributing/" />
+    <link rel="sitemap" href="https://corvus-oss.org/Corvus.Regex.Ecma262/sitemap.xml" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="/Corvus.Regex.Ecma262/main.css" />
+    <link rel="icon" type="image/svg+xml" href="/Corvus.Regex.Ecma262/assets/images/favicon.svg" />
+    
+</head>
+<body class="">
+    <a class="sr-only" href="#main-content">Skip to content</a>
+<header class="site-header">
+    <div class="site-header__inner">
+        <a class="site-header__brand" href="/Corvus.Regex.Ecma262/index.html" aria-label="Corvus.Regex.Ecma262 home">
+            <img src="/Corvus.Regex.Ecma262/assets/images/logo-corvus.svg" alt="" width="28" height="28" aria-hidden="true" />
+            Corvus<span style="color:var(--color-brand)">.</span>Regex<span style="color:var(--color-brand)">.Ecma262</span>
+        </a>
+        <nav class="site-header__nav-desktop" aria-label="Main navigation">
+                    <a href="/Corvus.Regex.Ecma262/getting-started/index.html"
+                       class="site-header__link "
+                       >Getting Started</a>
+                    <a href="/Corvus.Regex.Ecma262/docs/index.html"
+                       class="site-header__link is-active"
+                       aria-current=page>Documentation</a>
+                    <a href="/Corvus.Regex.Ecma262/api/index.html"
+                       class="site-header__link "
+                       >API</a>
+            <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+               class="site-header__link" target="_blank" rel="noopener noreferrer"
+               aria-label="View on GitHub">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+        </nav>
+        <button class="site-header__menu-toggle js-toggle-menu"
+                aria-expanded="false" aria-label="Toggle menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+    </div>
+</header>
+<nav class="site-header__nav-mobile js-mobile-nav" aria-label="Mobile navigation">
+            <a href="/Corvus.Regex.Ecma262/getting-started/index.html" class="site-header__link">Getting Started</a>
+            <a href="/Corvus.Regex.Ecma262/docs/index.html" class="site-header__link">Documentation</a>
+            <a href="/Corvus.Regex.Ecma262/api/index.html" class="site-header__link">API</a>
+    <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+       class="site-header__link" target="_blank" rel="noopener noreferrer">GitHub</a>
+</nav>
+
+    <div class="page-content">
+    <div class="layout-docs container">
+    <button class="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false"></button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar">
+    <div class="sidebar__inner">
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Getting Started</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                    <li class="sidebar__item"><a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/index.html">Choose a language</a></li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/dotnet.html">.NET</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/c.html">C</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/cpp.html">C&#x2B;&#x2B;</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/fortran.html">Fortran</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/go.html">Go</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/java.html">Java</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/julia.html">Julia</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/pascal.html">Object Pascal</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ocaml.html">OCaml</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/php.html">PHP</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/python.html">Python</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/r.html">R</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ruby.html">Ruby</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/rust.html">Rust</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/swift.html">Swift</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Documentation</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/dotnet/index.html">.NET</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/industry.html">Benchmarks</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link is-active" href="/Corvus.Regex.Ecma262/docs/dotnet/contributing.html">Contributing</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/compatibility.html">Compatibility</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/c/index.html">C</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/design-c.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/cpp/index.html">C&#x2B;&#x2B;</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/fortran/index.html">Fortran</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/go/index.html">Go</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/java/index.html">Java</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/julia/index.html">Julia</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/pascal/index.html">Object Pascal</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ocaml/index.html">OCaml</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/php/index.html">PHP</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/python/index.html">Python</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/r/index.html">R</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ruby/index.html">Ruby</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/rust/index.html">Rust</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/swift/index.html">Swift</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/contributing.html">Contributing</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</aside>
+
+    <main id="main-content" class="layout-docs__main">
+        <div class="doc__content">
+            <h1>Contributing</h1>
+<p>This guide is for someone who wants to build the library, run its tests and gates, and open a pull request. It
+covers the tools on Windows, Linux and macOS, the build step by step, the gates every change must pass, and how a
+pull request is reviewed and released. The <a href="/Corvus.Regex.Ecma262/docs/dotnet/design.html">design document</a> describes what is underneath.</p>
+<h2 id="tools">1. Tools</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Needed for</th>
+<th>Version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>.NET SDK</td>
+<td>Everything</td>
+<td>10.0, as <code>global.json</code> pins it (<code>rollForward: latestFeature</code>, so any 10.0.x feature band serves)</td>
+</tr>
+<tr>
+<td>PowerShell 7</td>
+<td>The repository build script, the Unicode table generators, the site build</td>
+<td>7.4 or later</td>
+</tr>
+<tr>
+<td>Git</td>
+<td>The repository and the test data</td>
+<td>Any recent version</td>
+</tr>
+<tr>
+<td>Node.js</td>
+<td>The test data generator (in the data repository) and the documentation site's search index</td>
+<td>24 for the data generator (the V8 it carries is the oracle); 20 or later for the site</td>
+</tr>
+<tr>
+<td>Python 3</td>
+<td>Writing the record of a benchmark run</td>
+<td>3.10 or later</td>
+</tr>
+<tr>
+<td>GitHub CLI</td>
+<td>The documentation site only (it fetches the site generator)</td>
+<td>Any recent version</td>
+</tr>
+</tbody>
+</table>
+<p>A contributor who only builds the library and runs its tests needs the .NET SDK and Git. PowerShell is needed for
+the repository build script and the tools; the site and the benchmark tools need the rest.</p>
+<h3 id="windows">Windows</h3>
+<pre><code class="language-powershell">winget install Microsoft.DotNet.SDK.10
+winget install Microsoft.PowerShell
+winget install Git.Git
+winget install OpenJS.NodeJS          # the site; use the 24 release for the data generator
+winget install Python.Python.3.13     # benchmark records
+winget install GitHub.cli             # the site
+</code></pre>
+<p>Open a new terminal after the installs so that <code>PATH</code> is current. The repository builds in Windows Terminal,
+PowerShell 7 or Developer PowerShell; Visual Studio 2022 17.14 or later and Visual Studio Code with the C# Dev Kit
+both open <code>Solutions/Corvus.Regex.Ecma262.slnx</code>.</p>
+<h3 id="linux">Linux</h3>
+<p>The .NET SDK is best installed with Microsoft's install script, which puts it under your home directory and never
+conflicts with a distribution package:</p>
+<pre><code class="language-bash">curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+bash /tmp/dotnet-install.sh --channel 10.0 --install-dir &quot;$HOME/.dotnet&quot;
+export DOTNET_ROOT=&quot;$HOME/.dotnet&quot;
+export PATH=&quot;$HOME/.dotnet:$PATH&quot;      # put both lines in your shell profile
+</code></pre>
+<p>On Ubuntu and Debian the SDK is also in Microsoft's package feed (<code>packages.microsoft.com</code>) as <code>dotnet-sdk-10.0</code>;
+on Fedora, <code>dnf install dotnet-sdk-10.0</code>. Whichever route you take, <code>dotnet --list-sdks</code> must show a 10.0 SDK.</p>
+<p>PowerShell 7 comes as a package (<code>powershell</code> from Microsoft's feed on Ubuntu and Debian, <code>dnf install powershell</code>
+on Fedora, <code>snap install powershell --classic</code> elsewhere) or as a .NET tool: <code>dotnet tool install --global PowerShell</code>. Node.js 24 is in the NodeSource feed or as a binary tarball from nodejs.org; Python 3, Git and the
+GitHub CLI (<code>gh</code>) are in every distribution's repositories.</p>
+<p>The benchmark procedure pins the run to a set of cores with <code>taskset</code>, which is part of <code>util-linux</code> and already
+installed.</p>
+<h3 id="macos">macOS</h3>
+<pre><code class="language-bash">brew install --cask dotnet-sdk        # or the 10.0 installer from https://dot.net
+brew install --cask powershell
+brew install git node@24 python gh
+</code></pre>
+<p>Add <code>$(brew --prefix node@24)/bin</code> to <code>PATH</code> if Homebrew does not link the versioned Node. On Apple silicon the
+SDK is native arm64; the vectorised paths run on NEON through <code>Vector128</code> and AdvSimd (design, section 3), so every
+test passes. Benchmark figures are comparable only with the benchmark page's arm64 run, not its x86-64 one.</p>
+<h2 id="getting-the-sources">2. Getting the sources</h2>
+<pre><code class="language-bash">git clone https://github.com/corvus-dotnet/Corvus.Regex.Ecma262.git
+git clone https://github.com/corvus-dotnet/ecma262-regex-test-data.git   # beside it: the test data, 230 MB
+cd Corvus.Regex.Ecma262
+</code></pre>
+<p>The test data repository is the oracle for the engine (design, section 6). It is not vendored, so clone it beside
+the library; the commands below assume <code>../ecma262-regex-test-data</code>.</p>
+<h2 id="building-and-testing-step-by-step">3. Building and testing, step by step</h2>
+<p>Every command runs from the repository root. The solution file is <code>Solutions/Corvus.Regex.Ecma262.slnx</code>.</p>
+<ol>
+<li><p><strong>Restore and build.</strong> Every project treats warnings as errors, and the .NET analyzers run on the source
+generator's output too, so a clean build is the first gate.</p>
+<pre><code class="language-bash">dotnet build Solutions/Corvus.Regex.Ecma262.slnx
+</code></pre>
+<p>The build must end with <code>0 Warning(s)</code> and <code>0 Error(s)</code>.</p>
+</li>
+<li><p><strong>Run the unit tests.</strong> The test projects are MSTest on Microsoft.Testing.Platform, so <code>dotnet test</code> takes
+<code>--solution</code> and does not accept <code>--nologo</code> or <code>-v q</code>. The matching tests build every pattern as generated code
+as well as interpreted, by compiling the generator's output with Roslyn, and assert both engines.</p>
+<pre><code class="language-bash">dotnet test --solution Solutions/Corvus.Regex.Ecma262.slnx --framework net10.0
+</code></pre>
+<p>The test projects target <code>net481</code> as well as <code>net10.0</code>, so that the <code>netstandard2.0</code> build of the library is
+tested as a .NET Framework consumer sees it. The <code>net481</code> target builds on every platform (from the reference
+assemblies) but runs only on Windows; on Linux and macOS pass <code>--framework net10.0</code> to <code>dotnet test</code>, which is
+what the Linux leg of CI does, and leave the <code>net481</code> run to the Windows leg.</p>
+<p>To run one test or one class, filter by its fully qualified name:</p>
+<pre><code class="language-bash">dotnet test --solution Solutions/Corvus.Regex.Ecma262.slnx --filter &quot;FullyQualifiedName~CaptureTests&quot;
+</code></pre>
+</li>
+<li><p><strong>Run the test data, interpreted.</strong> The runner takes the data directory and a path for the wrong answers,
+then an optional file filter (<code>*.jsonl</code>), the encodings (<code>both</code>, <code>utf16</code> or <code>utf8</code>) and <code>--generated</code>.</p>
+<pre><code class="language-bash">dotnet build Solutions/Corvus.Regex.Ecma262.DatasetRunner -c Release
+dotnet Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll ../ecma262-regex-test-data/data wrong.tsv
+</code></pre>
+<p>The last line of the output is the result. The pass is <code>wrong 0</code>, <code>refused-valid 0</code>, <code>accepted-invalid 0</code>
+and <code>limit 0</code>; the run takes about fifteen seconds in Release. Each failure is a line of <code>wrong.tsv</code>: its kind
+(<code>WRONG</code>, <code>REFUSED</code>, <code>ACCEPTED-INVALID</code> or <code>LIMIT</code>), the file, the pattern with its flags, the text, the
+encoding and the expected answer.</p>
+</li>
+<li><p><strong>Run the test data as generated code.</strong> The same run with every pattern emitted by the source generator,
+compiled with Roslyn and matched by the generated code. It takes about six minutes and some memory.</p>
+<pre><code class="language-bash">dotnet Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner.dll ../ecma262-regex-test-data/data wrong-generated.tsv '*.jsonl' both --generated
+</code></pre>
+</li>
+<li><p><strong>The repository build script.</strong> The ZeroFailed build the CI runs: it compiles, tests, analyses and packs, and
+with <code>-Website</code> builds the documentation site too. It needs PowerShell 7 and fetches its build modules on
+first use.</p>
+<pre><code class="language-bash">pwsh ./build.ps1
+pwsh ./build.ps1 -Website -BasePathPrefix /Corvus.Regex.Ecma262
+</code></pre>
+<p>The package lands in <code>_packages/</code>. On Linux and macOS give the test task the framework to run, since the
+<code>net481</code> tests run only on Windows: <code>BUILDVAR_TargetFrameworkMoniker=net10.0 pwsh ./build.ps1</code>. The site build needs the GitHub CLI signed in to an account that can read
+the Vellum releases (<code>endjin/Endjin.StaticSiteGen</code>, which is not public); without that access the site step is
+skipped with a warning and the rest of the build is unaffected. See
+<a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262/blob/main/docs/website/DEVELOPMENT.md">docs/website/DEVELOPMENT.md</a> for the site.</p>
+</li>
+<li><p><strong>The AOT sample.</strong> A native publish of a generated pattern, to show the generator leaves nothing for the
+trimmer to warn about:</p>
+<pre><code class="language-bash">dotnet publish Solutions/Corvus.Regex.Ecma262.AotSample -c Release
+</code></pre>
+<p>A native AOT publish needs the platform's C++ toolchain: the Visual Studio C++ workload on Windows, <code>clang</code>
+and <code>zlib1g-dev</code> on Linux, the Xcode command line tools on macOS.</p>
+</li>
+</ol>
+<h3 id="on-a-shared-machine">On a shared machine</h3>
+<p>MSBuild starts one node per core and keeps them alive between builds. On a machine that runs other work, cap the
+nodes and turn node reuse off: <code>dotnet build -m:4 -nr:false</code>, and <code>MSBUILDDISABLENODEREUSE=1</code> in the environment
+for commands that take no switches, such as <code>dotnet test</code>.</p>
+<h2 id="the-unicode-tables">4. The Unicode tables</h2>
+<p>The property tables and case folding (<code>Solutions/Corvus.Regex.Ecma262/Unicode/EcmaRegexUnicodeData17.cs</code>) and the
+properties of strings (<code>EcmaRegexUnicodeStrings17.cs</code>) are generated from the Unicode Character Database by the
+scripts in <code>tools/unicode/</code>, one pair of files for each version of Unicode the library carries (13, 17 and 18). A
+new version is a new pair, written from that version's tables and emoji files, and an instance of it in
+<code>UnicodeTables.cs</code>. The tables come from regress's <code>gen-unicode</code> run on that version's Unicode Character Database
+(the script's help says how):</p>
+<pre><code class="language-bash">pwsh tools/unicode/gen-ecma-unicode-data.ps1 -RegressTables unicodetables-18.0.0.rs -UnicodeVersion 18.0.0
+pwsh tools/unicode/gen-ecma-unicode-strings.ps1 -EmojiSequences ucd-18.0.0/emoji-sequences.txt -EmojiZwjSequences ucd-18.0.0/emoji-zwj-sequences.txt
+</code></pre>
+<p>The property names of ECMAScript 2020 (<code>Es2020Properties.cs</code>) are generated from <code>es2020-properties.json</code> of the test
+data, which the data's edition overlay is made from too:</p>
+<pre><code class="language-bash">pwsh tools/unicode/gen-es2020-properties.ps1 -Properties ../ecma262-regex-test-data/es2020-properties.json
+</code></pre>
+<p>Each file is listed in the library's and the generator's project files by name (the projects do not glob), so a new
+generated file is added to both.</p>
+<p>CI makes every one of these files again from its sources and fails unless they are the checked-in files: each
+version's Unicode Character Database and emoji files (each download checked against its SHA-256), regress's
+<code>gen-unicode</code> at 0.12.0, and the scripts above. It runs on Linux or macOS, with Rust installed:</p>
+<pre><code class="language-bash">pwsh tools/unicode/check-tables.ps1 -Properties ../ecma262-regex-test-data/es2020-properties.json
+</code></pre>
+<p>A new version of Unicode is added to that script's list, with its hashes, as well as to the library.</p>
+<h2 id="benchmarks">5. Benchmarks</h2>
+<p>The benchmarks compare the library with <code>System.Text.RegularExpressions</code> on the workloads of <code>dotnet/performance</code>
+(design, section 7). A quick look at one row runs in a few minutes:</p>
+<pre><code class="language-bash">cd Solutions/Corvus.Regex.Ecma262.Benchmarks
+dotnet run -c Release -- --filter '*GeneratedCount*' --job short
+</code></pre>
+<p>A run whose numbers are to be compared with the published record follows the pinned-host procedure, on Linux:
+the machine pinned to its performance cores, a three-minute settle after the last build, nothing else running,
+and the run under <code>taskset</code>. <code>tools/benchmarks/measure.sh &lt;output directory&gt; [filter]</code> does that, refuses to start
+when the load is above 1.5, and keeps the result files; <code>tools/benchmarks/industry-results.py --out-dir &lt;dir&gt;</code> then
+writes a page's data and table from the <code>GeneratedCount</code> CSV, for your own reading (nothing it writes is committed);
+<code>tools/benchmarks/v8</code> runs the same workloads under Node 24 for the V8 column. The ratios of a run on a different
+host are comparable with themselves, never with another host's.</p>
+<p>The published figures are on <a href="https://corvus-oss.org/corvus-regex-ecma262-benchmarks/">the benchmark page</a>, which runs this repository's harness image each night
+beside the engines of every other source. <code>harness-image.yml</code> builds that image on every push to main and every
+release, smoke-runs it on two workloads, and publishes it; to try the image yourself, see the <code>Dockerfile</code>.</p>
+<p>A benchmark run must never share the machine with a build: the SDK's build servers and the JIT's tiering of the
+benchmark compete for the same cores and the numbers are worthless.</p>
+<h2 id="what-a-pull-request-needs">6. What a pull request needs</h2>
+<ul>
+<li><strong>A warning-free build</strong> and the unit tests passing, on the change as pushed.</li>
+<li><strong>The data set at 0 wrong</strong>, interpreted and generated, for any change to the parser, the compiler, the matcher,
+the searches or the generator, and the result lines in the pull request. <code>dataset.yml</code> runs the interpreted
+pass in CI, on every push and pull request and nightly, on Linux over the <code>net10.0</code> build and on Windows over
+the <code>netstandard2.0</code> build under .NET Framework 4.8.1; the generated pass is yours to run.</li>
+<li><strong>The case in the data first</strong> for a change to the engine's semantics. The data repository's families are built
+around the faults found, with V8 as the oracle: add the pattern to the family it belongs to (or a new family),
+regenerate with the data repository's <code>generate.js</code> and check it with <code>verify.js</code>, and pin the new data commit
+in <code>dataset.yml</code>. A fault V8 itself has is marked in the data by rewriting the pattern to the form V8 gets
+right and asking it again, never copied into the engine.</li>
+<li><strong>A measured run</strong> for a change made for speed, following section 5, with the rows it moved in the pull
+request. The structured code of the generator and the interpreter share the engine, so an optimisation of one
+is considered for the other, and a change to the generator is run through the generated data-set pass.</li>
+<li><strong>A failing test first</strong> for a bug: the test that reproduces it, then the fix, so the test is seen to fail and
+then pass.</li>
+<li><strong>The design document kept current.</strong> A decision taken while working is written into
+<a href="/Corvus.Regex.Ecma262/docs/dotnet/design.html">docs/design/design.md</a>, which describes the library as it is, with the reason for each
+decision beside it.</li>
+<li><strong>Compatibility kept.</strong> A change to what the compiler writes, to the instructions, to the layout of an image or to
+the public surface follows <a href="/Corvus.Regex.Ecma262/docs/dotnet/compatibility.html">the compatibility rules</a>: the golden check in <code>dataset.yml</code>, the
+public API analyzers and package validation enforce them.</li>
+<li><strong>The XML documentation</strong> on every public member, since the API reference on the site is generated from it and
+<code>GenerateDocumentationFile</code> is on.</li>
+</ul>
+<h3 id="conventions">Conventions</h3>
+<ul>
+<li>The code is C# with nullable reference types on, the .NET analyzers at their warning level treated as errors,
+file-scoped namespaces and <code>this.</code> on instance members. A new file follows the style of the files around it.</li>
+<li>Nothing on the match path allocates: no closures, no boxing, no LINQ, no iterator blocks. The allocation test
+and the <code>[MemoryDiagnoser]</code> benchmarks hold that line.</li>
+<li>Wherever the current runtime has a faster way, the code takes it under <code>#if NET</code> and the <code>netstandard2.0</code>
+build gets a plain fallback, never the other way round (design, section 5).</li>
+<li>Anything the source generator emits that calls a <code>net10.0</code>-only member is emitted under
+<code>#if NET10_0_OR_GREATER</code>, and the test project and the data set runner define those symbols when they compile
+generated code, so the emitted path is what the gates exercise.</li>
+</ul>
+<h2 id="releases">7. Releases</h2>
+<p>Merging a pull request to <code>main</code> makes a release: the release automation tags the merge with the version
+GitVersion computes from <code>GitVersion.yml</code>, and the build publishes the package to NuGet. A pull request that
+should not make a release (documentation, CI, tooling) carries the <code>no_release</code> label. The documentation site is
+updated from stable release tags, and between them by running <code>build-website-only.yml</code>, which builds it from main and
+deploys it; the documents on main describe the latest release, so a change to them alone needs no release. The version is bumped by
+editing <code>next-version</code> in <code>GitVersion.yml</code>: a breaking change to the public surface is a major bump, a feature a
+minor one, and a fix a patch.</p>
+<p>After a release is on NuGet, a pull request records it for the compatibility checks: it is added to
+<code>ReleasedVersions.txt</code>, becomes the <code>PackageValidationBaselineVersion</code>, and its new public members move to
+<code>PublicAPI.Shipped.txt</code> (<a href="/Corvus.Regex.Ecma262/docs/dotnet/compatibility.html#at-a-release">compatibility, section 4</a>).</p>
+<p><code>main</code> is protected by a ruleset: changes arrive by pull request with one approving review, the <code>.NET build gate</code> and <code>ECMA-262 test data</code> checks must be green on the branch as it will merge, and the branch is never
+force-pushed or deleted.</p>
+        </div>
+    </main>
+</div>
+
+    </div>
+    <footer class="site-footer">
+    <div class="site-footer__inner">
+        <div class="site-footer__sponsor">
+            Sponsored by
+            <a href="https://endjin.com" target="_blank" rel="noopener noreferrer">endjin</a>
+        </div>
+        <ul class="site-footer__links" role="list">
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/getting-started/index.html">Getting Started</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/docs/index.html">Documentation</a></li>
+            <li><a class="site-footer__link" href="https://corvus-oss.org/corvus-regex-ecma262-benchmarks/">Benchmarks</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/api/index.html">API</a></li>
+            <li><a class="site-footer__link" href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+            <li><a class="site-footer__link" href="https://www.nuget.org/packages/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">NuGet</a></li>
+        </ul>
+        <p class="site-footer__copyright">&copy; 2026 endjin Ltd.</p>
+    </div>
+</footer>
+
+    <!-- highlight.js for syntax highlighting (CSS targets .hljs-* classes) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js" defer></script>
+    <script>document.addEventListener('DOMContentLoaded',()=>hljs.highlightAll())</script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/main.js" defer></script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/sidebar-search.js" defer></script>
+    
+</body>
+</html>

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1C1D21" />
+    <meta name="description" content="The API reference of the PHP package." />
+    <meta name="keywords" content="regex, ECMA-262, PHP" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:description" content="The API reference of the PHP package." />
+    <meta name="twitter:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta name="twitter:title" content="PHP: API reference - Corvus.Regex.Ecma262" />
+    <meta property="article:tag" content="regex" />
+    <meta property="article:tag" content="ECMA-262" />
+    <meta property="article:tag" content="PHP" />
+    <meta property="og:description" content="The API reference of the PHP package." />
+    <meta property="og:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta property="og:title" content="PHP: API reference - Corvus.Regex.Ecma262" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://corvus-oss.org/Corvus.Regex.Ecma262/api/php/" />
+    <title>PHP: API reference - Corvus.Regex.Ecma262</title>
+    <link itemprop="url" href="https://corvus-oss.org/Corvus.Regex.Ecma262/api/php/" />
+    <link rel="canonical" href="https://corvus-oss.org/Corvus.Regex.Ecma262/api/php/" />
+    <link rel="sitemap" href="https://corvus-oss.org/Corvus.Regex.Ecma262/sitemap.xml" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="/Corvus.Regex.Ecma262/main.css" />
+    <link rel="icon" type="image/svg+xml" href="/Corvus.Regex.Ecma262/assets/images/favicon.svg" />
+    
+</head>
+<body class="">
+    <a class="sr-only" href="#main-content">Skip to content</a>
+<header class="site-header">
+    <div class="site-header__inner">
+        <a class="site-header__brand" href="/Corvus.Regex.Ecma262/index.html" aria-label="Corvus.Regex.Ecma262 home">
+            <img src="/Corvus.Regex.Ecma262/assets/images/logo-corvus.svg" alt="" width="28" height="28" aria-hidden="true" />
+            Corvus<span style="color:var(--color-brand)">.</span>Regex<span style="color:var(--color-brand)">.Ecma262</span>
+        </a>
+        <nav class="site-header__nav-desktop" aria-label="Main navigation">
+                    <a href="/Corvus.Regex.Ecma262/getting-started/index.html"
+                       class="site-header__link "
+                       >Getting Started</a>
+                    <a href="/Corvus.Regex.Ecma262/docs/index.html"
+                       class="site-header__link "
+                       >Documentation</a>
+                    <a href="/Corvus.Regex.Ecma262/api/index.html"
+                       class="site-header__link is-active"
+                       aria-current=page>API</a>
+            <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+               class="site-header__link" target="_blank" rel="noopener noreferrer"
+               aria-label="View on GitHub">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+        </nav>
+        <button class="site-header__menu-toggle js-toggle-menu"
+                aria-expanded="false" aria-label="Toggle menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+    </div>
+</header>
+<nav class="site-header__nav-mobile js-mobile-nav" aria-label="Mobile navigation">
+            <a href="/Corvus.Regex.Ecma262/getting-started/index.html" class="site-header__link">Getting Started</a>
+            <a href="/Corvus.Regex.Ecma262/docs/index.html" class="site-header__link">Documentation</a>
+            <a href="/Corvus.Regex.Ecma262/api/index.html" class="site-header__link">API</a>
+    <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+       class="site-header__link" target="_blank" rel="noopener noreferrer">GitHub</a>
+</nav>
+
+    <div class="page-content">
+    <div class="layout-docs container">
+    <button class="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false"></button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar">
+    <div class="sidebar__inner">
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Getting Started</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                    <li class="sidebar__item"><a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/index.html">Choose a language</a></li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/dotnet.html">.NET</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/c.html">C</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/cpp.html">C&#x2B;&#x2B;</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/fortran.html">Fortran</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/go.html">Go</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/java.html">Java</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/julia.html">Julia</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/pascal.html">Object Pascal</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ocaml.html">OCaml</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/php.html">PHP</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/python.html">Python</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/r.html">R</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ruby.html">Ruby</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/rust.html">Rust</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/swift.html">Swift</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Documentation</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/dotnet/index.html">.NET</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/industry.html">Benchmarks</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/contributing.html">Contributing</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/compatibility.html">Compatibility</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/c/index.html">C</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/design-c.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/cpp/index.html">C&#x2B;&#x2B;</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/fortran/index.html">Fortran</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/go/index.html">Go</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/java/index.html">Java</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/julia/index.html">Julia</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/pascal/index.html">Object Pascal</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ocaml/index.html">OCaml</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/php/index.html">PHP</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/python/index.html">Python</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/r/index.html">R</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ruby/index.html">Ruby</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/rust/index.html">Rust</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/swift/index.html">Swift</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/contributing.html">Contributing</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</aside>
+
+    <main id="main-content" class="layout-docs__main">
+        <div class="doc__content">
+            <h1>PHP: API reference</h1>
+<p>The PHP API of the extension, namespace <code>Corvus\RegexEcma262</code>, generated from the classes and functions
+<code>src/lib.rs</code> gives PHP and their doc comments by <code>tools/docs/gen-api.ps1</code>. <a href="/Corvus.Regex.Ecma262/getting-started/php.html">Getting started</a>
+shows it at work.</p>
+<h2 id="regex">Regex</h2>
+<pre><code class="language-php">final class Corvus\RegexEcma262\Regex
+</code></pre>
+<p>A compiled ECMA-262 regular expression, as <code>new RegExp($pattern, $flags)</code> compiles it.</p>
+<h3 id="regexdefault_unicode_version">Regex::DEFAULT_UNICODE_VERSION</h3>
+<pre><code class="language-php">public const int DEFAULT_UNICODE_VERSION = 17;
+</code></pre>
+<p>The version of Unicode a pattern is read with by default: the version of the V8 the answers are held to.</p>
+<h3 id="regexlatest_unicode_version">Regex::LATEST_UNICODE_VERSION</h3>
+<pre><code class="language-php">public const int LATEST_UNICODE_VERSION = 18;
+</code></pre>
+<p>The newest version of Unicode the extension carries, which 'latest' stands for.</p>
+<h3 id="regex_construct">Regex::__construct</h3>
+<pre><code class="language-php">public function __construct(string $pattern, ?string $flags = null, ?float $timeout = null, ?string $edition = null, int|string|null $unicode_version = null);
+</code></pre>
+<p>Compiles a pattern with the flags <code>new RegExp($pattern, $flags)</code> takes, any of dgimsuvy. Throws
+InvalidPatternException, InvalidFlagsException or PatternTooLargeException (each a RegexException). $timeout is
+the time in seconds each match may take before it is abandoned with MatchLimitException (0 for none); null takes
+Regex::defaultTimeout(), which is none unless set. A timeout also caps the backtracking memory of a match;
+without one a match has no limit of time or of memory, so give a pattern or a text from outside one.</p>
+<p>$edition is the grammar the pattern is read with: 'current' (today's, the default) or 'es2020', the grammar of
+ECMAScript 2020, which JSON Schema 2020-12 names. It refuses what later editions added, and nothing else: the d
+and v flags (InvalidFlagsException), modifier groups such as (?i:...), a group name used by two groups, and a
+property name or value that is not in that edition's tables (InvalidPatternException). $unicode_version is the
+version of Unicode whose tables the pattern is read with: null (the default, DEFAULT_UNICODE_VERSION), 13, 17, 18
+or 'latest' (LATEST_UNICODE_VERSION). Each is independent of the other; both are settled here, and cost a match
+nothing. A value of either outside those throws a ValueError.</p>
+<h3 id="regexsetdefaulttimeout">Regex::setDefaultTimeout</h3>
+<pre><code class="language-php">public static function setDefaultTimeout(?float $seconds = null): void;
+</code></pre>
+<p>Sets the timeout of every Regex made from now on without one of its own: seconds, or null (or 0) for no limit,
+the default. It is the process-wide default of .NET's REGEX_DEFAULT_MATCH_TIMEOUT; a program that matches
+patterns or subjects from outside should set one when it starts. A Regex already made keeps its own.</p>
+<h3 id="regexdefaulttimeout">Regex::defaultTimeout</h3>
+<pre><code class="language-php">public static function defaultTimeout(): ?float;
+</code></pre>
+<p>The timeout in seconds of a Regex made now without one of its own, or null for no limit.</p>
+<h3 id="regextimeout">Regex::timeout</h3>
+<pre><code class="language-php">public function timeout(): ?float;
+</code></pre>
+<p>The time in seconds each match may take before it is abandoned with MatchLimitException, or null for none.</p>
+<h3 id="regexisvalid">Regex::isValid</h3>
+<pre><code class="language-php">public static function isValid(string $pattern, ?string $flags = null, ?string $edition = null, int|string|null $unicode_version = null): bool;
+</code></pre>
+<p>Whether a pattern is valid with the flags, in the edition and the version of Unicode (as the constructor takes
+them), without compiling it.</p>
+<h3 id="regexedition">Regex::edition</h3>
+<pre><code class="language-php">public function edition(): string;
+</code></pre>
+<p>The edition whose grammar the pattern was read with: 'current' or 'es2020'.</p>
+<h3 id="regexunicodeversion">Regex::unicodeVersion</h3>
+<pre><code class="language-php">public function unicodeVersion(): int;
+</code></pre>
+<p>The version of Unicode whose tables the pattern was read with, resolved: 13, 17 or 18.</p>
+<h3 id="regexunicodeversions">Regex::unicodeVersions</h3>
+<pre><code class="language-php">public static function unicodeVersions(): array;
+</code></pre>
+<p>The versions of Unicode the extension carries, each a set of tables a pattern can be read with.</p>
+<h3 id="regexsource">Regex::source</h3>
+<pre><code class="language-php">public function source(): string;
+</code></pre>
+<p>The pattern as it was given.</p>
+<h3 id="regexflags">Regex::flags</h3>
+<pre><code class="language-php">public function flags(): string;
+</code></pre>
+<p>The flags as RegExp.prototype.flags writes them, in the order dgimsuvy.</p>
+<h3 id="regexgroupcount">Regex::groupCount</h3>
+<pre><code class="language-php">public function groupCount(): int;
+</code></pre>
+<p>The number of capturing groups.</p>
+<h3 id="regexgroupnames">Regex::groupNames</h3>
+<pre><code class="language-php">public function groupNames(): array;
+</code></pre>
+<p>The distinct names of the groups, in the order of the first group of each name.</p>
+<h3 id="regextest">Regex::test</h3>
+<pre><code class="language-php">public function test(string|Utf16 $subject, ?int $offset = null, ?float $timeout = null): bool;
+</code></pre>
+<p>Whether the pattern matches at or after $offset (at $offset alone with the y flag), as RegExp.prototype.test
+with lastIndex set to it. A match that reaches the pattern's timeout throws MatchLimitException; a timeout in
+seconds here takes its place for this match (0 for none).</p>
+<h3 id="regexexec">Regex::exec</h3>
+<pre><code class="language-php">public function exec(string|Utf16 $subject, ?int $offset = null, ?float $timeout = null): ?MatchResult;
+</code></pre>
+<p>The first match at or after $offset, as exec finds it with lastIndex set to it: a MatchResult, or null. A match
+that reaches the pattern's timeout throws MatchLimitException; a timeout in seconds here takes its place.</p>
+<h3 id="regexmatchall">Regex::matchAll</h3>
+<pre><code class="language-php">public function matchAll(string|Utf16 $subject): array;
+</code></pre>
+<p>Every match of a global search, as matchAll makes one: an array of MatchResult. After an empty match the
+search goes on one character later, and with the y flag each match must start where the one before ended. A
+match that reaches the pattern's timeout throws MatchLimitException.</p>
+<h3 id="regexcountmatches">Regex::countMatches</h3>
+<pre><code class="language-php">public function countMatches(string|Utf16 $subject): int;
+</code></pre>
+<p>The number of matches of a global search, without making them.</p>
+<h3 id="regexreplace">Regex::replace</h3>
+<pre><code class="language-php">public function replace(string|Utf16 $subject, string|Utf16|callable $replacement): string|Utf16;
+</code></pre>
+<p>The subject with the first match replaced, or every match with the g flag, as String.prototype.replace replaces
+them. The replacement is a template ($&amp; the match, <code>$`</code> the text before it, $' the text after it, $1 to $99 a
+group, $&lt;name&gt; a named group, $$ a dollar sign) or a callable given each MatchResult, returning the text.</p>
+<h3 id="regexreplaceall">Regex::replaceAll</h3>
+<pre><code class="language-php">public function replaceAll(string|Utf16 $subject, string|Utf16|callable $replacement): string|Utf16;
+</code></pre>
+<p>The subject with every match replaced, whether or not the g flag is set (String.prototype.replaceAll).</p>
+<h3 id="regexsplit">Regex::split</h3>
+<pre><code class="language-php">public function split(string|Utf16 $subject, ?int $limit = null): array;
+</code></pre>
+<p>The subject split around the matches, as String.prototype.split($separator, $limit) splits it: what each group
+captured is spliced in after the piece before it (null for a group that did not take part), an empty match at
+the start or the end splits nothing, and there are at most $limit pieces.</p>
+<h2 id="matchresult">MatchResult</h2>
+<pre><code class="language-php">final class Corvus\RegexEcma262\MatchResult
+</code></pre>
+<p>A match: where it is and what each group captured, positions in bytes for a string subject and in code units for
+a Utf16.</p>
+<h3 id="matchresultstart">MatchResult::start</h3>
+<pre><code class="language-php">public function start(int|string|null $group = null): ?int;
+</code></pre>
+<p>The start of the group (0, the whole match, by default), or null when it did not take part.</p>
+<h3 id="matchresultend">MatchResult::end</h3>
+<pre><code class="language-php">public function end(int|string|null $group = null): ?int;
+</code></pre>
+<p>The end of the group (0, the whole match, by default), or null when it did not take part.</p>
+<h3 id="matchresultgroup">MatchResult::group</h3>
+<pre><code class="language-php">public function group(int|string|null $group = null): string|Utf16|null;
+</code></pre>
+<p>The text of the group (0, the whole match, by default), or null when it did not take part.</p>
+<h3 id="matchresultgroups">MatchResult::groups</h3>
+<pre><code class="language-php">public function groups(): array;
+</code></pre>
+<p>The text of the whole match then of each group, null for one that did not take part: the array preg_match
+fills.</p>
+<h3 id="matchresultnamedgroups">MatchResult::namedGroups</h3>
+<pre><code class="language-php">public function namedGroups(): array;
+</code></pre>
+<p>The text of the group of each name, null for a name whose group did not take part, in the order of the names.</p>
+<h3 id="matchresultcount">MatchResult::count</h3>
+<pre><code class="language-php">public function count(): int;
+</code></pre>
+<p>The number of groups, the whole match among them.</p>
+<h2 id="utf16">Utf16</h2>
+<pre><code class="language-php">final class Corvus\RegexEcma262\Utf16
+</code></pre>
+<p>UTF-16LE text, matched as UTF-16 with positions in code units, as JavaScript gives them.</p>
+<h3 id="utf16_construct">Utf16::__construct</h3>
+<pre><code class="language-php">public function __construct(string $utf16le);
+</code></pre>
+<p>The text from its UTF-16LE bytes (an even number of them), lone surrogates and all.</p>
+<h3 id="utf16fromutf8">Utf16::fromUtf8</h3>
+<pre><code class="language-php">public static function fromUtf8(string $text): Utf16;
+</code></pre>
+<p>The text of a UTF-8 string.</p>
+<h3 id="utf16toutf8">Utf16::toUtf8</h3>
+<pre><code class="language-php">public function toUtf8(): string;
+</code></pre>
+<p>The text as UTF-8, a lone surrogate as U+FFFD.</p>
+<h3 id="utf16bytes">Utf16::bytes</h3>
+<pre><code class="language-php">public function bytes(): string;
+</code></pre>
+<p>The UTF-16LE bytes.</p>
+<h3 id="utf16length">Utf16::length</h3>
+<pre><code class="language-php">public function length(): int;
+</code></pre>
+<p>The number of code units.</p>
+<h2 id="regexexception">RegexException</h2>
+<pre><code class="language-php">class Corvus\RegexEcma262\RegexException extends \Exception
+</code></pre>
+<p>What every failure of the extension throws: a pattern that is not valid, or a match that reached its limit.</p>
+<h2 id="invalidpatternexception">InvalidPatternException</h2>
+<pre><code class="language-php">class Corvus\RegexEcma262\InvalidPatternException extends RegexException
+</code></pre>
+<p>The pattern is not valid in the grammar of its flags (new RegExp would throw a SyntaxError).</p>
+<h2 id="invalidflagsexception">InvalidFlagsException</h2>
+<pre><code class="language-php">class Corvus\RegexEcma262\InvalidFlagsException extends RegexException
+</code></pre>
+<p>A letter that is not one of dgimsuvy, a flag given twice, u with v, or d or v under the 2020 edition.</p>
+<h2 id="patterntoolargeexception">PatternTooLargeException</h2>
+<pre><code class="language-php">class Corvus\RegexEcma262\PatternTooLargeException extends RegexException
+</code></pre>
+<p>The pattern is over a limit of size: its length, the depth its groups nest to, or its size as it is read.</p>
+<h2 id="matchlimitexception">MatchLimitException</h2>
+<pre><code class="language-php">class Corvus\RegexEcma262\MatchLimitException extends RegexException
+</code></pre>
+<p>A match reached its timeout or its cap on backtracking memory, so there is no answer.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="corvusregexecma262crate_version">Corvus\RegexEcma262\crate_version</h3>
+<pre><code class="language-php">function crate_version(): string;
+</code></pre>
+<p>The version of the corvus-regex-ecma262 crate the extension was built from.</p>
+        </div>
+    </main>
+</div>
+
+    </div>
+    <footer class="site-footer">
+    <div class="site-footer__inner">
+        <div class="site-footer__sponsor">
+            Sponsored by
+            <a href="https://endjin.com" target="_blank" rel="noopener noreferrer">endjin</a>
+        </div>
+        <ul class="site-footer__links" role="list">
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/getting-started/index.html">Getting Started</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/docs/index.html">Documentation</a></li>
+            <li><a class="site-footer__link" href="https://corvus-oss.org/corvus-regex-ecma262-benchmarks/">Benchmarks</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/api/index.html">API</a></li>
+            <li><a class="site-footer__link" href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+            <li><a class="site-footer__link" href="https://www.nuget.org/packages/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">NuGet</a></li>
+        </ul>
+        <p class="site-footer__copyright">&copy; 2026 endjin Ltd.</p>
+    </div>
+</footer>
+
+    <!-- highlight.js for syntax highlighting (CSS targets .hljs-* classes) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js" defer></script>
+    <script>document.addEventListener('DOMContentLoaded',()=>hljs.highlightAll())</script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/main.js" defer></script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/sidebar-search.js" defer></script>
+    
+</body>
+</html>

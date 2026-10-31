@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1C1D21" />
+    <meta name="description" content="The API reference of the Fortran package." />
+    <meta name="keywords" content="regex, ECMA-262, Fortran" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:description" content="The API reference of the Fortran package." />
+    <meta name="twitter:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta name="twitter:title" content="Fortran: API reference - Corvus.Regex.Ecma262" />
+    <meta property="article:tag" content="regex" />
+    <meta property="article:tag" content="ECMA-262" />
+    <meta property="article:tag" content="Fortran" />
+    <meta property="og:description" content="The API reference of the Fortran package." />
+    <meta property="og:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta property="og:title" content="Fortran: API reference - Corvus.Regex.Ecma262" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://corvus-oss.org/Corvus.Regex.Ecma262/api/fortran/" />
+    <title>Fortran: API reference - Corvus.Regex.Ecma262</title>
+    <link itemprop="url" href="https://corvus-oss.org/Corvus.Regex.Ecma262/api/fortran/" />
+    <link rel="canonical" href="https://corvus-oss.org/Corvus.Regex.Ecma262/api/fortran/" />
+    <link rel="sitemap" href="https://corvus-oss.org/Corvus.Regex.Ecma262/sitemap.xml" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="/Corvus.Regex.Ecma262/main.css" />
+    <link rel="icon" type="image/svg+xml" href="/Corvus.Regex.Ecma262/assets/images/favicon.svg" />
+    
+</head>
+<body class="">
+    <a class="sr-only" href="#main-content">Skip to content</a>
+<header class="site-header">
+    <div class="site-header__inner">
+        <a class="site-header__brand" href="/Corvus.Regex.Ecma262/index.html" aria-label="Corvus.Regex.Ecma262 home">
+            <img src="/Corvus.Regex.Ecma262/assets/images/logo-corvus.svg" alt="" width="28" height="28" aria-hidden="true" />
+            Corvus<span style="color:var(--color-brand)">.</span>Regex<span style="color:var(--color-brand)">.Ecma262</span>
+        </a>
+        <nav class="site-header__nav-desktop" aria-label="Main navigation">
+                    <a href="/Corvus.Regex.Ecma262/getting-started/index.html"
+                       class="site-header__link "
+                       >Getting Started</a>
+                    <a href="/Corvus.Regex.Ecma262/docs/index.html"
+                       class="site-header__link "
+                       >Documentation</a>
+                    <a href="/Corvus.Regex.Ecma262/api/index.html"
+                       class="site-header__link is-active"
+                       aria-current=page>API</a>
+            <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+               class="site-header__link" target="_blank" rel="noopener noreferrer"
+               aria-label="View on GitHub">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+        </nav>
+        <button class="site-header__menu-toggle js-toggle-menu"
+                aria-expanded="false" aria-label="Toggle menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+    </div>
+</header>
+<nav class="site-header__nav-mobile js-mobile-nav" aria-label="Mobile navigation">
+            <a href="/Corvus.Regex.Ecma262/getting-started/index.html" class="site-header__link">Getting Started</a>
+            <a href="/Corvus.Regex.Ecma262/docs/index.html" class="site-header__link">Documentation</a>
+            <a href="/Corvus.Regex.Ecma262/api/index.html" class="site-header__link">API</a>
+    <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+       class="site-header__link" target="_blank" rel="noopener noreferrer">GitHub</a>
+</nav>
+
+    <div class="page-content">
+    <div class="layout-docs container">
+    <button class="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false"></button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar">
+    <div class="sidebar__inner">
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Getting Started</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                    <li class="sidebar__item"><a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/index.html">Choose a language</a></li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/dotnet.html">.NET</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/c.html">C</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/cpp.html">C&#x2B;&#x2B;</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/fortran.html">Fortran</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/go.html">Go</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/java.html">Java</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/julia.html">Julia</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/pascal.html">Object Pascal</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ocaml.html">OCaml</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/php.html">PHP</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/python.html">Python</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/r.html">R</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ruby.html">Ruby</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/rust.html">Rust</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/swift.html">Swift</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Documentation</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/dotnet/index.html">.NET</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/industry.html">Benchmarks</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/contributing.html">Contributing</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/compatibility.html">Compatibility</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/c/index.html">C</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/design-c.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/cpp/index.html">C&#x2B;&#x2B;</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/fortran/index.html">Fortran</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/go/index.html">Go</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/java/index.html">Java</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/julia/index.html">Julia</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/pascal/index.html">Object Pascal</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ocaml/index.html">OCaml</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/php/index.html">PHP</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/python/index.html">Python</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/r/index.html">R</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ruby/index.html">Ruby</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/rust/index.html">Rust</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/swift/index.html">Swift</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/contributing.html">Contributing</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</aside>
+
+    <main id="main-content" class="layout-docs__main">
+        <div class="doc__content">
+            <h1>Fortran: API reference</h1>
+<p>The module <code>corvus_regex_ecma262</code>, generated from its public declarations and their comments by
+<code>tools/docs/gen-api.ps1</code>. <a href="/Corvus.Regex.Ecma262/getting-started/fortran.html">Getting started</a> shows it at work.</p>
+<h2 id="conventions">Conventions</h2>
+<p>ECMA-262 (JavaScript) regular expressions for Fortran: a binding to the corvus-regex-ecma262 C library, through
+ISO_C_BINDING, with the grammar and the answers of RegExp.</p>
+<p>A pattern is compiled once into a regex_t, which matches any number of texts, from any number of threads. Text is
+UTF-8 in a character variable, positions in bytes, or UTF-16 in an integer(int16) array, positions in code units
+(which may hold lone surrogates). Positions are from 1, and a match_t's start and end are inclusive, so that
+text(m%start:m%end) is the match; an empty match ends one before it starts.</p>
+<p>Every handle frees what it holds when it is finalized. Assigning one regex_t to another compiles the same pattern
+again; a captures_t may not be copied.</p>
+<p>A procedure that can fail takes the optional arguments stat and errmsg, as the intrinsic statements do: stat is
+CRE_OK or the status of the failure, and errmsg its message. When stat is absent, a failure stops the program
+with the message (error stop).</p>
+<h2 id="constants">Constants</h2>
+<h3 id="binding_version">binding_version</h3>
+<pre><code class="language-fortran">character(*), parameter, public :: binding_version = &quot;0.2.5&quot;
+</code></pre>
+<p>The version of this binding.</p>
+<h3 id="cre_edition_current-cre_edition_es2020">CRE_EDITION_CURRENT, CRE_EDITION_ES2020</h3>
+<pre><code class="language-fortran">integer, parameter, public :: CRE_EDITION_CURRENT = 0
+integer, parameter, public :: CRE_EDITION_ES2020 = 1
+</code></pre>
+<p>The edition of ECMA-262 whose grammar a pattern is read with (the C library's CRE_EDITION_): today's, the default,
+or ECMAScript 2020's, which JSON Schema 2020-12 names. The 2020 grammar refuses what later editions added: the d
+and v flags, modifier groups, a name given to more than one group, and property names not in its tables.</p>
+<h3 id="cre_unicode_default-cre_unicode_13-cre_unicode_17-cre_unicode_18-cre_unicode_latest">CRE_UNICODE_DEFAULT, CRE_UNICODE_13, CRE_UNICODE_17, CRE_UNICODE_18, CRE_UNICODE_LATEST</h3>
+<pre><code class="language-fortran">integer, parameter, public :: CRE_UNICODE_DEFAULT = 0
+integer, parameter, public :: CRE_UNICODE_13 = 13
+integer, parameter, public :: CRE_UNICODE_17 = 17
+integer, parameter, public :: CRE_UNICODE_18 = 18
+integer, parameter, public :: CRE_UNICODE_LATEST = int(z'7FFFFFFF')
+</code></pre>
+<p>The version of Unicode whose tables a pattern is read with, independent of the edition (the C library's
+CRE_UNICODE_): the default, which is the version of the V8 the answers are held to, 13, 17, 18, or the latest the
+library carries.</p>
+<h3 id="unicode_versions-default_unicode_version-latest_unicode_version">unicode_versions, default_unicode_version, latest_unicode_version</h3>
+<pre><code class="language-fortran">integer, parameter, public :: unicode_versions(3) = [13, 17, 18]
+integer, parameter, public :: default_unicode_version = 17
+integer, parameter, public :: latest_unicode_version = 18
+</code></pre>
+<p>The versions of Unicode a pattern can be read with; the one CRE_UNICODE_DEFAULT stands for; and the one
+CRE_UNICODE_LATEST stands for.</p>
+<h3 id="cre_ok-cre_invalid_argument-cre_invalid_utf8-cre_invalid_pattern-cre_invalid_flags-cre_pattern_too_large-cre_match_limit-cre_panic">CRE_OK, CRE_INVALID_ARGUMENT, CRE_INVALID_UTF8, CRE_INVALID_PATTERN, CRE_INVALID_FLAGS, CRE_PATTERN_TOO_LARGE, CRE_MATCH_LIMIT, CRE_PANIC</h3>
+<pre><code class="language-fortran">integer, parameter, public :: CRE_OK = 0
+integer, parameter, public :: CRE_INVALID_ARGUMENT = 1
+integer, parameter, public :: CRE_INVALID_UTF8 = 2
+integer, parameter, public :: CRE_INVALID_PATTERN = 3
+integer, parameter, public :: CRE_INVALID_FLAGS = 4
+integer, parameter, public :: CRE_PATTERN_TOO_LARGE = 5
+integer, parameter, public :: CRE_MATCH_LIMIT = 6
+integer, parameter, public :: CRE_PANIC = 7
+</code></pre>
+<p>The outcome of a call (cre_status).</p>
+<h2 id="types">Types</h2>
+<h3 id="match_t">match_t</h3>
+<pre><code class="language-fortran">type :: match_t
+  integer(int64) :: start = 0
+  integer(int64) :: end = -1
+  logical :: matched = .false.
+end type match_t
+</code></pre>
+<p>Where a match or a group is, from 1, start and end inclusive: text(m%start:m%end). A group that did not take
+part has matched = .false. (and start 0, end -1).</p>
+<h3 id="piece_t">piece_t</h3>
+<pre><code class="language-fortran">type :: piece_t
+  character(:), allocatable :: value
+  logical :: defined = .false.
+end type piece_t
+</code></pre>
+<p>A piece of a split of UTF-8 text: defined = .false. for a group that did not take part (undefined in the array
+split returns).</p>
+<h3 id="piece16_t">piece16_t</h3>
+<pre><code class="language-fortran">type :: piece16_t
+  integer(int16), allocatable :: value(:)
+  logical :: defined = .false.
+end type piece16_t
+</code></pre>
+<p>A piece of a split of UTF-16 text.</p>
+<h3 id="utf8_text_t">utf8_text_t</h3>
+<pre><code class="language-fortran">type :: utf8_text_t
+end type utf8_text_t
+</code></pre>
+<p>A UTF-8 text, checked once when utf8_text makes it, which regex_t's methods search without checking it again: a
+character argument is checked on every call, a read of the whole text each time. Only utf8_text gives one a text,
+so it always holds UTF-8; one never assigned from utf8_text is searched as an empty text.</p>
+<h3 id="regex_t">regex_t</h3>
+<pre><code class="language-fortran">type :: regex_t
+  ! (procedures below)
+end type regex_t
+</code></pre>
+<p>A compiled regular expression. Immutable once compiled: any number of threads may use one at once.</p>
+<h4 id="regex_tcompile">regex_t%compile</h4>
+<pre><code class="language-fortran">subroutine regex_compile(self, pattern, flags, stat, errmsg, timeout, edition, unicode_version)
+  class(regex_t), intent(inout) :: self
+  character(*), intent(in) :: pattern
+  character(*), intent(in), optional :: flags
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  real(real64), intent(in), optional :: timeout
+  integer, intent(in), optional :: edition, unicode_version
+end subroutine regex_compile
+</code></pre>
+<p>Compiles a pattern with the flags new RegExp(pattern, flags) takes, any of dgimsuvy. On failure stat is
+CRE_INVALID_PATTERN, CRE_INVALID_FLAGS, CRE_PATTERN_TOO_LARGE or CRE_INVALID_UTF8, and the regular expression is
+not compiled. timeout is the time in seconds each match may take before it is abandoned with CRE_MATCH_LIMIT (0
+for none); without it the regular expression takes default_match_timeout(), which is none unless set. A timeout
+also caps the backtracking memory of a match; without one a match has no limit of time or of memory, so give a
+pattern or a text from outside one. edition is the grammar the pattern is read with (a CRE_EDITION_ value,
+CRE_EDITION_CURRENT without it), and unicode_version the version of Unicode whose tables it is read with (a
+CRE_UNICODE_ value, CRE_UNICODE_DEFAULT without it); under CRE_EDITION_ES2020 the d and v flags are
+CRE_INVALID_FLAGS, and another value of either is CRE_INVALID_ARGUMENT. With stat present a failure is not an
+error stop, so compile with stat and a timeout is the form that checks a pattern without a default timeout.</p>
+<h4 id="regex_tis_compiled">regex_t%is_compiled</h4>
+<pre><code class="language-fortran">logical function regex_is_compiled(self)
+  class(regex_t), intent(in) :: self
+end function regex_is_compiled
+</code></pre>
+<p>Whether the regular expression is compiled.</p>
+<h4 id="regex_tsource">regex_t%source</h4>
+<pre><code class="language-fortran">function regex_source(self) result(text)
+  class(regex_t), intent(in) :: self
+  character(:), allocatable :: text
+end function regex_source
+</code></pre>
+<p>The source of the pattern, as it was given (&quot;&quot; when not compiled).</p>
+<h4 id="regex_tflags">regex_t%flags</h4>
+<pre><code class="language-fortran">function regex_flags(self) result(text)
+  class(regex_t), intent(in) :: self
+  character(:), allocatable :: text
+end function regex_flags
+</code></pre>
+<p>The flags as RegExp.prototype.flags writes them, in the order dgimsuvy.</p>
+<h4 id="regex_tmatch_timeout">regex_t%match_timeout</h4>
+<pre><code class="language-fortran">real(real64) function regex_match_timeout(self)
+end function regex_match_timeout
+</code></pre>
+<p>The time in seconds each match may take before it is abandoned with CRE_MATCH_LIMIT (0 for none, and when not
+compiled).</p>
+<h4 id="regex_tedition">regex_t%edition</h4>
+<pre><code class="language-fortran">integer function regex_edition(self)
+  class(regex_t), intent(in) :: self
+end function regex_edition
+</code></pre>
+<p>The edition whose grammar the pattern was read with, a CRE_EDITION_ value (CRE_EDITION_CURRENT when not compiled).</p>
+<h4 id="regex_tunicode_version">regex_t%unicode_version</h4>
+<pre><code class="language-fortran">integer function regex_unicode_version(self)
+  class(regex_t), intent(in) :: self
+end function regex_unicode_version
+</code></pre>
+<p>The version of Unicode whose tables the pattern was read with, resolved: 13, 17 or 18 (0 when not compiled).</p>
+<h4 id="regex_tgroup_count">regex_t%group_count</h4>
+<pre><code class="language-fortran">integer function regex_group_count(self)
+  class(regex_t), intent(in) :: self
+end function regex_group_count
+</code></pre>
+<p>The number of capturing groups (a match has one more, the whole match, group 0).</p>
+<h4 id="regex_tgroup_name_count">regex_t%group_name_count</h4>
+<pre><code class="language-fortran">integer function regex_group_name_count(self)
+  class(regex_t), intent(in) :: self
+end function regex_group_name_count
+</code></pre>
+<p>The number of distinct names of the groups. Two groups in separate alternatives may share a name.</p>
+<h4 id="regex_tgroup_name">regex_t%group_name</h4>
+<pre><code class="language-fortran">function regex_group_name(self, index) result(name)
+  class(regex_t), intent(in) :: self
+  integer, intent(in) :: index
+  character(:), allocatable :: name
+end function regex_group_name
+</code></pre>
+<p>The name index (from 1), in the order of the first group of each name (&quot;&quot; when there is none).</p>
+<h4 id="regex_ttest">regex_t%test</h4>
+<pre><code class="language-fortran">function test_utf8(self, text, start, timeout, stat, errmsg) result(matched)
+  class(regex_t), intent(in) :: self
+  character(*), intent(in) :: text
+  integer(int64), intent(in), optional :: start
+  real(real64), intent(in), optional :: timeout
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  logical :: matched
+end function test_utf8
+
+function test_utf16(self, text, start, timeout, stat, errmsg) result(matched)
+  class(regex_t), intent(in) :: self
+  integer(int16), intent(in), contiguous :: text(:)
+  integer(int64), intent(in), optional :: start
+  real(real64), intent(in), optional :: timeout
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  logical :: matched
+end function test_utf16
+
+function test_text(self, text, start, timeout, stat, errmsg) result(matched)
+  class(regex_t), intent(in) :: self
+  type(utf8_text_t), intent(in) :: text
+  integer(int64), intent(in), optional :: start
+  real(real64), intent(in), optional :: timeout
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  logical :: matched
+end function test_text
+</code></pre>
+<p>Whether the pattern matches the text at or after start (at start alone with the y flag), as RegExp.prototype.test
+with lastIndex at start - 1. timeout limits the time the match may take, in seconds: a match that reaches it is
+CRE_MATCH_LIMIT.</p>
+<h4 id="regex_tfind">regex_t%find</h4>
+<pre><code class="language-fortran">function find_utf8(self, text, match, start, timeout, stat, errmsg) result(found)
+  class(regex_t), intent(in) :: self
+  character(*), intent(in) :: text
+  type(match_t), intent(out) :: match
+  integer(int64), intent(in), optional :: start
+  real(real64), intent(in), optional :: timeout
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  logical :: found
+end function find_utf8
+
+function find_utf16(self, text, match, start, timeout, stat, errmsg) result(found)
+  class(regex_t), intent(in) :: self
+  integer(int16), intent(in), contiguous :: text(:)
+  type(match_t), intent(out) :: match
+  integer(int64), intent(in), optional :: start
+  real(real64), intent(in), optional :: timeout
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  logical :: found
+end function find_utf16
+
+function find_text(self, text, match, start, timeout, stat, errmsg) result(found)
+  class(regex_t), intent(in) :: self
+  type(utf8_text_t), intent(in) :: text
+  type(match_t), intent(out) :: match
+  integer(int64), intent(in), optional :: start
+  real(real64), intent(in), optional :: timeout
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  logical :: found
+end function find_text
+</code></pre>
+<p>The first match at or after start, as exec finds it with lastIndex at start - 1: whether there is one, and match,
+where it is.</p>
+<h4 id="regex_texec">regex_t%exec</h4>
+<pre><code class="language-fortran">function exec_utf8(self, text, captures, start, timeout, stat, errmsg) result(found)
+  class(regex_t), intent(in) :: self
+  character(*), intent(in) :: text
+  type(captures_t), intent(inout) :: captures
+  integer(int64), intent(in), optional :: start
+  real(real64), intent(in), optional :: timeout
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  logical :: found
+end function exec_utf8
+
+function exec_utf16(self, text, captures, start, timeout, stat, errmsg) result(found)
+  class(regex_t), intent(in) :: self
+  integer(int16), intent(in), contiguous :: text(:)
+  type(captures_t), intent(inout) :: captures
+  integer(int64), intent(in), optional :: start
+  real(real64), intent(in), optional :: timeout
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  logical :: found
+end function exec_utf16
+
+function exec_text(self, text, captures, start, timeout, stat, errmsg) result(found)
+  class(regex_t), intent(in) :: self
+  type(utf8_text_t), intent(in) :: text
+  type(captures_t), intent(inout) :: captures
+  integer(int64), intent(in), optional :: start
+  real(real64), intent(in), optional :: timeout
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  logical :: found
+end function exec_text
+</code></pre>
+<p>The first match at or after start with what each group captured, by number and by name, in captures: whether
+there is one.</p>
+<h4 id="regex_tfind_all">regex_t%find_all</h4>
+<pre><code class="language-fortran">subroutine find_all_utf8(self, text, matches, stat, errmsg)
+  class(regex_t), intent(in) :: self
+  character(*), intent(in) :: text
+  type(match_t), allocatable, intent(out) :: matches(:)
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+end subroutine find_all_utf8
+
+subroutine find_all_utf16(self, text, matches, stat, errmsg)
+  class(regex_t), intent(in) :: self
+  integer(int16), intent(in), contiguous :: text(:)
+  type(match_t), allocatable, intent(out) :: matches(:)
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+end subroutine find_all_utf16
+
+subroutine find_all_text(self, text, matches, stat, errmsg)
+  class(regex_t), intent(in) :: self
+  type(utf8_text_t), intent(in) :: text
+  type(match_t), allocatable, intent(out) :: matches(:)
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+end subroutine find_all_text
+</code></pre>
+<p>Every match of a global search, as matchAll makes it: after an empty match the search goes on one character
+later (one code unit without u or v), and with the y flag each match must start where the one before it ended.
+Whether or not the pattern has the g flag, every match is found.</p>
+<h4 id="regex_texec_all">regex_t%exec_all</h4>
+<pre><code class="language-fortran">subroutine exec_all_utf8(self, text, groups, stat, errmsg)
+  class(regex_t), intent(in) :: self
+  character(*), intent(in) :: text
+  type(match_t), allocatable, intent(out) :: groups(:, :)
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+end subroutine exec_all_utf8
+
+subroutine exec_all_utf16(self, text, groups, stat, errmsg)
+  class(regex_t), intent(in) :: self
+  integer(int16), intent(in), contiguous :: text(:)
+  type(match_t), allocatable, intent(out) :: groups(:, :)
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+end subroutine exec_all_utf16
+
+subroutine exec_all_text(self, text, groups, stat, errmsg)
+  class(regex_t), intent(in) :: self
+  type(utf8_text_t), intent(in) :: text
+  type(match_t), allocatable, intent(out) :: groups(:, :)
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+end subroutine exec_all_text
+</code></pre>
+<p>Every match of a global search with what each group captured: groups(g, k) is group g (0 the whole match) of the
+k-th match.</p>
+<h4 id="regex_tcount">regex_t%count</h4>
+<pre><code class="language-fortran">function count_utf8(self, text, stat, errmsg) result(n)
+  class(regex_t), intent(in) :: self
+  character(*), intent(in) :: text
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  integer(int64) :: n
+end function count_utf8
+
+function count_utf16(self, text, stat, errmsg) result(n)
+  class(regex_t), intent(in) :: self
+  integer(int16), intent(in), contiguous :: text(:)
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  integer(int64) :: n
+end function count_utf16
+
+function count_text(self, text, stat, errmsg) result(n)
+  class(regex_t), intent(in) :: self
+  type(utf8_text_t), intent(in) :: text
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  integer(int64) :: n
+end function count_text
+</code></pre>
+<p>How many matches a global search finds, none of them made.</p>
+<h4 id="regex_treplace">regex_t%replace</h4>
+<pre><code class="language-fortran">function replace_utf8(self, text, replacement, stat, errmsg) result(value)
+  class(regex_t), intent(in) :: self
+  character(*), intent(in) :: text
+  character(*), intent(in) :: replacement
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  character(:), allocatable :: value
+end function replace_utf8
+
+function replace_utf16(self, text, replacement, stat, errmsg) result(value)
+  class(regex_t), intent(in) :: self
+  integer(int16), intent(in), contiguous :: text(:), replacement(:)
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  integer(int16), allocatable :: value(:)
+end function replace_utf16
+
+function replace_text(self, text, replacement, stat, errmsg) result(value)
+  class(regex_t), intent(in) :: self
+  type(utf8_text_t), intent(in) :: text
+  character(*), intent(in) :: replacement
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  character(:), allocatable :: value
+end function replace_text
+</code></pre>
+<p>The text with the first match replaced, or every match with the g flag (String.prototype.replace). In the
+replacement, $&amp; is the match, $` and $' the text before and after it, $1 to $99 a group, $&lt;name&gt; a named group, and
+$$ a dollar sign. A half character left by a match without u or v is written as U+FFFD.</p>
+<h4 id="regex_treplace_all">regex_t%replace_all</h4>
+<pre><code class="language-fortran">function replace_all_utf8(self, text, replacement, stat, errmsg) result(value)
+  class(regex_t), intent(in) :: self
+  character(*), intent(in) :: text
+  character(*), intent(in) :: replacement
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  character(:), allocatable :: value
+end function replace_all_utf8
+
+function replace_all_utf16(self, text, replacement, stat, errmsg) result(value)
+  class(regex_t), intent(in) :: self
+  integer(int16), intent(in), contiguous :: text(:), replacement(:)
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  integer(int16), allocatable :: value(:)
+end function replace_all_utf16
+
+function replace_all_text(self, text, replacement, stat, errmsg) result(value)
+  class(regex_t), intent(in) :: self
+  type(utf8_text_t), intent(in) :: text
+  character(*), intent(in) :: replacement
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  character(:), allocatable :: value
+end function replace_all_text
+</code></pre>
+<p>The text with every match replaced (String.prototype.replaceAll), whether or not the pattern has the g flag.</p>
+<h4 id="regex_tsplit">regex_t%split</h4>
+<pre><code class="language-fortran">subroutine split_utf8(self, text, pieces, limit, stat, errmsg)
+  class(regex_t), intent(in) :: self
+  character(*), intent(in) :: text
+  type(piece_t), allocatable, intent(out) :: pieces(:)
+  integer, intent(in), optional :: limit
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+end subroutine split_utf8
+
+subroutine split_utf16(self, text, pieces, limit, stat, errmsg)
+  class(regex_t), intent(in) :: self
+  integer(int16), intent(in), contiguous :: text(:)
+  type(piece16_t), allocatable, intent(out) :: pieces(:)
+  integer, intent(in), optional :: limit
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+end subroutine split_utf16
+
+subroutine split_text(self, text, pieces, limit, stat, errmsg)
+  class(regex_t), intent(in) :: self
+  type(utf8_text_t), intent(in) :: text
+  type(piece_t), allocatable, intent(out) :: pieces(:)
+  integer, intent(in), optional :: limit
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+end subroutine split_text
+</code></pre>
+<p>The text split around the matches (String.prototype.split): what each group captured is spliced in after the
+piece before it (defined = .false. for a group that did not take part), an empty match at the start or the end
+of the text splits nothing, and there are at most limit pieces when limit is given.</p>
+<h3 id="captures_t">captures_t</h3>
+<pre><code class="language-fortran">type :: captures_t
+  ! (procedures below)
+end type captures_t
+</code></pre>
+<p>What a match captured, by number and by name, from regex_t%exec: made for one regular expression, reused from
+match to match. Used by one thread at a time.</p>
+<h4 id="captures_tcount">captures_t%count</h4>
+<pre><code class="language-fortran">integer function captures_count(self)
+  class(captures_t), intent(in) :: self
+end function captures_count
+</code></pre>
+<p>The number of groups of the last match, group 0 among them, or 0 when the last search found none.</p>
+<h4 id="captures_tgroup">captures_t%group</h4>
+<pre><code class="language-fortran">function captures_group(self, group) result(match)
+  class(captures_t), intent(in) :: self
+  integer, intent(in) :: group
+  type(match_t) :: match
+end function captures_group
+</code></pre>
+<p>The group of the last match (0 is the whole match); matched = .false. when it did not take part, there is no such
+group, or the last search found no match.</p>
+<h4 id="captures_tnamed">captures_t%named</h4>
+<pre><code class="language-fortran">function captures_named(self, name) result(match)
+  class(captures_t), intent(in) :: self
+  character(*), intent(in) :: name
+  type(match_t) :: match
+end function captures_named
+</code></pre>
+<p>The group of the name in the last match (of the groups that share it, the one that took part).</p>
+<h2 id="procedures">Procedures</h2>
+<h3 id="is_valid">is_valid</h3>
+<pre><code class="language-fortran">function is_valid(pattern, flags, stat, errmsg, edition, unicode_version) result(valid)
+  character(*), intent(in) :: pattern
+  character(*), intent(in), optional :: flags
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  integer, intent(in), optional :: edition, unicode_version
+  logical :: valid
+end function is_valid
+</code></pre>
+<p>Whether a pattern is valid with the flags, without compiling it, in the grammar of edition (a CRE_EDITION_ value,
+CRE_EDITION_CURRENT without it) and under unicode_version (a CRE_UNICODE_ value, CRE_UNICODE_DEFAULT without it).
+A pattern over a limit of size is not valid here. Another value of edition or unicode_version is
+CRE_INVALID_ARGUMENT.</p>
+<h3 id="library_version">library_version</h3>
+<pre><code class="language-fortran">function library_version() result(version)
+  character(:), allocatable :: version
+end function library_version
+</code></pre>
+<p>The C library's version, such as &quot;0.2.5&quot;.</p>
+<h3 id="last_error_offset">last_error_offset</h3>
+<pre><code class="language-fortran">function last_error_offset() result(offset)
+  integer(int64) :: offset
+end function last_error_offset
+</code></pre>
+<p>The byte offset that goes with the most recent failure on this thread: where invalid UTF-8 was found, counted
+from 0 (0 otherwise).</p>
+<h3 id="utf8_text">utf8_text</h3>
+<pre><code class="language-fortran">function utf8_text(text, stat, errmsg) result(checked)
+  character(*), intent(in) :: text
+  integer, intent(out), optional :: stat
+  character(:), allocatable, intent(out), optional :: errmsg
+  type(utf8_text_t) :: checked
+end function utf8_text
+</code></pre>
+<p>The text as a utf8_text_t, checked to be UTF-8 here, once: regex_t's methods then search it without checking it
+again. A text that is not UTF-8 is CRE_INVALID_UTF8 (last_error_offset is where it stops being UTF-8), and the
+result holds an empty text.</p>
+<h3 id="set_default_match_timeout">set_default_match_timeout</h3>
+<pre><code class="language-fortran">subroutine set_default_match_timeout(seconds)
+  real(real64), intent(in) :: seconds
+end subroutine set_default_match_timeout
+</code></pre>
+<p>Sets the match timeout, in seconds, of every regular expression compiled from now on without one of its own (0
+for none, the default). It is the process-wide default of .NET's REGEX_DEFAULT_MATCH_TIMEOUT: a program that
+matches patterns or texts from outside should set one when it starts. A regular expression already compiled keeps
+its own.</p>
+<h3 id="default_match_timeout">default_match_timeout</h3>
+<pre><code class="language-fortran">real(real64) function default_match_timeout()
+end function default_match_timeout
+</code></pre>
+<p>The match timeout, in seconds, of a regular expression compiled now without one of its own (0 for none).</p>
+        </div>
+    </main>
+</div>
+
+    </div>
+    <footer class="site-footer">
+    <div class="site-footer__inner">
+        <div class="site-footer__sponsor">
+            Sponsored by
+            <a href="https://endjin.com" target="_blank" rel="noopener noreferrer">endjin</a>
+        </div>
+        <ul class="site-footer__links" role="list">
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/getting-started/index.html">Getting Started</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/docs/index.html">Documentation</a></li>
+            <li><a class="site-footer__link" href="https://corvus-oss.org/corvus-regex-ecma262-benchmarks/">Benchmarks</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/api/index.html">API</a></li>
+            <li><a class="site-footer__link" href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+            <li><a class="site-footer__link" href="https://www.nuget.org/packages/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">NuGet</a></li>
+        </ul>
+        <p class="site-footer__copyright">&copy; 2026 endjin Ltd.</p>
+    </div>
+</footer>
+
+    <!-- highlight.js for syntax highlighting (CSS targets .hljs-* classes) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js" defer></script>
+    <script>document.addEventListener('DOMContentLoaded',()=>hljs.highlightAll())</script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/main.js" defer></script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/sidebar-search.js" defer></script>
+    
+</body>
+</html>

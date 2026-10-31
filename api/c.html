@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1C1D21" />
+    <meta name="description" content="The API reference of the C package." />
+    <meta name="keywords" content="regex, ECMA-262, C" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:description" content="The API reference of the C package." />
+    <meta name="twitter:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta name="twitter:title" content="C: API reference - Corvus.Regex.Ecma262" />
+    <meta property="article:tag" content="regex" />
+    <meta property="article:tag" content="ECMA-262" />
+    <meta property="article:tag" content="C" />
+    <meta property="og:description" content="The API reference of the C package." />
+    <meta property="og:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta property="og:title" content="C: API reference - Corvus.Regex.Ecma262" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://corvus-oss.org/Corvus.Regex.Ecma262/api/c/" />
+    <title>C: API reference - Corvus.Regex.Ecma262</title>
+    <link itemprop="url" href="https://corvus-oss.org/Corvus.Regex.Ecma262/api/c/" />
+    <link rel="canonical" href="https://corvus-oss.org/Corvus.Regex.Ecma262/api/c/" />
+    <link rel="sitemap" href="https://corvus-oss.org/Corvus.Regex.Ecma262/sitemap.xml" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="/Corvus.Regex.Ecma262/main.css" />
+    <link rel="icon" type="image/svg+xml" href="/Corvus.Regex.Ecma262/assets/images/favicon.svg" />
+    
+</head>
+<body class="">
+    <a class="sr-only" href="#main-content">Skip to content</a>
+<header class="site-header">
+    <div class="site-header__inner">
+        <a class="site-header__brand" href="/Corvus.Regex.Ecma262/index.html" aria-label="Corvus.Regex.Ecma262 home">
+            <img src="/Corvus.Regex.Ecma262/assets/images/logo-corvus.svg" alt="" width="28" height="28" aria-hidden="true" />
+            Corvus<span style="color:var(--color-brand)">.</span>Regex<span style="color:var(--color-brand)">.Ecma262</span>
+        </a>
+        <nav class="site-header__nav-desktop" aria-label="Main navigation">
+                    <a href="/Corvus.Regex.Ecma262/getting-started/index.html"
+                       class="site-header__link "
+                       >Getting Started</a>
+                    <a href="/Corvus.Regex.Ecma262/docs/index.html"
+                       class="site-header__link "
+                       >Documentation</a>
+                    <a href="/Corvus.Regex.Ecma262/api/index.html"
+                       class="site-header__link is-active"
+                       aria-current=page>API</a>
+            <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+               class="site-header__link" target="_blank" rel="noopener noreferrer"
+               aria-label="View on GitHub">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+        </nav>
+        <button class="site-header__menu-toggle js-toggle-menu"
+                aria-expanded="false" aria-label="Toggle menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+    </div>
+</header>
+<nav class="site-header__nav-mobile js-mobile-nav" aria-label="Mobile navigation">
+            <a href="/Corvus.Regex.Ecma262/getting-started/index.html" class="site-header__link">Getting Started</a>
+            <a href="/Corvus.Regex.Ecma262/docs/index.html" class="site-header__link">Documentation</a>
+            <a href="/Corvus.Regex.Ecma262/api/index.html" class="site-header__link">API</a>
+    <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+       class="site-header__link" target="_blank" rel="noopener noreferrer">GitHub</a>
+</nav>
+
+    <div class="page-content">
+    <div class="layout-docs container">
+    <button class="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false"></button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar">
+    <div class="sidebar__inner">
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Getting Started</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                    <li class="sidebar__item"><a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/index.html">Choose a language</a></li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/dotnet.html">.NET</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/c.html">C</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/cpp.html">C&#x2B;&#x2B;</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/fortran.html">Fortran</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/go.html">Go</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/java.html">Java</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/julia.html">Julia</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/pascal.html">Object Pascal</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ocaml.html">OCaml</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/php.html">PHP</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/python.html">Python</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/r.html">R</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ruby.html">Ruby</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/rust.html">Rust</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/swift.html">Swift</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Documentation</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/dotnet/index.html">.NET</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/industry.html">Benchmarks</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/contributing.html">Contributing</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/compatibility.html">Compatibility</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/c/index.html">C</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/design-c.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/cpp/index.html">C&#x2B;&#x2B;</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/fortran/index.html">Fortran</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/go/index.html">Go</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/java/index.html">Java</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/julia/index.html">Julia</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/pascal/index.html">Object Pascal</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ocaml/index.html">OCaml</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/php/index.html">PHP</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/python/index.html">Python</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/r/index.html">R</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ruby/index.html">Ruby</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/rust/index.html">Rust</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/swift/index.html">Swift</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/contributing.html">Contributing</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</aside>
+
+    <main id="main-content" class="layout-docs__main">
+        <div class="doc__content">
+            <h1>C: API reference</h1>
+<p>The C library: the header <code>corvus_regex_ecma262.h</code>, generated from its declarations and their comments by
+<code>tools/docs/gen-api-c.ps1</code>. <a href="/Corvus.Regex.Ecma262/getting-started/c.html">Getting started</a> shows it at work.</p>
+<h2 id="conventions">Conventions</h2>
+<ul>
+<li>Handles. A cre_regex (a compiled pattern), a cre_captures (what a match captured) and a cre_matches (a global
+search) are opaque, created by the library and freed by the caller with their free function (cre_regex_free,
+cre_captures_free, cre_matches_free). Each free function takes NULL and does nothing. A cre_regex is immutable:
+any number of threads may use one at once. A cre_captures or a cre_matches is used by one thread at a time.</li>
+<li>Text in. UTF-8 text is a pointer and a length in bytes, checked to be UTF-8 (CRE_INVALID_UTF8 otherwise). The
+functions with the suffix _utf16 take UTF-16 text instead, a pointer and a length in code units, which may hold
+lone surrogates and is not checked. A pointer may be NULL when its length is 0. Nothing is transcoded: positions
+are in the units of the text, bytes of UTF-8 or UTF-16 code units.</li>
+<li>Text out. A borrowed string is a cre_str (or cre_str16), not NUL-terminated, valid for as long as its function
+says. An owned string is a cre_string (or cre_string16), NUL-terminated, which the caller frees with
+cre_string_free (or cre_string16_free); the pieces of a split are a cre_pieces (or cre_pieces16), freed with
+cre_pieces_free (or cre_pieces16_free).</li>
+<li>Status. Every function that can fail returns a cre_status, CRE_OK or why it failed, with a message in
+thread-local storage (cre_last_error_message, cre_last_error_offset). On failure each out-parameter is set to
+its empty value (NULL, false, CRE_UNSET or {NULL, 0}). No Rust panic crosses into the caller: a bug in the
+library is CRE_PANIC, and the library remains usable.</li>
+<li>Matching. A pattern is read as new RegExp(pattern, flags) reads it, and a match is the one exec finds. Without
+the u or v flag a pattern is matched by UTF-16 code unit, so over UTF-8 a match can start or end between the
+halves of a character beyond the Basic Multilingual Plane; such a position is the offset of the character's
+third byte. The g flag makes cre_regex_replace replace every match; the y flag makes a match start where the
+search starts.</li>
+<li>Limits. A pattern over a limit of size is refused (CRE_PATTERN_TOO_LARGE). A regular expression has a match
+timeout, as a Regex of .NET has: the time each match may take, given by cre_regex_new_with_timeout or for every
+regular expression by cre_set_default_match_timeout, and none unless one of them gives one. A match that reaches
+it, or whose backtracking memory reaches CRE_MAX_STACK entries, is CRE_MATCH_LIMIT, which is not an answer, from
+whichever function matched. The functions with the suffix _limit take a limit of their own in milliseconds (0
+for the regular expression's timeout). Without a timeout a match has no limit of time or of memory, so a program
+that matches patterns or texts from outside should set one. A pattern without a backreference takes time in
+proportion to its size times the text.</li>
+</ul>
+<h2 id="constants-and-types">Constants and types</h2>
+<h3 id="cre_version_major-cre_version_minor-cre_version_patch">CRE_VERSION_MAJOR, CRE_VERSION_MINOR, CRE_VERSION_PATCH</h3>
+<pre><code class="language-c">#define CRE_VERSION_MAJOR 0
+#define CRE_VERSION_MINOR 0
+#define CRE_VERSION_PATCH 0
+</code></pre>
+<p>The header's version: compare with cre_version(), the library's.</p>
+<h3 id="cre_max_pattern_length-cre_max_nesting-cre_max_size">CRE_MAX_PATTERN_LENGTH, CRE_MAX_NESTING, CRE_MAX_SIZE</h3>
+<pre><code class="language-c">#define CRE_MAX_PATTERN_LENGTH 1048576
+#define CRE_MAX_NESTING 1000
+#define CRE_MAX_SIZE 1048576
+</code></pre>
+<p>The limits of size of a pattern: its length in bytes, the depth its groups nest to, and the size counted for it as
+it is read. A pattern over any of them is CRE_PATTERN_TOO_LARGE.</p>
+<h3 id="cre_max_stack">CRE_MAX_STACK</h3>
+<pre><code class="language-c">#define CRE_MAX_STACK 1048576
+</code></pre>
+<p>The entries the backtracking stack of a match with a limit may reach before the match is CRE_MATCH_LIMIT.</p>
+<h3 id="cre_unset">CRE_UNSET</h3>
+<pre><code class="language-c">#define CRE_UNSET SIZE_MAX
+</code></pre>
+<p>The start and the end of a group that did not take part in a match, and of no match.</p>
+<h3 id="cre_split_all">CRE_SPLIT_ALL</h3>
+<pre><code class="language-c">#define CRE_SPLIT_ALL 0xFFFFFFFFu
+</code></pre>
+<p>The limit of cre_regex_split that keeps every piece, as split(separator) with no limit.</p>
+<h3 id="cre_edition_current-cre_edition_es2020">CRE_EDITION_CURRENT, CRE_EDITION_ES2020</h3>
+<pre><code class="language-c">#define CRE_EDITION_CURRENT 0u
+#define CRE_EDITION_ES2020 1u
+</code></pre>
+<p>The edition of ECMA-262 whose grammar a pattern is read with (cre_regex_new_with_options): today's, the default, or
+ECMAScript 2020's, which JSON Schema 2020-12 names. The 2020 grammar refuses what later editions added, and nothing
+else: the d and v flags, modifier groups, a group name used twice, and a property name or value that is not in the
+edition's tables.</p>
+<h3 id="cre_unicode_default-cre_unicode_13-cre_unicode_17-cre_unicode_18-cre_unicode_latest">CRE_UNICODE_DEFAULT, CRE_UNICODE_13, CRE_UNICODE_17, CRE_UNICODE_18, CRE_UNICODE_LATEST</h3>
+<pre><code class="language-c">#define CRE_UNICODE_DEFAULT 0u
+#define CRE_UNICODE_13 13u
+#define CRE_UNICODE_17 17u
+#define CRE_UNICODE_18 18u
+#define CRE_UNICODE_LATEST 0x7FFFFFFFu
+</code></pre>
+<p>The version of Unicode whose tables a pattern is read with (cre_regex_new_with_options), independent of the
+edition: the default (the version of the V8 the answers are held to, 17 today), 13, 17, 18, or the latest the
+library carries (18 today).</p>
+<h3 id="cre_status">cre_status</h3>
+<pre><code class="language-c">typedef uint32_t cre_status;
+</code></pre>
+<p>The outcome of a call: CRE_OK, or why it failed (the details are in cre_last_error_message).</p>
+<h3 id="cre_ok">CRE_OK</h3>
+<pre><code class="language-c">#define CRE_OK 0
+</code></pre>
+<p>The call succeeded.</p>
+<h3 id="cre_invalid_argument">CRE_INVALID_ARGUMENT</h3>
+<pre><code class="language-c">#define CRE_INVALID_ARGUMENT 1
+</code></pre>
+<p>A NULL handle or pointer, a value out of range (a start beyond the text or inside a character), a misaligned
+UTF-16 pointer, or a handle used with the wrong regular expression.</p>
+<h3 id="cre_invalid_utf8">CRE_INVALID_UTF8</h3>
+<pre><code class="language-c">#define CRE_INVALID_UTF8 2
+</code></pre>
+<p>Text that is not UTF-8 (cre_last_error_offset is the offset of the first invalid byte).</p>
+<h3 id="cre_invalid_pattern">CRE_INVALID_PATTERN</h3>
+<pre><code class="language-c">#define CRE_INVALID_PATTERN 3
+</code></pre>
+<p>The pattern is not valid in the grammar of its flags (new RegExp would throw a SyntaxError).</p>
+<h3 id="cre_invalid_flags">CRE_INVALID_FLAGS</h3>
+<pre><code class="language-c">#define CRE_INVALID_FLAGS 4
+</code></pre>
+<p>The flags are not valid: a letter that is not one of dgimsuvy, a flag given twice, or u with v.</p>
+<h3 id="cre_pattern_too_large">CRE_PATTERN_TOO_LARGE</h3>
+<pre><code class="language-c">#define CRE_PATTERN_TOO_LARGE 5
+</code></pre>
+<p>The pattern is over a limit of size (CRE_MAX_PATTERN_LENGTH, CRE_MAX_NESTING or CRE_MAX_SIZE). It is not the status
+of a pattern that is not valid: the pattern was not read to its end.</p>
+<h3 id="cre_match_limit">CRE_MATCH_LIMIT</h3>
+<pre><code class="language-c">#define CRE_MATCH_LIMIT 6
+</code></pre>
+<p>A match reached its limit of time or of backtracking memory, so there is no answer.</p>
+<h3 id="cre_panic">CRE_PANIC</h3>
+<pre><code class="language-c">#define CRE_PANIC 7
+</code></pre>
+<p>A bug in the library: it was caught, and the library remains usable.</p>
+<h3 id="cre_str">cre_str</h3>
+<pre><code class="language-c">typedef struct cre_str {
+    const char *ptr;
+    size_t len;
+} cre_str;
+</code></pre>
+<p>A UTF-8 string the library owns: len bytes from ptr, not NUL-terminated. Each function returning one says how long
+it stays valid.</p>
+<h3 id="cre_str16">cre_str16</h3>
+<pre><code class="language-c">typedef struct cre_str16 {
+    const uint16_t *ptr;
+    size_t len;
+} cre_str16;
+</code></pre>
+<p>A UTF-16 string the library owns: len code units from ptr.</p>
+<h3 id="cre_string">cre_string</h3>
+<pre><code class="language-c">typedef struct cre_string {
+    char *ptr;
+    size_t len;
+} cre_string;
+</code></pre>
+<p>A UTF-8 string the caller owns once a function has written it: len bytes from ptr, then a NUL (not counted in
+len). Free it with cre_string_free.</p>
+<h3 id="cre_string16">cre_string16</h3>
+<pre><code class="language-c">typedef struct cre_string16 {
+    uint16_t *ptr;
+    size_t len;
+} cre_string16;
+</code></pre>
+<p>A UTF-16 string the caller owns once a function has written it: len code units from ptr, then a 0 unit (not
+counted in len). Free it with cre_string16_free.</p>
+<h3 id="cre_pieces">cre_pieces</h3>
+<pre><code class="language-c">typedef struct cre_pieces {
+    const cre_str *items;
+    size_t len;
+    void *internal;
+} cre_pieces;
+</code></pre>
+<p>The pieces of a split: len pieces at items, which the caller frees with cre_pieces_free. A piece whose ptr is NULL
+is a group that did not take part (undefined in the array split returns); a piece that is present and empty has a
+ptr that is not NULL and a len of 0. internal belongs to the library.</p>
+<h3 id="cre_pieces16">cre_pieces16</h3>
+<pre><code class="language-c">typedef struct cre_pieces16 {
+    const cre_str16 *items;
+    size_t len;
+    void *internal;
+} cre_pieces16;
+</code></pre>
+<p>The pieces of a split of UTF-16 text, freed with cre_pieces16_free; as cre_pieces.</p>
+<h3 id="cre_match">cre_match</h3>
+<pre><code class="language-c">typedef struct cre_match {
+    size_t start;
+    size_t end;
+} cre_match;
+</code></pre>
+<p>Where a match or a group is: offsets into the text in its units (bytes of UTF-8, or UTF-16 code units), start to
+end. A group that did not take part is CRE_UNSET to CRE_UNSET.</p>
+<h3 id="cre_regex">cre_regex</h3>
+<pre><code class="language-c">typedef struct cre_regex cre_regex;
+</code></pre>
+<p>A compiled regular expression.</p>
+<h3 id="cre_captures">cre_captures</h3>
+<pre><code class="language-c">typedef struct cre_captures cre_captures;
+</code></pre>
+<p>What a match captured, by number and by name: made for one regular expression, reused from match to match.</p>
+<h3 id="cre_matches">cre_matches</h3>
+<pre><code class="language-c">typedef struct cre_matches cre_matches;
+</code></pre>
+<p>A global search of one text, as matchAll makes it.</p>
+<h2 id="the-library">The library</h2>
+<h3 id="cre_version">cre_version</h3>
+<pre><code class="language-c">cre_str cre_version(void);
+</code></pre>
+<p>The library's version, as &quot;major.minor.patch&quot;. The string is static.</p>
+<h3 id="cre_status_name">cre_status_name</h3>
+<pre><code class="language-c">cre_str cre_status_name(cre_status status);
+</code></pre>
+<p>The name of a status, such as &quot;CRE_INVALID_PATTERN&quot;, or &quot;unknown&quot;. The string is static.</p>
+<h3 id="cre_last_error_message">cre_last_error_message</h3>
+<pre><code class="language-c">cre_str cre_last_error_message(void);
+</code></pre>
+<p>The message of the last call on this thread that failed. It stays valid until the next call that fails on this
+thread.</p>
+<h3 id="cre_last_error_offset">cre_last_error_offset</h3>
+<pre><code class="language-c">size_t cre_last_error_offset(void);
+</code></pre>
+<p>The offset the last failure on this thread points at: the offset of the first byte that is not UTF-8, or 0.</p>
+<h2 id="compiling">Compiling</h2>
+<h3 id="cre_set_default_match_timeout">cre_set_default_match_timeout</h3>
+<pre><code class="language-c">void cre_set_default_match_timeout(uint64_t timeout_ms);
+</code></pre>
+<p>Sets the match timeout of every regular expression compiled from now on by cre_regex_new, in milliseconds (0 for
+none, the default): the time each match may take before it is abandoned with CRE_MATCH_LIMIT. A program that
+matches patterns or texts from outside should set it when it starts (see cre_regex_new_with_timeout).</p>
+<h3 id="cre_default_match_timeout">cre_default_match_timeout</h3>
+<pre><code class="language-c">uint64_t cre_default_match_timeout(void);
+</code></pre>
+<p>The match timeout a regular expression compiled now by cre_regex_new takes, in milliseconds (0 for none).</p>
+<h3 id="cre_regex_new">cre_regex_new</h3>
+<pre><code class="language-c">cre_status cre_regex_new(const char *pattern, size_t pattern_len, const char *flags, size_t flags_len,
+                         cre_regex **out_regex);
+</code></pre>
+<p>Compiles a pattern with the flags new RegExp(pattern, flags) takes, any of dgimsuvy (flags may be NULL with a
+length of 0 for none), and the match timeout of cre_default_match_timeout. On success *out_regex is a handle to
+free with cre_regex_free; on failure it is NULL and the status says why: CRE_INVALID_PATTERN, CRE_INVALID_FLAGS,
+CRE_PATTERN_TOO_LARGE, CRE_INVALID_UTF8 or CRE_INVALID_ARGUMENT.</p>
+<h3 id="cre_regex_new_with_timeout">cre_regex_new_with_timeout</h3>
+<pre><code class="language-c">cre_status cre_regex_new_with_timeout(const char *pattern, size_t pattern_len, const char *flags, size_t flags_len,
+                                      uint64_t timeout_ms, cre_regex **out_regex);
+</code></pre>
+<p>cre_regex_new with a match timeout in milliseconds (0 for none): the time each match may take before it is
+abandoned with CRE_MATCH_LIMIT, which brings a cap on the memory of its backtracking with it. Every function that
+matches gives its match this timeout, except where a _limit function is given a limit of its own. Without one a
+match has no limit of time or of memory.</p>
+<h3 id="cre_regex_new_with_options">cre_regex_new_with_options</h3>
+<pre><code class="language-c">cre_status cre_regex_new_with_options(const char *pattern, size_t pattern_len, const char *flags, size_t flags_len,
+                                      uint64_t timeout_ms, uint32_t edition, uint32_t unicode_version,
+                                      cre_regex **out_regex);
+</code></pre>
+<p>cre_regex_new_with_timeout with the edition whose grammar the pattern is read with (a CRE_EDITION_ value) and the
+version of Unicode whose tables it is read with (a CRE_UNICODE_ value). Under CRE_EDITION_ES2020 the d and v flags
+are CRE_INVALID_FLAGS. A value that is not one of the constants is CRE_INVALID_ARGUMENT.</p>
+<h3 id="cre_regex_match_timeout">cre_regex_match_timeout</h3>
+<pre><code class="language-c">uint64_t cre_regex_match_timeout(const cre_regex *regex);
+</code></pre>
+<p>The match timeout of the regular expression, in milliseconds (0 for none).</p>
+<h3 id="cre_regex_free">cre_regex_free</h3>
+<pre><code class="language-c">void cre_regex_free(cre_regex *regex);
+</code></pre>
+<p>Frees a regular expression. NULL is allowed and does nothing.</p>
+<h3 id="cre_regex_is_valid">cre_regex_is_valid</h3>
+<pre><code class="language-c">cre_status cre_regex_is_valid(const char *pattern, size_t pattern_len, const char *flags, size_t flags_len,
+                              bool *out_valid);
+</code></pre>
+<p>Whether a pattern is valid with the flags, without compiling it: *out_valid. A pattern over a limit of size is not
+valid here. The status is CRE_INVALID_UTF8 or CRE_INVALID_ARGUMENT for arguments that are not text.</p>
+<h3 id="cre_regex_is_valid_with_options">cre_regex_is_valid_with_options</h3>
+<pre><code class="language-c">cre_status cre_regex_is_valid_with_options(const char *pattern, size_t pattern_len, const char *flags,
+                                           size_t flags_len, uint32_t edition, uint32_t unicode_version,
+                                           bool *out_valid);
+</code></pre>
+<p>cre_regex_is_valid in the grammar of an edition (a CRE_EDITION_ value) and under a version of Unicode (a
+CRE_UNICODE_ value). A value that is not one of the constants is CRE_INVALID_ARGUMENT.</p>
+<h3 id="cre_regex_edition">cre_regex_edition</h3>
+<pre><code class="language-c">uint32_t cre_regex_edition(const cre_regex *regex);
+</code></pre>
+<p>The edition the regular expression was read with, a CRE_EDITION_ value (CRE_EDITION_CURRENT for NULL).</p>
+<h3 id="cre_regex_unicode_version">cre_regex_unicode_version</h3>
+<pre><code class="language-c">uint32_t cre_regex_unicode_version(const cre_regex *regex);
+</code></pre>
+<p>The version of Unicode the regular expression was read with, resolved: 13, 17 or 18 (0 for NULL).</p>
+<h3 id="cre_regex_source">cre_regex_source</h3>
+<pre><code class="language-c">cre_str cre_regex_source(const cre_regex *regex);
+</code></pre>
+<p>The source of the pattern, as it was given. It stays valid as long as the regular expression ({NULL, 0} for NULL).</p>
+<h3 id="cre_regex_flags">cre_regex_flags</h3>
+<pre><code class="language-c">cre_str cre_regex_flags(const cre_regex *regex);
+</code></pre>
+<p>The flags as RegExp.prototype.flags writes them, in the order dgimsuvy. It stays valid as long as the regular
+expression ({NULL, 0} for NULL).</p>
+<h3 id="cre_regex_group_count">cre_regex_group_count</h3>
+<pre><code class="language-c">size_t cre_regex_group_count(const cre_regex *regex);
+</code></pre>
+<p>The number of capturing groups of the pattern (0 for NULL). A match has one more group: the whole match, group 0.</p>
+<h3 id="cre_regex_group_name_count">cre_regex_group_name_count</h3>
+<pre><code class="language-c">size_t cre_regex_group_name_count(const cre_regex *regex);
+</code></pre>
+<p>The number of distinct names of the pattern's groups (0 for NULL). Two groups in separate alternatives may share a
+name.</p>
+<h3 id="cre_regex_group_name">cre_regex_group_name</h3>
+<pre><code class="language-c">cre_str cre_regex_group_name(const cre_regex *regex, size_t index);
+</code></pre>
+<p>The name index (from 0), in the order of the first group of each name, or {NULL, 0} when there is none. It stays
+valid as long as the regular expression.</p>
+<h2 id="matching-utf-8-text">Matching UTF-8 text</h2>
+<p>A start is a byte offset no greater than the text's length, on a character boundary or, without the u or v flag,
+between the halves of a character beyond the Basic Multilingual Plane (its third byte); anything else is
+CRE_INVALID_ARGUMENT. Each call checks that the whole text is UTF-8; a global search (cre_regex_find_iter) checks it
+once. A caller whose strings are UTF-8 by construction can skip the check with the _unchecked functions below.</p>
+<h3 id="cre_regex_is_match">cre_regex_is_match</h3>
+<pre><code class="language-c">cre_status cre_regex_is_match(const cre_regex *regex, const char *text, size_t text_len, bool *out_matched);
+</code></pre>
+<p>Whether the pattern matches anywhere in the text (at its start alone with the y flag): *out_matched.</p>
+<h3 id="cre_regex_is_match_limit">cre_regex_is_match_limit</h3>
+<pre><code class="language-c">cre_status cre_regex_is_match_limit(const cre_regex *regex, const char *text, size_t text_len, uint64_t limit_ms,
+                                    bool *out_matched);
+</code></pre>
+<p>cre_regex_is_match with a limit on the time the match may take, in milliseconds (0 for the regular expression's match
+timeout). A match that reaches it, or whose backtracking memory reaches its cap, is CRE_MATCH_LIMIT, and *out_matched
+is false.</p>
+<h3 id="cre_regex_is_match_at">cre_regex_is_match_at</h3>
+<pre><code class="language-c">cre_status cre_regex_is_match_at(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                 bool *out_matched);
+</code></pre>
+<p>Whether the pattern matches at or after start (at start alone with the y flag), as RegExp.prototype.test with
+lastIndex set to it: *out_matched.</p>
+<h3 id="cre_regex_find">cre_regex_find</h3>
+<pre><code class="language-c">cre_status cre_regex_find(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                          cre_match *out_match, bool *out_found);
+</code></pre>
+<p>The first match at or after start, as exec finds it with lastIndex set to start: *out_found says whether there is
+one, and *out_match is where it is (CRE_UNSET when there is none).</p>
+<h3 id="cre_regex_find_limit">cre_regex_find_limit</h3>
+<pre><code class="language-c">cre_status cre_regex_find_limit(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                uint64_t limit_ms, cre_match *out_match, bool *out_found);
+</code></pre>
+<p>cre_regex_find with a limit on the time the match may take, in milliseconds (0 for the regular expression's match
+timeout): CRE_MATCH_LIMIT when it is reached.</p>
+<h3 id="cre_regex_captures_read">cre_regex_captures_read</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_read(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                   cre_match *groups, size_t groups_len, bool *out_found);
+</code></pre>
+<p>The first match at or after start with what each group captured, read into groups, a buffer of groups_len entries
+the caller owns: group 0 is the match, then each capturing group, CRE_UNSET for one that did not take part. A
+buffer shorter than cre_regex_group_count() + 1 takes the first groups, and entries past the last group are
+CRE_UNSET. Nothing is allocated once the thread has read a match with as many groups. *out_found.</p>
+<h3 id="cre_regex_captures_read_limit">cre_regex_captures_read_limit</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_read_limit(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                         uint64_t limit_ms, cre_match *groups, size_t groups_len, bool *out_found);
+</code></pre>
+<p>cre_regex_captures_read with a limit on the time the match may take, in milliseconds (0 for the regular expression's
+match timeout): CRE_MATCH_LIMIT when it is reached. It allocates for each match.</p>
+<h3 id="cre_regex_captures">cre_regex_captures</h3>
+<pre><code class="language-c">cre_status cre_regex_captures(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                              cre_captures *captures, bool *out_found);
+</code></pre>
+<p>The first match at or after start with what each group captured, by number and by name, written into captures
+(made by cre_captures_new for this regular expression): *out_found.</p>
+<h3 id="cre_regex_captures_limit">cre_regex_captures_limit</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_limit(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                    uint64_t limit_ms, cre_captures *captures, bool *out_found);
+</code></pre>
+<p>cre_regex_captures with a limit on the time the match may take, in milliseconds (0 for the regular expression's match
+timeout): CRE_MATCH_LIMIT when it is reached.</p>
+<h3 id="cre_regex_find_iter">cre_regex_find_iter</h3>
+<pre><code class="language-c">cre_status cre_regex_find_iter(const cre_regex *regex, const char *text, size_t text_len, cre_matches **out_matches);
+</code></pre>
+<p>A global search of the text, as matchAll makes one: cre_matches_next gives each match, and after an empty match the
+search goes on one character later (one code point with u or v, one UTF-16 code unit without). With the y flag
+each match must start where the one before it ended. The text is checked to be UTF-8 here, once. On success
+*out_matches is a handle to free with cre_matches_free. The regular expression and the text must stay alive and
+unchanged until then.</p>
+<h3 id="cre_regex_captures_iter">cre_regex_captures_iter</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_iter(const cre_regex *regex, const char *text, size_t text_len,
+                                   cre_matches **out_matches);
+</code></pre>
+<p>cre_regex_find_iter keeping the groups of each match, for cre_matches_next_captures.</p>
+<h3 id="cre_regex_replace">cre_regex_replace</h3>
+<pre><code class="language-c">cre_status cre_regex_replace(const cre_regex *regex, const char *text, size_t text_len, const char *replacement,
+                             size_t replacement_len, cre_string *out_result);
+</code></pre>
+<p>The text with the first match replaced, or every match with the g flag, as String.prototype.replace replaces them.
+The replacement is a template: $&amp; is the match, $` the text before it, $' the text after it, $1 to $99 a group,
+$&lt;name&gt; a named group, and $$ a dollar sign; anything else is itself (GetSubstitution). On success *out_result is a
+string to free with cre_string_free. A half character (an end between the halves of a character beyond the Basic
+Multilingual Plane, without u or v) is written as U+FFFD.</p>
+<h3 id="cre_regex_replace_all">cre_regex_replace_all</h3>
+<pre><code class="language-c">cre_status cre_regex_replace_all(const cre_regex *regex, const char *text, size_t text_len, const char *replacement,
+                                 size_t replacement_len, cre_string *out_result);
+</code></pre>
+<p>cre_regex_replace with every match replaced, whether or not the g flag is set (String.prototype.replaceAll).</p>
+<h3 id="cre_regex_split">cre_regex_split</h3>
+<pre><code class="language-c">cre_status cre_regex_split(const cre_regex *regex, const char *text, size_t text_len, uint32_t limit,
+                           cre_pieces *out_pieces);
+</code></pre>
+<p>The text split around the matches, as String.prototype.split(separator, limit) splits it: what each group captured
+is spliced in after the piece before it (a NULL ptr for a group that did not take part), an empty match at the
+start or the end of the text splits nothing, and there are at most limit pieces (CRE_SPLIT_ALL for every one). On
+success *out_pieces holds the pieces, to free with cre_pieces_free. A half character is written as U+FFFD.</p>
+<h2 id="matching-utf-8-text-without-the-check">Matching UTF-8 text without the check</h2>
+<p>Each function is the one without the suffix, with the text taken on trust to be UTF-8: it is not checked, so a call
+does not read the whole text once more before it searches. They are for a caller whose strings are UTF-8 by
+construction, such as a Swift String or a Rust str, or that has checked a text once with cre_utf8_check. Text that
+is not UTF-8 is undefined behaviour. Everything else (the arguments, the results, the statuses, CRE_INVALID_UTF8
+aside) is as the function without the suffix.</p>
+<h3 id="cre_utf8_check">cre_utf8_check</h3>
+<pre><code class="language-c">cre_status cre_utf8_check(const char *text, size_t text_len);
+</code></pre>
+<p>Whether the text is UTF-8: CRE_OK, or CRE_INVALID_UTF8 with cre_last_error_offset at the first byte that is not. A
+caller whose strings carry no such guarantee checks a text once, when it makes it, and then searches it with the
+_unchecked functions as often as it likes.</p>
+<h3 id="cre_regex_is_match_unchecked">cre_regex_is_match_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_is_match_unchecked(const cre_regex *regex, const char *text, size_t text_len, bool *out_matched);
+</code></pre>
+<h3 id="cre_regex_is_match_limit_unchecked">cre_regex_is_match_limit_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_is_match_limit_unchecked(const cre_regex *regex, const char *text, size_t text_len,
+                                              uint64_t limit_ms, bool *out_matched);
+</code></pre>
+<h3 id="cre_regex_is_match_at_unchecked">cre_regex_is_match_at_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_is_match_at_unchecked(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                           bool *out_matched);
+</code></pre>
+<h3 id="cre_regex_find_unchecked">cre_regex_find_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_find_unchecked(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                    cre_match *out_match, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_find_limit_unchecked">cre_regex_find_limit_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_find_limit_unchecked(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                          uint64_t limit_ms, cre_match *out_match, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_captures_read_unchecked">cre_regex_captures_read_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_read_unchecked(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                             cre_match *groups, size_t groups_len, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_captures_read_limit_unchecked">cre_regex_captures_read_limit_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_read_limit_unchecked(const cre_regex *regex, const char *text, size_t text_len,
+                                                   size_t start, uint64_t limit_ms, cre_match *groups,
+                                                   size_t groups_len, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_captures_unchecked">cre_regex_captures_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_unchecked(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                        cre_captures *captures, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_captures_limit_unchecked">cre_regex_captures_limit_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_limit_unchecked(const cre_regex *regex, const char *text, size_t text_len, size_t start,
+                                              uint64_t limit_ms, cre_captures *captures, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_find_iter_unchecked">cre_regex_find_iter_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_find_iter_unchecked(const cre_regex *regex, const char *text, size_t text_len,
+                                         cre_matches **out_matches);
+</code></pre>
+<h3 id="cre_regex_captures_iter_unchecked">cre_regex_captures_iter_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_iter_unchecked(const cre_regex *regex, const char *text, size_t text_len,
+                                             cre_matches **out_matches);
+</code></pre>
+<h3 id="cre_regex_replace_unchecked">cre_regex_replace_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_replace_unchecked(const cre_regex *regex, const char *text, size_t text_len,
+                                       const char *replacement, size_t replacement_len, cre_string *out_result);
+</code></pre>
+<h3 id="cre_regex_replace_all_unchecked">cre_regex_replace_all_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_replace_all_unchecked(const cre_regex *regex, const char *text, size_t text_len,
+                                           const char *replacement, size_t replacement_len, cre_string *out_result);
+</code></pre>
+<h3 id="cre_regex_split_unchecked">cre_regex_split_unchecked</h3>
+<pre><code class="language-c">cre_status cre_regex_split_unchecked(const cre_regex *regex, const char *text, size_t text_len, uint32_t limit,
+                                     cre_pieces *out_pieces);
+</code></pre>
+<h2 id="matching-utf-16-text">Matching UTF-16 text</h2>
+<p>As the UTF-8 functions, over text_len UTF-16 code units at text (aligned for uint16_t), which may hold lone
+surrogates. Positions are code unit indexes, and a start may be any index no greater than text_len.</p>
+<h3 id="cre_regex_is_match_utf16">cre_regex_is_match_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_is_match_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len, bool *out_matched);
+</code></pre>
+<h3 id="cre_regex_is_match_limit_utf16">cre_regex_is_match_limit_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_is_match_limit_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len,
+                                          uint64_t limit_ms, bool *out_matched);
+</code></pre>
+<h3 id="cre_regex_is_match_at_utf16">cre_regex_is_match_at_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_is_match_at_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len, size_t start,
+                                       bool *out_matched);
+</code></pre>
+<h3 id="cre_regex_find_utf16">cre_regex_find_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_find_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len, size_t start,
+                                cre_match *out_match, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_find_limit_utf16">cre_regex_find_limit_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_find_limit_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len, size_t start,
+                                      uint64_t limit_ms, cre_match *out_match, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_captures_read_utf16">cre_regex_captures_read_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_read_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len, size_t start,
+                                         cre_match *groups, size_t groups_len, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_captures_read_limit_utf16">cre_regex_captures_read_limit_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_read_limit_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len,
+                                               size_t start, uint64_t limit_ms, cre_match *groups, size_t groups_len,
+                                               bool *out_found);
+</code></pre>
+<h3 id="cre_regex_captures_utf16">cre_regex_captures_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len, size_t start,
+                                    cre_captures *captures, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_captures_limit_utf16">cre_regex_captures_limit_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_limit_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len, size_t start,
+                                          uint64_t limit_ms, cre_captures *captures, bool *out_found);
+</code></pre>
+<h3 id="cre_regex_find_iter_utf16">cre_regex_find_iter_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_find_iter_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len,
+                                     cre_matches **out_matches);
+</code></pre>
+<p>The regular expression and the text must stay alive and unchanged until cre_matches_free.</p>
+<h3 id="cre_regex_captures_iter_utf16">cre_regex_captures_iter_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_captures_iter_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len,
+                                         cre_matches **out_matches);
+</code></pre>
+<h3 id="cre_regex_replace_utf16">cre_regex_replace_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_replace_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len,
+                                   const uint16_t *replacement, size_t replacement_len, cre_string16 *out_result);
+</code></pre>
+<p>The replacement is UTF-16 too; *out_result is a string to free with cre_string16_free. A lone surrogate is kept as
+it is.</p>
+<h3 id="cre_regex_replace_all_utf16">cre_regex_replace_all_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_replace_all_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len,
+                                       const uint16_t *replacement, size_t replacement_len, cre_string16 *out_result);
+</code></pre>
+<h3 id="cre_regex_split_utf16">cre_regex_split_utf16</h3>
+<pre><code class="language-c">cre_status cre_regex_split_utf16(const cre_regex *regex, const uint16_t *text, size_t text_len, uint32_t limit,
+                                 cre_pieces16 *out_pieces);
+</code></pre>
+<p>out_pieces holds the pieces, to free with cre_pieces16_free.</p>
+<h2 id="captures">Captures</h2>
+<h3 id="cre_captures_new">cre_captures_new</h3>
+<pre><code class="language-c">cre_status cre_captures_new(const cre_regex *regex, cre_captures **out_captures);
+</code></pre>
+<p>A place for what a match of regex captures, for cre_regex_captures and cre_matches_next_captures, reused from match
+to match. On success *out_captures is a handle to free with cre_captures_free. It holds no reference to the regular
+expression or to any text, but is only used with the regular expression it was made for (CRE_INVALID_ARGUMENT
+otherwise).</p>
+<h3 id="cre_captures_free">cre_captures_free</h3>
+<pre><code class="language-c">void cre_captures_free(cre_captures *captures);
+</code></pre>
+<p>Frees a captures handle. NULL is allowed and does nothing.</p>
+<h3 id="cre_captures_len">cre_captures_len</h3>
+<pre><code class="language-c">size_t cre_captures_len(const cre_captures *captures);
+</code></pre>
+<p>The number of groups of the last match, group 0 among them, or 0 when the last search found none (or for NULL).</p>
+<h3 id="cre_captures_get">cre_captures_get</h3>
+<pre><code class="language-c">bool cre_captures_get(const cre_captures *captures, size_t group, cre_match *out_match);
+</code></pre>
+<p>The group group of the last match (0 is the whole match): true with *out_match where it is, or false with
+*out_match CRE_UNSET when it did not take part, there is no such group, or the last search found no match.</p>
+<h3 id="cre_captures_name">cre_captures_name</h3>
+<pre><code class="language-c">bool cre_captures_name(const cre_captures *captures, const char *name, size_t name_len, cre_match *out_match);
+</code></pre>
+<p>The group of the name in the last match (of the groups that share it, the one that took part): true with
+*out_match where it is, or false with *out_match CRE_UNSET. The name is UTF-8, name_len bytes.</p>
+<h2 id="the-global-search">The global search</h2>
+<h3 id="cre_matches_next">cre_matches_next</h3>
+<pre><code class="language-c">cre_status cre_matches_next(cre_matches *matches, cre_match *out_match, bool *out_found);
+</code></pre>
+<p>The next match of a global search: *out_found says whether there is one, and *out_match is where it is (CRE_UNSET
+when there is none). Once there is none, every later call finds none until cre_matches_reset.</p>
+<h3 id="cre_matches_next_batch">cre_matches_next_batch</h3>
+<pre><code class="language-c">cre_status cre_matches_next_batch(cre_matches *matches, cre_match *out_matches, size_t capacity, size_t *out_count);
+</code></pre>
+<p>The next matches of a global search, up to capacity of them, written in order to out_matches[0] to
+out_matches[*out_count - 1]: the matches cre_matches_next would give one call each, with one call for many, which
+spares a call for each match where a text has very many (a buffer of some hundreds is enough). *out_count is less
+than capacity only when the search has found every match, so a call that writes 0 ends it; a capacity of 0 writes
+nothing and out_matches may then be NULL. It reads a search made by cre_regex_captures_iter as well, giving where
+each match is.</p>
+<pre><code>cre_match batch\[256\];
+size_t n;
+while (cre_matches_next_batch(it, batch, 256, &amp;n) == CRE_OK &amp;&amp; n &gt; 0) {
+    for (size_t k = 0; k \&lt; n; k++) use(batch\[k\].start, batch\[k\].end);
+}
+</code></pre>
+<h3 id="cre_matches_next_captures">cre_matches_next_captures</h3>
+<pre><code class="language-c">cre_status cre_matches_next_captures(cre_matches *matches, cre_captures *captures, bool *out_found);
+</code></pre>
+<p>The next match of a global search made by cre_regex_captures_iter (or its UTF-16 form), with its groups written
+into captures (made for the same regular expression): *out_found. CRE_INVALID_ARGUMENT for a search made by
+cre_regex_find_iter, which keeps no groups.</p>
+<h3 id="cre_matches_next_captures_batch">cre_matches_next_captures_batch</h3>
+<pre><code class="language-c">cre_status cre_matches_next_captures_batch(cre_matches *matches, cre_match *out_groups, size_t capacity,
+                                           size_t *out_count);
+</code></pre>
+<p>The next matches of a global search made by cre_regex_captures_iter (or its UTF-16 form) with their groups, written
+in order to out_groups: each match as cre_regex_group_count(regex) + 1 entries (the match, then each group,
+CRE_UNSET for one that did not take part), as many matches as capacity entries hold, and *out_count matches. It
+spares a call for each match and allocates nothing. *out_count is less than capacity / (groups + 1) only when the
+search has found every match. A capacity of 0 writes nothing (out_groups may then be NULL); a capacity that holds
+no match, or a search made by cre_regex_find_iter, is CRE_INVALID_ARGUMENT. The groups are by number
+(cre_matches_next_captures and cre_captures_name read them by name).</p>
+<pre><code>size_t width = cre_regex_group_count(re) + 1, n;
+cre_match groups\[64 \* 4\];
+while (cre_matches_next_captures_batch(it, groups, 64 \* 4, &amp;n) == CRE_OK &amp;&amp; n &gt; 0) {
+    for (size_t k = 0; k \&lt; n; k++) use(&amp;groups\[k \* width\]);
+}
+</code></pre>
+<h3 id="cre_matches_reset">cre_matches_reset</h3>
+<pre><code class="language-c">void cre_matches_reset(cre_matches *matches);
+</code></pre>
+<p>Starts the global search again at the start of its text, which is not checked again: as setting lastIndex to 0.
+NULL is allowed and does nothing.</p>
+<h3 id="cre_matches_free">cre_matches_free</h3>
+<pre><code class="language-c">void cre_matches_free(cre_matches *matches);
+</code></pre>
+<p>Frees a global search. NULL is allowed and does nothing.</p>
+<h2 id="freeing-results">Freeing results</h2>
+<h3 id="cre_string_free">cre_string_free</h3>
+<pre><code class="language-c">void cre_string_free(cre_string *string);
+</code></pre>
+<p>Frees a string the library wrote, and sets it to {NULL, 0}. NULL, or a string already {NULL, 0}, does nothing.</p>
+<h3 id="cre_string16_free">cre_string16_free</h3>
+<pre><code class="language-c">void cre_string16_free(cre_string16 *string);
+</code></pre>
+<p>Frees a UTF-16 string the library wrote, and sets it to {NULL, 0}. NULL, or a string already {NULL, 0}, does
+nothing.</p>
+<h3 id="cre_pieces_free">cre_pieces_free</h3>
+<pre><code class="language-c">void cre_pieces_free(cre_pieces *pieces);
+</code></pre>
+<p>Frees the pieces of a split, and empties them. NULL, or pieces already empty, does nothing.</p>
+<h3 id="cre_pieces16_free">cre_pieces16_free</h3>
+<pre><code class="language-c">void cre_pieces16_free(cre_pieces16 *pieces);
+</code></pre>
+<p>Frees the pieces of a split of UTF-16 text, and empties them. NULL, or pieces already empty, does nothing.</p>
+        </div>
+    </main>
+</div>
+
+    </div>
+    <footer class="site-footer">
+    <div class="site-footer__inner">
+        <div class="site-footer__sponsor">
+            Sponsored by
+            <a href="https://endjin.com" target="_blank" rel="noopener noreferrer">endjin</a>
+        </div>
+        <ul class="site-footer__links" role="list">
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/getting-started/index.html">Getting Started</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/docs/index.html">Documentation</a></li>
+            <li><a class="site-footer__link" href="https://corvus-oss.org/corvus-regex-ecma262-benchmarks/">Benchmarks</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/api/index.html">API</a></li>
+            <li><a class="site-footer__link" href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+            <li><a class="site-footer__link" href="https://www.nuget.org/packages/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">NuGet</a></li>
+        </ul>
+        <p class="site-footer__copyright">&copy; 2026 endjin Ltd.</p>
+    </div>
+</footer>
+
+    <!-- highlight.js for syntax highlighting (CSS targets .hljs-* classes) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js" defer></script>
+    <script>document.addEventListener('DOMContentLoaded',()=>hljs.highlightAll())</script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/main.js" defer></script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/sidebar-search.js" defer></script>
+    
+</body>
+</html>

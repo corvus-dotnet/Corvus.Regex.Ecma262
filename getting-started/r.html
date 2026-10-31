@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1C1D21" />
+    <meta name="description" content="An R package, for R 4.2 and later." />
+    <meta name="keywords" content="regex, ECMA-262, R" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:description" content="An R package, for R 4.2 and later." />
+    <meta name="twitter:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta name="twitter:title" content="Getting started with R - Corvus.Regex.Ecma262" />
+    <meta property="article:tag" content="regex" />
+    <meta property="article:tag" content="ECMA-262" />
+    <meta property="article:tag" content="R" />
+    <meta property="og:description" content="An R package, for R 4.2 and later." />
+    <meta property="og:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta property="og:title" content="Getting started with R - Corvus.Regex.Ecma262" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://corvus-oss.org/Corvus.Regex.Ecma262/getting-started/r/" />
+    <title>Getting started with R - Corvus.Regex.Ecma262</title>
+    <link itemprop="url" href="https://corvus-oss.org/Corvus.Regex.Ecma262/getting-started/r/" />
+    <link rel="canonical" href="https://corvus-oss.org/Corvus.Regex.Ecma262/getting-started/r/" />
+    <link rel="sitemap" href="https://corvus-oss.org/Corvus.Regex.Ecma262/sitemap.xml" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="/Corvus.Regex.Ecma262/main.css" />
+    <link rel="icon" type="image/svg+xml" href="/Corvus.Regex.Ecma262/assets/images/favicon.svg" />
+    
+</head>
+<body class="">
+    <a class="sr-only" href="#main-content">Skip to content</a>
+<header class="site-header">
+    <div class="site-header__inner">
+        <a class="site-header__brand" href="/Corvus.Regex.Ecma262/index.html" aria-label="Corvus.Regex.Ecma262 home">
+            <img src="/Corvus.Regex.Ecma262/assets/images/logo-corvus.svg" alt="" width="28" height="28" aria-hidden="true" />
+            Corvus<span style="color:var(--color-brand)">.</span>Regex<span style="color:var(--color-brand)">.Ecma262</span>
+        </a>
+        <nav class="site-header__nav-desktop" aria-label="Main navigation">
+                    <a href="/Corvus.Regex.Ecma262/getting-started/index.html"
+                       class="site-header__link is-active"
+                       aria-current=page>Getting Started</a>
+                    <a href="/Corvus.Regex.Ecma262/docs/index.html"
+                       class="site-header__link "
+                       >Documentation</a>
+                    <a href="/Corvus.Regex.Ecma262/api/index.html"
+                       class="site-header__link "
+                       >API</a>
+            <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+               class="site-header__link" target="_blank" rel="noopener noreferrer"
+               aria-label="View on GitHub">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+        </nav>
+        <button class="site-header__menu-toggle js-toggle-menu"
+                aria-expanded="false" aria-label="Toggle menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+    </div>
+</header>
+<nav class="site-header__nav-mobile js-mobile-nav" aria-label="Mobile navigation">
+            <a href="/Corvus.Regex.Ecma262/getting-started/index.html" class="site-header__link">Getting Started</a>
+            <a href="/Corvus.Regex.Ecma262/docs/index.html" class="site-header__link">Documentation</a>
+            <a href="/Corvus.Regex.Ecma262/api/index.html" class="site-header__link">API</a>
+    <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+       class="site-header__link" target="_blank" rel="noopener noreferrer">GitHub</a>
+</nav>
+
+    <div class="page-content">
+    <div class="layout-docs container">
+    <button class="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false"></button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar">
+    <div class="sidebar__inner">
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Getting Started</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                    <li class="sidebar__item"><a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/index.html">Choose a language</a></li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/dotnet.html">.NET</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/c.html">C</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/cpp.html">C&#x2B;&#x2B;</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/fortran.html">Fortran</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/go.html">Go</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/java.html">Java</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/julia.html">Julia</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/pascal.html">Object Pascal</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ocaml.html">OCaml</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/php.html">PHP</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/python.html">Python</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link is-active" href="/Corvus.Regex.Ecma262/getting-started/r.html">R</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ruby.html">Ruby</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/rust.html">Rust</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/swift.html">Swift</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Documentation</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/dotnet/index.html">.NET</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/industry.html">Benchmarks</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/contributing.html">Contributing</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/compatibility.html">Compatibility</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/c/index.html">C</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/design-c.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/cpp/index.html">C&#x2B;&#x2B;</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/fortran/index.html">Fortran</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/go/index.html">Go</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/java/index.html">Java</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/julia/index.html">Julia</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/pascal/index.html">Object Pascal</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ocaml/index.html">OCaml</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/php/index.html">PHP</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/python/index.html">Python</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/r/index.html">R</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ruby/index.html">Ruby</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/rust/index.html">Rust</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/swift/index.html">Swift</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/contributing.html">Contributing</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</aside>
+
+    <main id="main-content" class="layout-docs__main">
+        <div class="doc__content">
+            <h1>Getting started with R</h1>
+<h2 id="introduction">Introduction</h2>
+<p><code>corvusregexecma262</code> is an R package whose patterns answer as ECMAScript does. Where base R's <code>regexpr</code> and <code>gsub</code>
+(PCRE2 or TRE) and stringi (ICU) have their own grammars and their own meaning for <code>\d</code>, <code>\w</code>, <code>\s</code>, <code>.</code>, case
+folding and Unicode properties, this package has ECMA-262's, so a pattern written for JavaScript, or taken from a JSON
+Schema, matches the same texts here as it does there. It is the corvus-regex-ecma262 Rust crate, held to V8's answers
+on the ECMA-262 test data, and its functions are vectorised over their texts, as base R's are.</p>
+<p>This guide covers:</p>
+<ul>
+<li><strong>Setup</strong>: installing from R-universe.</li>
+<li><strong>Patterns and flags</strong>: the flags are ECMA-262's letters, and what each one does.</li>
+<li><strong>The edition and the version of Unicode</strong>: the grammar of ECMAScript 2020, and the Unicode tables a pattern reads.</li>
+<li><strong>Matching</strong>: <code>ecma_test</code>, <code>ecma_match</code>, <code>ecma_locate</code>, <code>ecma_match_all</code>, <code>ecma_count</code>, <code>ecma_replace</code> and
+<code>ecma_split</code>.</li>
+<li><strong>Timeouts</strong>: the limit of time and of memory a match may take.</li>
+<li><strong>UTF-8 and UTF-16</strong>: strings, raw vectors of UTF-8 and <code>ecma_utf16</code> code units, each with its own positions.</li>
+<li><strong>Vectors and NA</strong>: what each function returns for many texts and for a missing one.</li>
+<li><strong>Differences from base R and stringi</strong>: what to expect when they meet.</li>
+</ul>
+<h2 id="setup">Setup</h2>
+<pre><code>install.packages(&quot;corvusregexecma262&quot;, repos = c(&quot;https://corvus-dotnet.r-universe.dev&quot;, &quot;https://cloud.r-project.org&quot;))
+</code></pre>
+<p>R-universe has binary packages for Windows and macOS. A source install builds the native code, and needs
+<a href="https://rustup.rs">Rust</a> 1.89 or later.</p>
+<pre><code class="language-r">library(corvusregexecma262)
+</code></pre>
+<h2 id="patterns-and-flags">Patterns and flags</h2>
+<p>A pattern is written as it would be in JavaScript, and the flags are the letters <code>RegExp</code> takes, as a string.
+<code>ecma_regex</code> compiles a pattern once; every function also takes the pattern as a string, compiled for that call.</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>d</code></td>
+<td>Accepted for completeness; indices are always kept.</td>
+</tr>
+<tr>
+<td><code>g</code></td>
+<td><code>ecma_replace</code> replaces every match; without it, the first, as <code>String.prototype.replace</code> does.</td>
+</tr>
+<tr>
+<td><code>i</code></td>
+<td>Canonicalize of the mode in force: simple case folding with <code>u</code> or <code>v</code>, <code>toUpperCase</code> without. Never the locale.</td>
+</tr>
+<tr>
+<td><code>m</code></td>
+<td><code>^</code> and <code>$</code> at line terminators.</td>
+</tr>
+<tr>
+<td><code>s</code></td>
+<td>The dot matches line terminators.</td>
+</tr>
+<tr>
+<td><code>u</code></td>
+<td>The <code>u</code> flag grammar; matched by code point.</td>
+</tr>
+<tr>
+<td><code>v</code></td>
+<td>Set notation and properties of strings; matched by code point. <code>u</code> and <code>v</code> together is an error, as in ECMA-262.</td>
+</tr>
+<tr>
+<td><code>y</code></td>
+<td>A match only at the start position.</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-r">library(corvusregexecma262)
+
+a &lt;- ecma_regex(&quot;\\p{Script=Greek}+&quot;, &quot;u&quot;)
+b &lt;- ecma_regex(&quot;[[a-z]--[aeiou]]+&quot;, &quot;v&quot;)
+c &lt;- ecma_regex(&quot;^(?&lt;year&gt;\\d{4})-(?&lt;month&gt;\\d{2})$&quot;, &quot;u&quot;)
+
+stopifnot(ecma_test(&quot;αβγ&quot;, a), ecma_test(&quot;rhythm&quot;, b))
+stopifnot(ecma_match(&quot;2026-10&quot;, c)[, &quot;month&quot;] == &quot;10&quot;)
+</code></pre>
+<p>With no flag the pattern is read with the Annex B grammar and matched by UTF-16 code unit, which is what ECMA-262 does
+with no flag. JSON Schema's reading, the <code>u</code> flag first and Annex B when that refuses, is two compiles, each with the
+match timeout, so no default timeout is needed; <code>tryCatch</code> is the form that does not stop:</p>
+<pre><code class="language-r">library(corvusregexecma262)
+
+schema_pattern &lt;- function(pattern) {
+  tryCatch(ecma_regex(pattern, &quot;u&quot;, timeout = 1),
+           ecma_invalid_pattern = function(e) ecma_regex(pattern, &quot;&quot;, timeout = 1))
+}
+
+stopifnot(ecma_test(&quot;Ωmega&quot;, schema_pattern(&quot;^\\p{L}+$&quot;)))
+# An identity escape, which only Annex B allows.
+stopifnot(ecma_test(&quot;-&quot;, schema_pattern(&quot;\\-&quot;)))
+</code></pre>
+<p>A pattern that is not valid signals <code>ecma_invalid_pattern</code>, whose message says why; invalid flags signal
+<code>ecma_invalid_flags</code>. Every pattern has deterministic limits of size, and <code>ecma_pattern_too_large</code> says when one is
+passed. Each is an <code>ecma_regex_error</code>.</p>
+<pre><code class="language-r">library(corvusregexecma262)
+
+e &lt;- tryCatch(ecma_regex(&quot;a{2,1}&quot;, &quot;u&quot;), ecma_regex_error = function(e) e)
+stopifnot(inherits(e, &quot;ecma_invalid_pattern&quot;), nzchar(conditionMessage(e)))
+stopifnot(inherits(tryCatch(ecma_regex(&quot;a&quot;, &quot;uv&quot;), error = function(e) e), &quot;ecma_invalid_flags&quot;))
+stopifnot(identical(ecma_valid(c(&quot;a+&quot;, &quot;(?&lt;n&gt;a)(?&lt;n&gt;b)&quot;), &quot;u&quot;), c(TRUE, FALSE)))
+</code></pre>
+<h2 id="the-edition-and-the-version-of-unicode">The edition and the version of Unicode</h2>
+<p>By default a pattern is read with today's grammar, ECMAScript 2025 (<code>edition = &quot;current&quot;</code>), and with the tables of the
+version of Unicode that V8 carries, 17 today (<code>unicode_version = NULL</code>). Either can be overridden when the pattern is
+compiled, each independently of the other.</p>
+<p>JSON Schema 2020-12 names the grammar of ECMAScript 2020, which <code>edition = &quot;es2020&quot;</code> selects in place of the default. It
+refuses what later editions added, and nothing else: the <code>d</code> and <code>v</code> flags, modifier groups such as <code>(?i:...)</code>, a group
+name used by two groups, and a property name or value that is not in the 2020 tables (such as <code>\p{Script=Yezidi}</code>). A
+pattern it accepts has the same answers as in today's grammar.</p>
+<p>The version of Unicode is chosen apart from the edition: <code>unicode_version</code> is 13, 17, 18, <code>&quot;latest&quot;</code> (18 today) or
+<code>NULL</code>, the version of the V8 the answers are held to (17 today). It decides the members of each <code>\p{...}</code>, the
+characters of a group name and the case folding of the <code>i</code> flag. A compiled pattern's <code>unicode_version</code> attribute
+reports the version it was compiled with. Both are read when the pattern is compiled, so a match costs the same
+whichever is chosen.</p>
+<pre><code class="language-r">library(corvusregexecma262)
+
+# ECMAScript 2020 as its edition was published, with the Unicode of its year.
+greek &lt;- ecma_regex(&quot;^\\p{Script=Greek}+$&quot;, &quot;u&quot;, timeout = 1, edition = &quot;es2020&quot;, unicode_version = 13)
+stopifnot(ecma_test(&quot;αβγ&quot;, greek), attr(greek, &quot;unicode_version&quot;) == 13)
+
+# Vithkuqi is in Unicode 14 and later, so not in Unicode 13.
+stopifnot(!ecma_valid(&quot;\\p{Script=Vithkuqi}&quot;, &quot;u&quot;, unicode_version = 13))
+</code></pre>
+<h2 id="matching">Matching</h2>
+<p>The functions are those of a <code>RegExp</code>, with the position as <code>start</code> where JavaScript keeps <code>lastIndex</code>. Positions are
+in characters from 1, an end inclusive, as <code>regexpr</code> gives them. A match is a row of a character matrix: the match,
+then each group, then a column for each group name.</p>
+<pre><code class="language-r">library(corvusregexecma262)
+
+date &lt;- ecma_regex(&quot;(?&lt;year&gt;\\d{4})-(?&lt;month&gt;\\d{2})&quot;, &quot;gu&quot;)
+text &lt;- &quot;due 2026-10, then 2027-01&quot;
+
+stopifnot(ecma_test(text, date))
+m &lt;- ecma_match(text, date)
+stopifnot(m[, 1] == &quot;2026-10&quot;, m[, &quot;year&quot;] == &quot;2026&quot;, m[, 3] == &quot;10&quot;)
+where &lt;- ecma_locate(text, date)
+stopifnot(where[, &quot;start&quot;] == 5, where[, &quot;end&quot;] == 11)
+
+# Every match of a global search, as matchAll makes it.
+stopifnot(identical(ecma_match_all(text, date)[[1]][, 1], c(&quot;2026-10&quot;, &quot;2027-01&quot;)))
+stopifnot(ecma_count(text, date) == 2)
+
+# ecma_replace replaces every match with the g flag, and the first without it, with every $ form of ECMA-262, or a function.
+stopifnot(ecma_replace(text, date, &quot;$&lt;month&gt;/$1&quot;) == &quot;due 10/2026, then 01/2027&quot;)
+stopifnot(ecma_replace(text, date, function(m) m[[&quot;year&quot;]]) == &quot;due 2026, then 2027&quot;)
+
+# ecma_split puts what the groups captured between the pieces; a group that did not take part is NA.
+stopifnot(identical(ecma_split(&quot;a ; b;c&quot;, &quot;\\s*(;)\\s*&quot;)[[1]], c(&quot;a&quot;, &quot;;&quot;, &quot;b&quot;, &quot;;&quot;, &quot;c&quot;)))
+</code></pre>
+<p><code>ecma_match(x, regex, start)</code> is <code>exec</code> with <code>lastIndex</code> set to <code>start - 1</code>, and <code>y</code> anchors it there. <code>ecma_test</code>
+and <code>ecma_count</code> make no match, and so allocate nothing for one. A compiled pattern is immutable, so one is reused
+from call to call.</p>
+<h2 id="timeouts">Timeouts</h2>
+<p>A match has no limit by default. A pattern compiled with a <code>timeout</code> (in seconds) abandons a match that reaches it, or
+that reaches the cap on backtracking memory the timeout brings, with the condition <code>ecma_match_limit</code>, whatever the
+pattern:</p>
+<pre><code class="language-r">library(corvusregexecma262)
+
+slow &lt;- ecma_regex(&quot;^(?:(a+)\\1*)+$&quot;, timeout = 0.1)
+e &lt;- tryCatch(ecma_test(paste0(strrep(&quot;a&quot;, 60), &quot;b&quot;), slow), ecma_regex_error = function(e) e)
+stopifnot(inherits(e, &quot;ecma_match_limit&quot;))
+</code></pre>
+<p>A pattern compiled without a timeout takes <code>ecma_default_timeout()</code>, which is <code>NULL</code> (no limit) unless
+<code>ecma_set_default_timeout</code> sets it. A program that matches patterns or texts from outside should set one, for example
+with <code>ecma_set_default_timeout(1)</code> when it starts. <code>ecma_test</code>, <code>ecma_match</code> and <code>ecma_locate</code> take a <code>timeout</code> of
+their own for each search.</p>
+<p>A pattern without a backreference is matched in time linear in the text, and no pattern can overflow the stack, so the
+timeout is what bounds the others.</p>
+<h2 id="utf-8-and-utf-16">UTF-8 and UTF-16</h2>
+<p>A string marked as UTF-8, or in the native encoding of a UTF-8 session, is read in place with no transcoding, after a
+check that it is UTF-8; one in another encoding is translated, and one marked as bytes is refused. Over strings,
+positions are in characters, as <code>nchar</code> counts them. A raw vector is one text of UTF-8 bytes, with positions in bytes;
+one that is not UTF-8 signals <code>ecma_encoding_error</code>, and is never matched or read as U+FFFD. An <code>ecma_utf16</code> is one
+text of UTF-16 code units, lone surrogates and all, with positions in code units.</p>
+<pre><code class="language-r">library(corvusregexecma262)
+
+dot_b &lt;- ecma_regex(&quot;.b&quot;, &quot;u&quot;)
+text &lt;- &quot;a\U0001F600b&quot;
+stopifnot(ecma_locate(text, dot_b)[, &quot;end&quot;] == 3)                       # characters
+stopifnot(ecma_locate(charToRaw(enc2utf8(text)), dot_b)[, &quot;end&quot;] == 6)  # bytes of UTF-8
+stopifnot(ecma_locate(ecma_utf16(text), dot_b)[, &quot;end&quot;] == 4)           # UTF-16 code units
+
+e &lt;- tryCatch(ecma_test(as.raw(0xff), dot_b), ecma_regex_error = function(e) e)
+stopifnot(inherits(e, &quot;ecma_encoding_error&quot;))
+</code></pre>
+<p>Under the <code>u</code> and <code>v</code> flags a character is a code point in every encoding, so a class, a dot or a quantifier takes a
+four-byte sequence as one character. With no flag ECMA-262 matches by UTF-16 code unit, so a match can take half of a
+character beyond the Basic Multilingual Plane: over a string its text then holds that half as U+FFFD, and its
+positions are the whole character's.</p>
+<h2 id="vectors-and-na">Vectors and NA</h2>
+<p>Each function takes a vector of strings and answers for each: <code>ecma_test</code> a logical vector, <code>ecma_match</code> a matrix with
+a row for each string, <code>ecma_locate</code> an integer matrix, and <code>ecma_match_all</code>, <code>ecma_locate_all</code> and <code>ecma_split</code> a
+list. A missing string gives <code>NA</code>, or <code>NULL</code> in a list. A raw vector or an <code>ecma_utf16</code> is one text; a list of them is
+many.</p>
+<pre><code class="language-r">library(corvusregexecma262)
+
+stopifnot(identical(ecma_test(c(&quot;due 2026-10&quot;, &quot;none&quot;, NA), &quot;\\d{4}&quot;), c(TRUE, FALSE, NA)))
+stopifnot(identical(ecma_count(c(&quot;1 2 3&quot;, &quot;&quot;), &quot;\\d&quot;), c(3L, 0L)))
+</code></pre>
+<h2 id="differences-from-base-r-and-stringi">Differences from base R and stringi</h2>
+<p>The functions follow <code>RegExp</code>; the meaning follows ECMA-262. The differences a user coming from base R's <code>regexpr</code>
+and <code>gsub</code>, or from stringi, will meet:</p>
+<ul>
+<li><strong>The grammar.</strong> No <code>(?i)</code> inline option (ECMA-262 has <code>(?i:...)</code> groups), no atomic groups, no possessive
+quantifiers, no <code>\A</code> or <code>\z</code>, no <code>[[:alpha:]]</code> classes, no conditionals and no recursion. The flags are a separate
+string, not <code>perl = TRUE</code>, <code>fixed = TRUE</code> or <code>ignore.case = TRUE</code>.</li>
+<li><strong>The character classes.</strong> <code>\d</code> is <code>[0-9]</code>, <code>\w</code> is the 63 ASCII word characters, <code>\s</code> is ECMAScript's white space
+and line terminators, and <code>.</code> excludes the four line terminators (LF, CR, U+2028, U+2029), whatever the locale.</li>
+<li><strong>Replacement.</strong> A template writes a group as <code>$1</code> or <code>$&lt;name&gt;</code>, not <code>\\1</code>, and <code>$&amp;</code>, <code>$`</code> and <code>$'</code> are the
+match and the text before and after it. <code>ecma_replace</code> replaces every match only with the <code>g</code> flag, as <code>sub</code> and
+<code>gsub</code> are two functions; <code>ecma_replace_all</code> always does.</li>
+<li><strong>Split.</strong> <code>ecma_split</code> is JavaScript's, which puts what the groups captured between the pieces and keeps empty
+pieces at the end.</li>
+<li><strong>Timeouts.</strong> Neither base R nor stringi has a limit on a match's time. Here a pattern without a backreference is
+matched in time linear in the text, and a timeout bounds the others.</li>
+</ul>
+        </div>
+    </main>
+</div>
+
+    </div>
+    <footer class="site-footer">
+    <div class="site-footer__inner">
+        <div class="site-footer__sponsor">
+            Sponsored by
+            <a href="https://endjin.com" target="_blank" rel="noopener noreferrer">endjin</a>
+        </div>
+        <ul class="site-footer__links" role="list">
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/getting-started/index.html">Getting Started</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/docs/index.html">Documentation</a></li>
+            <li><a class="site-footer__link" href="https://corvus-oss.org/corvus-regex-ecma262-benchmarks/">Benchmarks</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/api/index.html">API</a></li>
+            <li><a class="site-footer__link" href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+            <li><a class="site-footer__link" href="https://www.nuget.org/packages/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">NuGet</a></li>
+        </ul>
+        <p class="site-footer__copyright">&copy; 2026 endjin Ltd.</p>
+    </div>
+</footer>
+
+    <!-- highlight.js for syntax highlighting (CSS targets .hljs-* classes) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js" defer></script>
+    <script>document.addEventListener('DOMContentLoaded',()=>hljs.highlightAll())</script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/main.js" defer></script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/sidebar-search.js" defer></script>
+    
+</body>
+</html>

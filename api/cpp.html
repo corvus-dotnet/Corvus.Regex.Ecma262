@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1C1D21" />
+    <meta name="description" content="The API reference of the C&#x2B;&#x2B; package." />
+    <meta name="keywords" content="regex, ECMA-262, C&#x2B;&#x2B;" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:description" content="The API reference of the C&#x2B;&#x2B; package." />
+    <meta name="twitter:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta name="twitter:title" content="C&#x2B;&#x2B;: API reference - Corvus.Regex.Ecma262" />
+    <meta property="article:tag" content="regex" />
+    <meta property="article:tag" content="ECMA-262" />
+    <meta property="article:tag" content="C&#x2B;&#x2B;" />
+    <meta property="og:description" content="The API reference of the C&#x2B;&#x2B; package." />
+    <meta property="og:image" content="/Corvus.Regex.Ecma262/assets/images/og-corvus.png" />
+    <meta property="og:title" content="C&#x2B;&#x2B;: API reference - Corvus.Regex.Ecma262" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://corvus-oss.org/Corvus.Regex.Ecma262/api/cpp/" />
+    <title>C&#x2B;&#x2B;: API reference - Corvus.Regex.Ecma262</title>
+    <link itemprop="url" href="https://corvus-oss.org/Corvus.Regex.Ecma262/api/cpp/" />
+    <link rel="canonical" href="https://corvus-oss.org/Corvus.Regex.Ecma262/api/cpp/" />
+    <link rel="sitemap" href="https://corvus-oss.org/Corvus.Regex.Ecma262/sitemap.xml" />
+    <!-- Styles -->
+    <link rel="stylesheet" href="/Corvus.Regex.Ecma262/main.css" />
+    <link rel="icon" type="image/svg+xml" href="/Corvus.Regex.Ecma262/assets/images/favicon.svg" />
+    
+</head>
+<body class="">
+    <a class="sr-only" href="#main-content">Skip to content</a>
+<header class="site-header">
+    <div class="site-header__inner">
+        <a class="site-header__brand" href="/Corvus.Regex.Ecma262/index.html" aria-label="Corvus.Regex.Ecma262 home">
+            <img src="/Corvus.Regex.Ecma262/assets/images/logo-corvus.svg" alt="" width="28" height="28" aria-hidden="true" />
+            Corvus<span style="color:var(--color-brand)">.</span>Regex<span style="color:var(--color-brand)">.Ecma262</span>
+        </a>
+        <nav class="site-header__nav-desktop" aria-label="Main navigation">
+                    <a href="/Corvus.Regex.Ecma262/getting-started/index.html"
+                       class="site-header__link "
+                       >Getting Started</a>
+                    <a href="/Corvus.Regex.Ecma262/docs/index.html"
+                       class="site-header__link "
+                       >Documentation</a>
+                    <a href="/Corvus.Regex.Ecma262/api/index.html"
+                       class="site-header__link is-active"
+                       aria-current=page>API</a>
+            <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+               class="site-header__link" target="_blank" rel="noopener noreferrer"
+               aria-label="View on GitHub">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+        </nav>
+        <button class="site-header__menu-toggle js-toggle-menu"
+                aria-expanded="false" aria-label="Toggle menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+    </div>
+</header>
+<nav class="site-header__nav-mobile js-mobile-nav" aria-label="Mobile navigation">
+            <a href="/Corvus.Regex.Ecma262/getting-started/index.html" class="site-header__link">Getting Started</a>
+            <a href="/Corvus.Regex.Ecma262/docs/index.html" class="site-header__link">Documentation</a>
+            <a href="/Corvus.Regex.Ecma262/api/index.html" class="site-header__link">API</a>
+    <a href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262"
+       class="site-header__link" target="_blank" rel="noopener noreferrer">GitHub</a>
+</nav>
+
+    <div class="page-content">
+    <div class="layout-docs container">
+    <button class="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false"></button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar">
+    <div class="sidebar__inner">
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Getting Started</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                    <li class="sidebar__item"><a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/index.html">Choose a language</a></li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/dotnet.html">.NET</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/c.html">C</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/cpp.html">C&#x2B;&#x2B;</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/fortran.html">Fortran</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/go.html">Go</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/java.html">Java</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/julia.html">Julia</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/pascal.html">Object Pascal</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ocaml.html">OCaml</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/php.html">PHP</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/python.html">Python</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/r.html">R</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/ruby.html">Ruby</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/rust.html">Rust</a>
+                            </li>
+                            <li class="sidebar__item">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/getting-started/swift.html">Swift</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+        <div class="sidebar__section">
+            <button class="sidebar__heading">Documentation</button>
+            <div class="sidebar__body">
+                <ul class="sidebar__list">
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/dotnet/index.html">.NET</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/industry.html">Benchmarks</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/contributing.html">Contributing</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/dotnet/compatibility.html">Compatibility</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/c/index.html">C</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/design-c.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/c/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/cpp/index.html">C&#x2B;&#x2B;</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/cpp/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/fortran/index.html">Fortran</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/fortran/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/go/index.html">Go</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/go/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/java/index.html">Java</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/java/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/julia/index.html">Julia</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/julia/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/pascal/index.html">Object Pascal</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/pascal/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ocaml/index.html">OCaml</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ocaml/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/php/index.html">PHP</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/php/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/python/index.html">Python</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/python/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/r/index.html">R</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/r/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/ruby/index.html">Ruby</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/ruby/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/rust/index.html">Rust</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/rust/contributing.html">Contributing</a>
+                            </li>
+                        <li class="sidebar__item">
+                            <a class="sidebar__link sidebar__link--group " href="/Corvus.Regex.Ecma262/docs/swift/index.html">Swift</a>
+                        </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/design.html">Design</a>
+                            </li>
+                            <li class="sidebar__item sidebar__item--nested">
+                                <a class="sidebar__link " href="/Corvus.Regex.Ecma262/docs/swift/contributing.html">Contributing</a>
+                            </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</aside>
+
+    <main id="main-content" class="layout-docs__main">
+        <div class="doc__content">
+            <h1>C&#x2B;&#x2B;: API reference</h1>
+<p>The C++ API: the header <code>corvus/regex_ecma262.hpp</code>, namespace <code>corvus::ecma262</code>, generated from its declarations
+and their comments by <code>tools/docs/gen-api.ps1</code>. <a href="/Corvus.Regex.Ecma262/getting-started/cpp.html">Getting started</a> shows it at work.</p>
+<h2 id="conventions">Conventions</h2>
+<ul>
+<li>A regex is a compiled pattern, read as new RegExp(pattern, flags) reads it. It is immutable, so any number of
+threads may use one at once, and copying one shares the compiled pattern rather than compiling it again.</li>
+<li>Text is any std<span>basic_string_view of char or char8_t (UTF-8, checked: text that is not UTF-8 throws) or of
+char16_t (UTF-16, not checked, lone surrogates and all), and so a std</span>basic_string or a pointer to a
+NUL-terminated string of those. On Windows, wchar_t text is UTF-16. Nothing is transcoded: positions are in the
+units of the text, bytes of UTF-8 or UTF-16 code units.</li>
+<li>A match is the one exec finds. Without the u or v flag a pattern is matched by UTF-16 code unit, so over UTF-8 a
+match can start or end between the halves of a character beyond the Basic Multilingual Plane; such a position is
+the offset of the character's third byte.</li>
+<li>Failures throw corvus<span>ecma262</span>regex_error, whose code() says why (std<span>error_code, in ecma262</span>category()). A
+pattern that is not valid is errc<span>invalid_pattern; a match that reaches its limit of time or of backtracking
+memory is errc</span>match_limit.</li>
+<li>A regex has a match timeout, as a Regex of .NET has: the constructor that takes a std<span>chrono</span>milliseconds, or
+regex<span>set_default_match_timeout for every regex made after it (none unless set). Every member that matches gives
+each of its matches the timeout, and the overloads that take a std</span>chrono::milliseconds give one match a limit
+of their own. Without a timeout a match has no limit of time or of memory, so give a pattern or a text from
+outside one.</li>
+<li>A pattern is read in the grammar of an edition (edition<span>current, today's, or edition</span>es2020, which JSON Schema
+2020-12 names) and under a version of Unicode (unicode_version<span>v8, the version of the V8 the answers are held to,
+17 today; v13, v17, v18; or latest, 18 today), each independent of the other and settled when it is compiled, so
+that they cost a match nothing: regex</span>options carries them with a match timeout. regex::try_compile is the form
+that does not throw, and takes the options too, so a validator needs no default timeout.</li>
+<li>A global search (find_all, captures_all) is a range that keeps the regex alive but not the text, as a
+std::string_view does not: the text must outlive it.</li>
+</ul>
+<h2 id="errc">errc</h2>
+<pre><code class="language-cpp">enum class errc : std::uint32_t {
+    // A value out of range, such as a start beyond the text or inside a character.
+    invalid_argument = CRE_INVALID_ARGUMENT,
+    // Text that is not UTF-8 (regex_error::offset() is the offset of the first invalid byte).
+    invalid_utf8 = CRE_INVALID_UTF8,
+    // The pattern is not valid in the grammar of its flags (new RegExp would throw a SyntaxError).
+    invalid_pattern = CRE_INVALID_PATTERN,
+    // A letter that is not one of dgimsuvy, a flag given twice, or u with v.
+    invalid_flags = CRE_INVALID_FLAGS,
+    // The pattern is over a limit of size (its length, the depth its groups nest to, or its size as it is read).
+    pattern_too_large = CRE_PATTERN_TOO_LARGE,
+    // A match reached its limit of time or of backtracking memory, so there is no answer.
+    match_limit = CRE_MATCH_LIMIT,
+    // A bug in the library: it was caught, and the library remains usable.
+    panic = CRE_PANIC,
+};
+</code></pre>
+<p>Why a call failed: the C library's statuses other than CRE_OK.</p>
+<h2 id="category">category</h2>
+<pre><code class="language-cpp">inline const std::error_category&amp; category() noexcept;
+</code></pre>
+<p>The error category of errc.</p>
+<h2 id="make_error_code">make_error_code</h2>
+<pre><code class="language-cpp">inline std::error_code make_error_code(errc e) noexcept;
+</code></pre>
+<h2 id="regex_error">regex_error</h2>
+<pre><code class="language-cpp">class regex_error : public std::system_error
+</code></pre>
+<p>What a call that failed throws: the reason (code(), an errc), the C library's message (what()) and, for text that
+is not UTF-8, the offset of the first invalid byte (offset()).</p>
+<h3 id="regex_errorregex_error">regex_error::regex_error</h3>
+<pre><code class="language-cpp">regex_error(errc code, const std::string&amp; message, std::size_t offset = 0)
+    : std::system_error(make_error_code(code), message), offset_(offset);
+</code></pre>
+<h3 id="regex_errorreason">regex_error::reason</h3>
+<pre><code class="language-cpp">errc reason() const noexcept;
+</code></pre>
+<p>The reason, as an errc.</p>
+<h3 id="regex_erroroffset">regex_error::offset</h3>
+<pre><code class="language-cpp">std::size_t offset() const noexcept;
+</code></pre>
+<p>The offset of the first byte that is not UTF-8, for errc::invalid_utf8; otherwise 0.</p>
+<h2 id="edition">edition</h2>
+<pre><code class="language-cpp">enum class edition : std::uint32_t {
+    current = CRE_EDITION_CURRENT,
+    es2020 = CRE_EDITION_ES2020,
+};
+</code></pre>
+<p>The edition of ECMA-262 whose grammar a pattern is read with: today's, the default, or ECMAScript 2020's. The 2020
+grammar refuses what later editions added: the d and v flags (errc<span>invalid_flags), modifier groups, a name given to
+more than one group, and property names that are not in its edition's tables (each errc</span>invalid_pattern).</p>
+<h2 id="unicode_version">unicode_version</h2>
+<pre><code class="language-cpp">enum class unicode_version : std::uint32_t {
+    v8 = CRE_UNICODE_DEFAULT,
+    v13 = CRE_UNICODE_13,
+    v17 = CRE_UNICODE_17,
+    v18 = CRE_UNICODE_18,
+    latest = CRE_UNICODE_LATEST,
+};
+</code></pre>
+<p>The version of Unicode whose tables a pattern is read with (its properties and its case folding), independent of
+the edition: v8, the version of the V8 the answers are held to (17 today); 13, 17 or 18; or latest, the latest the C
+library carries (18 today).</p>
+<h2 id="unicode_versions">unicode_versions</h2>
+<pre><code class="language-cpp">inline constexpr std::array&lt;int, 3&gt; unicode_versions{13, 17, 18};
+
+inline constexpr int default_unicode_version = 17;
+
+inline constexpr int latest_unicode_version = 18;
+</code></pre>
+<p>The versions of Unicode a pattern can be read with; the one unicode_version<span>v8 stands for; and the one
+unicode_version</span>latest stands for.</p>
+<h2 id="npos">npos</h2>
+<pre><code class="language-cpp">inline constexpr std::size_t npos = CRE_UNSET;
+</code></pre>
+<p>The position of no match and of a group that did not take part.</p>
+<h2 id="match">match</h2>
+<pre><code class="language-cpp">struct match
+</code></pre>
+<p>Where a match or a group is in its text: start to end, in the text's units (bytes of UTF-8, or UTF-16 code
+units). A group that did not take part is npos to npos, and is false.</p>
+<h3 id="matchstart">match::start</h3>
+<pre><code class="language-cpp">std::size_t start = npos;
+
+std::size_t end = npos;
+</code></pre>
+<h3 id="matchoperator-bool">match::operator bool</h3>
+<pre><code class="language-cpp">constexpr explicit operator bool() const noexcept;
+</code></pre>
+<p>Whether the group took part in the match.</p>
+<h3 id="matchlength">match::length</h3>
+<pre><code class="language-cpp">constexpr std::size_t length() const noexcept;
+</code></pre>
+<p>The length in units (0 for a group that did not take part).</p>
+<h3 id="matchin">match::in</h3>
+<pre><code class="language-cpp">template &lt;class C&gt;
+constexpr std::basic_string_view&lt;C&gt; in(std::basic_string_view&lt;C&gt; text) const noexcept;
+</code></pre>
+<p>The part of the text, which must be the text the match was found in.</p>
+<h3 id="matchoperator">match::operator==</h3>
+<pre><code class="language-cpp">friend constexpr bool operator==(const match&amp;, const match&amp;) = default;
+</code></pre>
+<h2 id="no_limit">no_limit</h2>
+<pre><code class="language-cpp">inline constexpr std::uint32_t no_limit = CRE_SPLIT_ALL;
+</code></pre>
+<p>The limit of split that keeps every piece, as split(separator) with no limit.</p>
+<h2 id="basic_captures">basic_captures</h2>
+<pre><code class="language-cpp">template &lt;class C&gt;
+class basic_captures
+</code></pre>
+<p>What a match captured: each group by number (0 is the whole match) and by name, with the text it was found in.
+It is what regex::captures returns, and what a captures_all range gives for each match (reused from one match to
+the next, so copy what must outlive the step).</p>
+<h3 id="basic_capturessize">basic_captures::size</h3>
+<pre><code class="language-cpp">std::size_t size() const noexcept;
+</code></pre>
+<p>The number of groups, the whole match among them.</p>
+<h3 id="basic_capturesoperator">basic_captures::operator[]</h3>
+<pre><code class="language-cpp">match operator[](std::size_t i) const noexcept;
+
+match operator[](std::string_view name) const noexcept;
+</code></pre>
+<p>Where group i is (false when it did not take part, or there is no such group).</p>
+<p>Where the group of the name is (of the groups that share it, the one that took part).</p>
+<h3 id="basic_capturesstr">basic_captures::str</h3>
+<pre><code class="language-cpp">std::optional&lt;std::basic_string_view&lt;C&gt;&gt; str(std::size_t i) const noexcept;
+
+std::optional&lt;std::basic_string_view&lt;C&gt;&gt; str(std::string_view name) const noexcept;
+</code></pre>
+<p>The text of group i, or nothing when it did not take part.</p>
+<p>The text of the group of the name, or nothing when no group of that name took part.</p>
+<h3 id="basic_captureswhole">basic_captures::whole</h3>
+<pre><code class="language-cpp">match whole() const noexcept;
+</code></pre>
+<p>The whole match.</p>
+<h3 id="basic_capturestext">basic_captures::text</h3>
+<pre><code class="language-cpp">std::basic_string_view&lt;C&gt; text() const noexcept;
+</code></pre>
+<p>The text the match was found in.</p>
+<h2 id="captures">captures</h2>
+<pre><code class="language-cpp">using captures = basic_captures&lt;char&gt;;
+
+using u8captures = basic_captures&lt;char8_t&gt;;
+
+using u16captures = basic_captures&lt;char16_t&gt;;
+</code></pre>
+<h2 id="basic_match_range">basic_match_range</h2>
+<pre><code class="language-cpp">template &lt;class C&gt;
+class basic_match_range : public std::ranges::view_interface&lt;basic_match_range&lt;C&gt;&gt;
+</code></pre>
+<p>A global search of one text, as matchAll makes one, as a range of match: after an empty match the search goes on
+one character later (one code point with u or v, one UTF-16 code unit without), and with the y flag each match
+must start where the one before it ended. It reads the matches from the library in batches. It is an input
+range: it is read once, and begin() may be called once (again after reset()).</p>
+<h3 id="basic_match_rangeiterator">basic_match_range::iterator</h3>
+<pre><code class="language-cpp">class iterator {
+    using value_type = match;
+    using difference_type = std::ptrdiff_t;
+    using iterator_concept = std::input_iterator_tag;
+    iterator() = default;
+    match operator*() const noexcept;
+    iterator&amp; operator++();
+    void operator++(int);
+    friend bool operator==(const iterator&amp; it, std::default_sentinel_t) noexcept;
+};
+</code></pre>
+<h3 id="basic_match_rangebasic_match_range">basic_match_range::basic_match_range</h3>
+<pre><code class="language-cpp">basic_match_range(basic_match_range&amp;&amp;) noexcept = default;
+</code></pre>
+<h3 id="basic_match_rangeoperator">basic_match_range::operator=</h3>
+<pre><code class="language-cpp">basic_match_range&amp; operator=(basic_match_range&amp;&amp;) noexcept = default;
+</code></pre>
+<h3 id="basic_match_rangebegin">basic_match_range::begin</h3>
+<pre><code class="language-cpp">iterator begin();
+</code></pre>
+<p>The first match. It reads the first batch.</p>
+<h3 id="basic_match_rangeend">basic_match_range::end</h3>
+<pre><code class="language-cpp">std::default_sentinel_t end() const noexcept;
+</code></pre>
+<h3 id="basic_match_rangereset">basic_match_range::reset</h3>
+<pre><code class="language-cpp">void reset() noexcept;
+</code></pre>
+<p>Starts the search again at the start of its text, which is not checked again (as setting lastIndex to 0), so
+that the same text can be searched again without a new search: begin() may then be called once more.</p>
+<h3 id="basic_match_rangeto_vector">basic_match_range::to_vector</h3>
+<pre><code class="language-cpp">std::vector&lt;match&gt; to_vector();
+</code></pre>
+<p>Every match, into a vector.</p>
+<h2 id="match_range">match_range</h2>
+<pre><code class="language-cpp">using match_range = basic_match_range&lt;char&gt;;
+
+using u8match_range = basic_match_range&lt;char8_t&gt;;
+
+using u16match_range = basic_match_range&lt;char16_t&gt;;
+</code></pre>
+<h2 id="basic_captures_range">basic_captures_range</h2>
+<pre><code class="language-cpp">template &lt;class C&gt;
+class basic_captures_range : public std::ranges::view_interface&lt;basic_captures_range&lt;C&gt;&gt;
+</code></pre>
+<p>A global search as basic_match_range, keeping each match's groups: a range of basic_captures, one object reused
+from match to match (so copy what must outlive the step). An input range, read once.</p>
+<h3 id="basic_captures_rangeiterator">basic_captures_range::iterator</h3>
+<pre><code class="language-cpp">class iterator {
+    using value_type = basic_captures&lt;C&gt;;
+    using difference_type = std::ptrdiff_t;
+    using iterator_concept = std::input_iterator_tag;
+    iterator() = default;
+    const basic_captures&lt;C&gt;&amp; operator*() const noexcept;
+    const basic_captures&lt;C&gt;* operator-&gt;() const noexcept;
+    iterator&amp; operator++();
+    void operator++(int);
+    friend bool operator==(const iterator&amp; it, std::default_sentinel_t) noexcept;
+};
+</code></pre>
+<h3 id="basic_captures_rangebasic_captures_range">basic_captures_range::basic_captures_range</h3>
+<pre><code class="language-cpp">basic_captures_range(basic_captures_range&amp;&amp;) noexcept = default;
+</code></pre>
+<h3 id="basic_captures_rangeoperator">basic_captures_range::operator=</h3>
+<pre><code class="language-cpp">basic_captures_range&amp; operator=(basic_captures_range&amp;&amp;) noexcept = default;
+</code></pre>
+<h3 id="basic_captures_rangebegin">basic_captures_range::begin</h3>
+<pre><code class="language-cpp">iterator begin();
+</code></pre>
+<h3 id="basic_captures_rangeend">basic_captures_range::end</h3>
+<pre><code class="language-cpp">std::default_sentinel_t end() const noexcept;
+</code></pre>
+<h2 id="captures_range">captures_range</h2>
+<pre><code class="language-cpp">using captures_range = basic_captures_range&lt;char&gt;;
+
+using u8captures_range = basic_captures_range&lt;char8_t&gt;;
+
+using u16captures_range = basic_captures_range&lt;char16_t&gt;;
+</code></pre>
+<h2 id="regex">regex</h2>
+<pre><code class="language-cpp">class regex
+</code></pre>
+<p>A compiled ECMA-262 regular expression.</p>
+<h3 id="regexoptions">regex::options</h3>
+<pre><code class="language-cpp">struct options {
+    std::optional&lt;std::chrono::milliseconds&gt; match_timeout;
+    ecma262::edition edition = ecma262::edition::current;
+    ecma262::unicode_version unicode_version = ecma262::unicode_version::v8;
+};
+</code></pre>
+<p>How a pattern is compiled besides its flags: its match timeout (nullopt for the default timeout, zero for
+none), the edition whose grammar it is read with, and the version of Unicode whose tables it is read with.</p>
+<h3 id="regexregex">regex::regex</h3>
+<pre><code class="language-cpp">template &lt;detail::text P&gt;
+explicit regex(const P&amp; pattern, std::string_view flags = {});
+
+template &lt;detail::text P&gt;
+regex(const P&amp; pattern, std::string_view flags, std::chrono::milliseconds match_timeout);
+
+template &lt;detail::text P&gt;
+regex(const P&amp; pattern, std::string_view flags, const options&amp; opts);
+</code></pre>
+<p>Compiles a pattern with the flags new RegExp(pattern, flags) takes, any of dgimsuvy. Throws regex_error:
+errc::invalid_pattern, invalid_flags or pattern_too_large. A pattern given as UTF-16 is read as UTF-8, a lone
+surrogate as U+FFFD.</p>
+<p>As above, with a match timeout: the time each match may take before it is abandoned with errc::match_limit
+(zero for none). A timeout also caps the backtracking memory of a match.</p>
+<p>As above, with the options: under edition<span>es2020 the d and v flags are errc</span>invalid_flags.</p>
+<h3 id="regextry_compile">regex::try_compile</h3>
+<pre><code class="language-cpp">template &lt;detail::text P&gt;
+static std::optional&lt;regex&gt; try_compile(const P&amp; pattern, std::string_view flags, const options&amp; opts,
+                                        std::error_code&amp; ec);
+</code></pre>
+<p>The constructor that does not throw for the pattern: the regex, or nullopt with ec set to why (errc::
+invalid_pattern, invalid_flags or pattern_too_large). It takes the options, so a check of a pattern from outside
+gives it a timeout of its own without the default.</p>
+<h3 id="regexset_default_match_timeout">regex::set_default_match_timeout</h3>
+<pre><code class="language-cpp">static void set_default_match_timeout(std::optional&lt;std::chrono::milliseconds&gt; timeout) noexcept;
+</code></pre>
+<p>Sets the match timeout of every regex made from now on without one of its own, or nullopt (or zero) for none,
+the default. It is the process-wide default of .NET's REGEX_DEFAULT_MATCH_TIMEOUT; a program that matches
+patterns or texts from outside should set it when it starts. A regex already made keeps its own.</p>
+<h3 id="regexdefault_match_timeout">regex::default_match_timeout</h3>
+<pre><code class="language-cpp">static std::optional&lt;std::chrono::milliseconds&gt; default_match_timeout() noexcept;
+</code></pre>
+<p>The match timeout of a regex made now without one of its own, or nullopt for none.</p>
+<h3 id="regexmatch_timeout">regex::match_timeout</h3>
+<pre><code class="language-cpp">std::optional&lt;std::chrono::milliseconds&gt; match_timeout() const noexcept;
+</code></pre>
+<p>The time each match may take before it is abandoned with errc::match_limit, or nullopt for none.</p>
+<h3 id="regexis_valid">regex::is_valid</h3>
+<pre><code class="language-cpp">template &lt;detail::text P&gt;
+static bool is_valid(const P&amp; pattern, std::string_view flags = {});
+
+template &lt;detail::text P&gt;
+static bool is_valid(const P&amp; pattern, std::string_view flags, ecma262::edition ed, ecma262::unicode_version uv);
+</code></pre>
+<p>Whether a pattern is valid with the flags, without compiling it. A pattern over a limit of size is not valid
+here.</p>
+<p>As above, in the grammar of an edition and under a version of Unicode.</p>
+<h3 id="regexedition">regex::edition</h3>
+<pre><code class="language-cpp">ecma262::edition edition() const noexcept;
+</code></pre>
+<p>The edition whose grammar the pattern was read with.</p>
+<h3 id="regexunicode_version">regex::unicode_version</h3>
+<pre><code class="language-cpp">int unicode_version() const noexcept;
+</code></pre>
+<p>The version of Unicode whose tables the pattern was read with, resolved: 13, 17 or 18.</p>
+<h3 id="regexsource">regex::source</h3>
+<pre><code class="language-cpp">std::string_view source() const noexcept;
+</code></pre>
+<p>The pattern as it was given (as UTF-8).</p>
+<h3 id="regexflags">regex::flags</h3>
+<pre><code class="language-cpp">std::string_view flags() const noexcept;
+</code></pre>
+<p>The flags as RegExp.prototype.flags writes them, in the order dgimsuvy.</p>
+<h3 id="regexgroup_count">regex::group_count</h3>
+<pre><code class="language-cpp">std::size_t group_count() const noexcept;
+</code></pre>
+<p>The number of capturing groups (a match has one more, the whole match).</p>
+<h3 id="regexgroup_names">regex::group_names</h3>
+<pre><code class="language-cpp">std::vector&lt;std::string_view&gt; group_names() const;
+</code></pre>
+<p>The distinct names of the groups, in the order of the first group of each name.</p>
+<h3 id="regexis_match">regex::is_match</h3>
+<pre><code class="language-cpp">template &lt;detail::text T&gt;
+bool is_match(const T&amp; text, std::size_t start = 0) const;
+
+template &lt;detail::text T&gt;
+bool is_match(const T&amp; text, std::chrono::milliseconds limit) const;
+</code></pre>
+<p>Whether the pattern matches at or after start (at start alone with the y flag), as RegExp.prototype.test with
+lastIndex set to start.</p>
+<p>is_match from the start of the text, with a limit on the time the match may take in place of the regex's
+timeout: errc::match_limit when it is reached.</p>
+<h3 id="regexfind">regex::find</h3>
+<pre><code class="language-cpp">template &lt;detail::text T&gt;
+std::optional&lt;match&gt; find(const T&amp; text, std::size_t start = 0) const;
+
+template &lt;detail::text T&gt;
+std::optional&lt;match&gt; find(const T&amp; text, std::size_t start, std::chrono::milliseconds limit) const;
+</code></pre>
+<p>The first match at or after start, as exec finds it with lastIndex set to start, or nothing.</p>
+<p>find with a limit on the time the match may take: errc::match_limit when it is reached.</p>
+<h3 id="regexcaptures">regex::captures</h3>
+<pre><code class="language-cpp">template &lt;detail::text T&gt;
+std::optional&lt;basic_captures&lt;detail::unit_of&lt;T&gt;&gt;&gt; captures(const T&amp; text, std::size_t start = 0) const;
+
+template &lt;detail::text T&gt;
+std::optional&lt;basic_captures&lt;detail::unit_of&lt;T&gt;&gt;&gt; captures(const T&amp; text, std::size_t start,
+                                                            std::chrono::milliseconds limit) const;
+</code></pre>
+<p>The first match at or after start with what each group captured, or nothing.</p>
+<p>captures with a limit on the time the match may take: errc::match_limit when it is reached.</p>
+<h3 id="regexcaptures_read">regex::captures_read</h3>
+<pre><code class="language-cpp">template &lt;detail::text T&gt;
+bool captures_read(const T&amp; text, std::size_t start, std::span&lt;match&gt; groups) const;
+</code></pre>
+<p>The groups of the first match at or after start into a buffer the caller owns: group 0 is the match, then each
+capturing group (false for one that did not take part). A buffer shorter than group_count() + 1 takes the first
+groups. Nothing is allocated once the thread has read a match with as many groups. Whether there was a match.</p>
+<h3 id="regexfind_all">regex::find_all</h3>
+<pre><code class="language-cpp">template &lt;detail::text T&gt;
+basic_match_range&lt;detail::unit_of&lt;T&gt;&gt; find_all(const T&amp; text) const;
+</code></pre>
+<p>Every match of a global search of the text, as a range of match (see basic_match_range). The text must outlive
+the range.</p>
+<h3 id="regexcaptures_all">regex::captures_all</h3>
+<pre><code class="language-cpp">template &lt;detail::text T&gt;
+basic_captures_range&lt;detail::unit_of&lt;T&gt;&gt; captures_all(const T&amp; text) const;
+</code></pre>
+<p>Every match of a global search of the text with its groups, as a range of basic_captures. The text must outlive
+the range.</p>
+<h3 id="regexreplace">regex::replace</h3>
+<pre><code class="language-cpp">template &lt;detail::text T, detail::text R&gt;
+    requires std::is_same_v&lt;detail::unit_of&lt;T&gt;, detail::unit_of&lt;R&gt;&gt;
+std::basic_string&lt;detail::unit_of&lt;T&gt;&gt; replace(const T&amp; text, const R&amp; replacement) const;
+</code></pre>
+<p>The text with the first match replaced, or every match with the g flag, as String.prototype.replace replaces
+them. The replacement is a template: $&amp; is the match, $` the text before it, $' the text after it, $1 to $99 a
+group, $&lt;name&gt; a named group, and $$ a dollar sign. Over UTF-8, a half character (an end between the halves of a
+character beyond the Basic Multilingual Plane, without u or v) is written as U+FFFD.</p>
+<h3 id="regexreplace_all">regex::replace_all</h3>
+<pre><code class="language-cpp">template &lt;detail::text T, detail::text R&gt;
+    requires std::is_same_v&lt;detail::unit_of&lt;T&gt;, detail::unit_of&lt;R&gt;&gt;
+std::basic_string&lt;detail::unit_of&lt;T&gt;&gt; replace_all(const T&amp; text, const R&amp; replacement) const;
+</code></pre>
+<p>replace with every match replaced, whether or not the g flag is set (String.prototype.replaceAll).</p>
+<h3 id="regexsplit">regex::split</h3>
+<pre><code class="language-cpp">template &lt;detail::text T&gt;
+std::vector&lt;std::optional&lt;std::basic_string&lt;detail::unit_of&lt;T&gt;&gt;&gt;&gt; split(const T&amp; text,
+                                                                       std::uint32_t limit = no_limit) const;
+</code></pre>
+<p>The text split around the matches, as String.prototype.split(separator, limit) splits it: what each group
+captured is spliced in after the piece before it (nothing for a group that did not take part), an empty match
+at the start or the end of the text splits nothing, and there are at most limit pieces.</p>
+<h3 id="regexnative_handle">regex::native_handle</h3>
+<pre><code class="language-cpp">const cre_regex* native_handle() const noexcept;
+</code></pre>
+<p>The C library's handle, for calls this header does not wrap. It stays valid as long as this regex (or a copy).</p>
+<h2 id="library_version">library_version</h2>
+<pre><code class="language-cpp">inline std::string_view library_version() noexcept;
+</code></pre>
+<p>The version of the C library this program runs with, as &quot;major.minor.patch&quot;.</p>
+        </div>
+    </main>
+</div>
+
+    </div>
+    <footer class="site-footer">
+    <div class="site-footer__inner">
+        <div class="site-footer__sponsor">
+            Sponsored by
+            <a href="https://endjin.com" target="_blank" rel="noopener noreferrer">endjin</a>
+        </div>
+        <ul class="site-footer__links" role="list">
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/getting-started/index.html">Getting Started</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/docs/index.html">Documentation</a></li>
+            <li><a class="site-footer__link" href="https://corvus-oss.org/corvus-regex-ecma262-benchmarks/">Benchmarks</a></li>
+            <li><a class="site-footer__link" href="/Corvus.Regex.Ecma262/api/index.html">API</a></li>
+            <li><a class="site-footer__link" href="https://github.com/corvus-dotnet/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+            <li><a class="site-footer__link" href="https://www.nuget.org/packages/Corvus.Regex.Ecma262" target="_blank" rel="noopener noreferrer">NuGet</a></li>
+        </ul>
+        <p class="site-footer__copyright">&copy; 2026 endjin Ltd.</p>
+    </div>
+</footer>
+
+    <!-- highlight.js for syntax highlighting (CSS targets .hljs-* classes) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js" defer></script>
+    <script>document.addEventListener('DOMContentLoaded',()=>hljs.highlightAll())</script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/main.js" defer></script>
+    <script src="/Corvus.Regex.Ecma262/assets/js/sidebar-search.js" defer></script>
+    
+</body>
+</html>
