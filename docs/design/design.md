@@ -130,11 +130,16 @@ diagnostics CRE0001 to CRE0005 cover the pattern, the member's shape, the flags,
   keeps in the assembly's data. The holder passes it to the constructor, which reads it in place of parsing,
   compiling and building, so a generated regular expression's first match costs what a later one does. The image
   carries values only (instructions, the sets as ranges, literals, the automata's tables); the searchers that depend
-  on the machine are made from them as from a pattern. It records the fingerprint of the engine that wrote it, a hash
-  of the sources of the reader, the compiler, the engine and the Unicode tables (`EngineFingerprint.targets`), and the
-  settings, so an image from another engine (an emitter from `CodeGeneration.Sources` older or newer than the library
-  the application loads) or for other settings is ignored and the pattern compiled, with the same answers. A checksum
-  and checks on every index guard against damage. An image over 64 KiB is left out. The automaton was 96% of the work
+  on the machine are made from them as from a pattern. It records the version of its layout, the revision of the
+  compiler that wrote it and the settings, and holds its parts as tagged sections. A library reads every layout from
+  `MinimumFormat` on and every image from `MinimumTrustedRevision` on, so an image from an earlier emitter (one from
+  `CodeGeneration.Sources` older than the library the application loads) is read wherever it is still right. It
+  ignores an image of a layout, a required section or an instruction it does not know, from a revision whose output
+  was wrong, or for other settings, and compiles the pattern, with the same answers; the `ImageIgnored` event says
+  why. What an image stores keeps its meaning once released: an opcode keeps its number, a field its sense, and
+  anything new goes in a new section. The golden check reads what every release wrote with the library as it is
+  ([compatibility](../contributing/compatibility.md), docs/plan/image-compatibility.md). A checksum and checks on
+  every index guard against damage. An image over 64 KiB is left out. The automaton was 96% of the work
   of a regular expression's first match over the patterns of the jsonschema-benchmark corpora
   (docs/plan/compiled-regex-as-data.md).
 - `RegexBuildOptions.Eager` gives a regular expression made at run time the same first match: it builds the automata

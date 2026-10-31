@@ -15,10 +15,17 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// </summary>
 /// <remarks>
 /// <para>
-/// An image records the fingerprint of the engine that wrote it (<see cref="EngineFingerprint"/>, a hash of the
-/// parser's, the compiler's and the engine's sources) and the settings it was written under. A reader whose engine or
-/// settings differ ignores it and parses the pattern, so an image only ever saves work: a regular expression read from
-/// one answers as one compiled from its pattern.
+/// An image records the version of its layout, the revision of the compiler that wrote it and the settings it was
+/// written under, and holds its parts as sections (see docs/plan/image-compatibility.md and
+/// docs/contributing/compatibility.md). A reader reads every layout from <see cref="MinimumFormat"/> to
+/// <see cref="FormatVersion"/>, and every image from a revision at or above <see cref="MinimumTrustedRevision"/>. It
+/// ignores an image whose settings differ, which uses a section or an instruction it does not know, or which is
+/// damaged, and parses the pattern instead, so an image only ever saves work: a regular expression read from one
+/// answers as one compiled from its pattern.
+/// </para>
+/// <para>
+/// What an image stores keeps its meaning once a release has written it. An opcode keeps its number, a field keeps
+/// its sense, and anything new goes in a new section.
 /// </para>
 /// <para>
 /// What an image holds is values: the instructions, the sets as their ranges, the literals, the tables of the automata.
@@ -28,8 +35,45 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// </remarks>
 internal static class RegexImage
 {
-    /// <summary>The version of the layout of an image.</summary>
-    internal const byte FormatVersion = 1;
+    /// <summary>The version of the layout this engine writes: a header, then the parts as sections.</summary>
+    internal const byte FormatVersion = 2;
+
+    /// <summary>The oldest layout this engine reads: 1, the single body of 1.0.10 and 1.0.11.</summary>
+    internal const byte MinimumFormat = 1;
+
+    /// <summary>
+    /// The revision of the compiler: raised whenever what it writes for any pattern changes, whether the change makes
+    /// it smaller, faster or right. The data set's golden check fails on changed output under an unchanged revision.
+    /// </summary>
+    internal const int CompilerRevision = 1;
+
+    /// <summary>
+    /// The oldest revision whose images are read: raised only when a change to the compiler fixes output that gave
+    /// wrong answers, so that the images written before the fix are ignored.
+    /// </summary>
+    internal const int MinimumTrustedRevision = 1;
+
+    /// <summary>The section of the group count and names.</summary>
+    internal const int SectionNames = 1;
+
+    /// <summary>The section of the program that finds a match's bounds, with its search automata.</summary>
+    internal const int SectionBounds = 2;
+
+    /// <summary>The section of the program that tracks every group, with its search automata.</summary>
+    internal const int SectionCaptures = 3;
+
+    /// <summary>The section of the automaton over ASCII, present when the pattern has one.</summary>
+    internal const int SectionDfa = 4;
+
+    /// <summary>
+    /// The fingerprints of the engines that wrote layout 1, the releases 1.0.10 and 1.0.11, whose images hold what
+    /// revision 1 of the compiler writes. Layout 1 recorded a hash of the engine's sources in place of a revision.
+    /// </summary>
+    private static readonly string[] Format1Fingerprints =
+    [
+        "9096543f80969d8ba477181cc4a67bfeba3f76edbd27425d7b545f875daa3199",
+        "8fe300ee5e122022c8e2ba87ff05861880c0986daa87d9ce086b402dcc17e98d",
+    ];
 
     // "CRI": a Corvus regular expression image.
     private const byte Magic0 = (byte)'C';
@@ -82,6 +126,287 @@ internal static class RegexImage
     /// <param name="unicodeVersion">The version of Unicode.</param>
     /// <returns>The image.</returns>
     internal static byte[] Write(string pattern, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
+        => Write(pattern, flags, edition, unicodeVersion, CompilerRevision, []);
+
+    /// <summary>
+    /// Writes an image as <see cref="Write(string, RegexFlags, RegexEdition, RegexUnicodeVersion)"/> does, recording
+    /// the revision given and with more sections after its own (for the tests of what a reader does with them).
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="edition">The edition of the grammar.</param>
+    /// <param name="unicodeVersion">The version of Unicode.</param>
+    /// <param name="revision">The revision of the compiler to record.</param>
+    /// <param name="extra">More sections: a tag, whether a reader must know it, and its bytes.</param>
+    /// <returns>The image.</returns>
+    internal static byte[] Write(string pattern, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion, int revision, (int Tag, bool Required, byte[] Payload)[] extra)
+    {
+        Writer body = new();
+        foreach ((int tag, bool required, byte[] payload) in Sections(pattern, flags, edition, unicodeVersion))
+        {
+            Section(body, tag, required, payload);
+        }
+
+        foreach ((int tag, bool required, byte[] payload) in extra)
+        {
+            Section(body, tag, required, payload);
+        }
+
+        Writer image = new();
+        image.Byte(Magic0);
+        image.Byte(Magic1);
+        image.Byte(Magic2);
+        image.Byte(FormatVersion);
+        image.Int(revision);
+        Settings(image, flags, edition, unicodeVersion);
+        Body(image, body.ToArray());
+        return image.ToArray();
+
+        static void Section(Writer w, int tag, bool required, byte[] payload)
+        {
+            w.Int(tag);
+            w.Bool(required);
+            w.Bytes(payload);
+        }
+    }
+
+    /// <summary>
+    /// Writes an image in layout 1, as 1.0.10 and 1.0.11 wrote it, recording the fingerprint given (for the tests of
+    /// how a reader treats the images those releases wrote).
+    /// </summary>
+    /// <param name="pattern">The pattern.</param>
+    /// <param name="flags">The flags.</param>
+    /// <param name="edition">The edition of the grammar.</param>
+    /// <param name="unicodeVersion">The version of Unicode.</param>
+    /// <param name="fingerprint">The fingerprint to record.</param>
+    /// <returns>The image.</returns>
+    internal static byte[] WriteFormat1(string pattern, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion, string fingerprint)
+    {
+        // Layout 1's body is the payloads of the sections in order, with whether there is an automaton over ASCII
+        // before its own.
+        Writer body = new();
+        bool dfa = false;
+        foreach ((int tag, bool _, byte[] payload) in Sections(pattern, flags, edition, unicodeVersion))
+        {
+            if (tag == SectionDfa)
+            {
+                body.Bool(true);
+                dfa = true;
+            }
+
+            body.Raw(payload);
+        }
+
+        if (!dfa)
+        {
+            body.Bool(false);
+        }
+
+        Writer image = new();
+        image.Byte(Magic0);
+        image.Byte(Magic1);
+        image.Byte(Magic2);
+        image.Byte(1);
+        image.String(fingerprint);
+        Settings(image, flags, edition, unicodeVersion);
+        Body(image, body.ToArray());
+        return image.ToArray();
+    }
+
+    /// <summary>
+    /// Reads an image written for the settings given. False, with nothing read and the reason given, for an image of
+    /// a layout or a revision this engine does not read, of other settings, with a section or an instruction it does
+    /// not know, or one that is damaged.
+    /// </summary>
+    /// <param name="image">The image.</param>
+    /// <param name="flags">The flags the regular expression is made with.</param>
+    /// <param name="edition">The edition it is made with.</param>
+    /// <param name="resolvedUnicodeVersion">The version of Unicode it is made with, resolved.</param>
+    /// <param name="parts">What the image holds.</param>
+    /// <param name="ignored">Why the image was not read, or <see cref="Ignored.None"/>.</param>
+    /// <returns><see langword="true"/> when the image was read.</returns>
+    internal static bool TryRead(ReadOnlySpan<byte> image, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion resolvedUnicodeVersion, out Parts parts, out Ignored ignored)
+    {
+        parts = default;
+        Reader header = new(image);
+        if (header.Byte() != Magic0 || header.Byte() != Magic1 || header.Byte() != Magic2)
+        {
+            ignored = Ignored.Damaged;
+            return false;
+        }
+
+        byte format = header.Byte();
+        if (!header.Ok || format < MinimumFormat || format > FormatVersion)
+        {
+            ignored = Ignored.Format;
+            return false;
+        }
+
+        int revision = format == 1 ? (Array.IndexOf(Format1Fingerprints, header.String()) >= 0 ? 1 : -1) : header.Int();
+        if (!header.Ok)
+        {
+            ignored = Ignored.Damaged;
+            return false;
+        }
+
+        if (revision < MinimumTrustedRevision)
+        {
+            // In layout 1, an engine whose fingerprint no release shipped: a build of a changed engine, whose
+            // compiler is not known to be any revision.
+            ignored = Ignored.Revision;
+            return false;
+        }
+
+        if (header.Int() != (int)flags || header.Int() != (int)edition || header.Int() != (int)resolvedUnicodeVersion)
+        {
+            ignored = header.Ok ? Ignored.Settings : Ignored.Damaged;
+            return false;
+        }
+
+        int length = header.Int();
+        ulong checksum = header.ULong();
+        ReadOnlySpan<byte> body = header.Rest();
+        if (!header.Ok || length != body.Length || Checksum(body) != checksum)
+        {
+            ignored = Ignored.Damaged;
+            return false;
+        }
+
+        bool unknownOpcode = false;
+        Reader r = new(body);
+        Program? bounds = null;
+        Program? captures = null;
+        Dfa? dfa = null;
+        bool linear = false;
+        int groupCount = -1;
+        List<KeyValuePair<string, int[]>>? groupNames = null;
+        if (format == 1)
+        {
+            ReadNames(ref r, out linear, out groupCount, out groupNames);
+            bounds = ReadProgram(ref r, ref unknownOpcode);
+            captures = ReadProgram(ref r, ref unknownOpcode);
+            dfa = r.Bool() ? Dfa.ReadFrom(ref r) : null;
+            if (unknownOpcode)
+            {
+                ignored = Ignored.UnknownOpcode;
+                return false;
+            }
+
+            if (!r.Ok || !r.AtEnd || bounds is null || captures is null || groupCount < 0)
+            {
+                ignored = Ignored.Damaged;
+                return false;
+            }
+        }
+        else
+        {
+            int seen = 0;
+            while (r.Ok && !r.AtEnd)
+            {
+                int tag = r.Int();
+                bool required = r.Bool();
+                ReadOnlySpan<byte> payload = r.Payload();
+                if (!r.Ok)
+                {
+                    break;
+                }
+
+                if (tag is < SectionNames or > SectionDfa)
+                {
+                    if (required)
+                    {
+                        ignored = Ignored.UnknownSection;
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                if ((seen & (1 << tag)) != 0)
+                {
+                    ignored = Ignored.Damaged;
+                    return false;
+                }
+
+                seen |= 1 << tag;
+                Reader s = new(payload);
+                switch (tag)
+                {
+                    case SectionNames:
+                        ReadNames(ref s, out linear, out groupCount, out groupNames);
+                        break;
+                    case SectionBounds:
+                        bounds = ReadProgram(ref s, ref unknownOpcode);
+                        break;
+                    case SectionCaptures:
+                        captures = ReadProgram(ref s, ref unknownOpcode);
+                        break;
+                    default:
+                        dfa = Dfa.ReadFrom(ref s);
+                        if (dfa is null)
+                        {
+                            s.Fail();
+                        }
+
+                        break;
+                }
+
+                if (unknownOpcode)
+                {
+                    ignored = Ignored.UnknownOpcode;
+                    return false;
+                }
+
+                if (!s.Ok || !s.AtEnd)
+                {
+                    ignored = Ignored.Damaged;
+                    return false;
+                }
+            }
+
+            if (!r.Ok)
+            {
+                ignored = Ignored.Damaged;
+                return false;
+            }
+
+            if (bounds is null || captures is null || groupCount < 0)
+            {
+                ignored = Ignored.MissingSection;
+                return false;
+            }
+        }
+
+        parts = new Parts(bounds, captures, dfa, linear, groupCount, groupNames!, revision);
+        ignored = Ignored.None;
+        return true;
+    }
+
+    /// <summary>
+    /// The revision of the compiler that wrote an image, read from its header alone: 1 for layout 1 from a release,
+    /// and -1 for an image whose header is not one this engine reads.
+    /// </summary>
+    /// <param name="image">The image.</param>
+    /// <returns>The revision, or -1.</returns>
+    internal static int RevisionOf(ReadOnlySpan<byte> image)
+    {
+        Reader header = new(image);
+        if (header.Byte() != Magic0 || header.Byte() != Magic1 || header.Byte() != Magic2)
+        {
+            return -1;
+        }
+
+        byte format = header.Byte();
+        int revision = format == 1 ? (Array.IndexOf(Format1Fingerprints, header.String()) >= 0 ? 1 : -1) : format <= FormatVersion ? header.Int() : -1;
+        return header.Ok ? revision : -1;
+    }
+
+    /// <summary>
+    /// The sections of the image of a pattern, in order: its names, its two programs, each with its search automata,
+    /// and its automaton over ASCII when it has one. Each is required: a reader that does not know one cannot build
+    /// the regular expression without the pattern's tree, which an image does not hold.
+    /// </summary>
+    private static List<(int Tag, bool Required, byte[] Payload)> Sections(string pattern, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
     {
         bool unicode = (flags & (RegexFlags.Unicode | RegexFlags.UnicodeSets)) != 0;
         bool sets = (flags & RegexFlags.UnicodeSets) != 0;
@@ -95,86 +420,87 @@ internal static class RegexImage
         SearchAutomata boundsAutomata = bounds.Automata();
         SearchAutomata captureAutomata = captures.Automata();
 
-        Writer payload = new();
-        payload.Bool(linear);
-        payload.Int(parser.GroupCount);
-        payload.Int(parser.GroupNames.Count);
+        Writer names = new();
+        names.Bool(linear);
+        names.Int(parser.GroupCount);
+        names.Int(parser.GroupNames.Count);
         foreach (KeyValuePair<string, int[]> name in parser.GroupNames)
         {
-            payload.String(name.Key);
-            payload.Ints(name.Value);
+            names.String(name.Key);
+            names.Ints(name.Value);
         }
 
-        WriteProgram(payload, bounds, boundsAutomata);
-        WriteProgram(payload, captures, captureAutomata);
-        payload.Bool(dfa is not null);
-        dfa?.WriteTo(payload);
-        byte[] body = payload.ToArray();
+        Writer boundsSection = new();
+        WriteProgram(boundsSection, bounds, boundsAutomata);
+        Writer capturesSection = new();
+        WriteProgram(capturesSection, captures, captureAutomata);
+        List<(int, bool, byte[])> sections =
+        [
+            (SectionNames, true, names.ToArray()),
+            (SectionBounds, true, boundsSection.ToArray()),
+            (SectionCaptures, true, capturesSection.ToArray()),
+        ];
 
-        Writer image = new();
-        image.Byte(Magic0);
-        image.Byte(Magic1);
-        image.Byte(Magic2);
-        image.Byte(FormatVersion);
-        image.String(EngineFingerprint.Value);
-        image.Int((int)flags);
-        image.Int((int)edition);
-        image.Int((int)UnicodeTables.Resolve(unicodeVersion));
-        image.Int(body.Length);
-        image.ULong(Checksum(body));
-        image.Raw(body);
-        return image.ToArray();
+        if (dfa is not null)
+        {
+            Writer dfaSection = new();
+            dfa.WriteTo(dfaSection);
+            sections.Add((SectionDfa, true, dfaSection.ToArray()));
+        }
+
+        return sections;
     }
 
     /// <summary>
-    /// Reads an image written for the settings given by this engine. False, with nothing read, for an image of another
-    /// engine, layout or settings, or one that is damaged.
+    /// What an image holds, written in one form whatever the layout it was read from: equal for two images exactly
+    /// when they hold the same programs, automata and names. The data set's golden check compares a release's output
+    /// with this engine's in this form.
     /// </summary>
-    /// <param name="image">The image.</param>
-    /// <param name="flags">The flags the regular expression is made with.</param>
-    /// <param name="edition">The edition it is made with.</param>
-    /// <param name="resolvedUnicodeVersion">The version of Unicode it is made with, resolved.</param>
-    /// <param name="parts">What the image holds.</param>
-    /// <returns><see langword="true"/> when the image was read.</returns>
-    internal static bool TryRead(ReadOnlySpan<byte> image, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion resolvedUnicodeVersion, out Parts parts)
+    /// <param name="parts">What an image holds.</param>
+    /// <returns>The bytes.</returns>
+    internal static byte[] Canonical(in Parts parts)
     {
-        parts = default;
-        Reader header = new(image);
-        if (header.Byte() != Magic0 || header.Byte() != Magic1 || header.Byte() != Magic2 || header.Byte() != FormatVersion
-            || header.String() != EngineFingerprint.Value
-            || header.Int() != (int)flags || header.Int() != (int)edition || header.Int() != (int)resolvedUnicodeVersion)
+        Writer w = new();
+        w.Bool(parts.Linear);
+        w.Int(parts.GroupCount);
+        w.Int(parts.GroupNames.Count);
+        foreach (KeyValuePair<string, int[]> name in parts.GroupNames)
         {
-            return false;
+            w.String(name.Key);
+            w.Ints(name.Value);
         }
 
-        int length = header.Int();
-        ulong checksum = header.ULong();
-        ReadOnlySpan<byte> body = header.Rest();
-        if (!header.Ok || length != body.Length || Checksum(body) != checksum)
-        {
-            return false;
-        }
+        WriteProgram(w, parts.Bounds, parts.Bounds.Automata());
+        WriteProgram(w, parts.Captures, parts.Captures.Automata());
+        w.Bool(parts.Dfa is not null);
+        parts.Dfa?.WriteTo(w);
+        return w.ToArray();
+    }
 
-        Reader r = new(body);
-        bool linear = r.Bool();
-        int groupCount = r.Int();
+    private static void Settings(Writer w, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
+    {
+        w.Int((int)flags);
+        w.Int((int)edition);
+        w.Int((int)UnicodeTables.Resolve(unicodeVersion));
+    }
+
+    private static void Body(Writer w, byte[] body)
+    {
+        w.Int(body.Length);
+        w.ULong(Checksum(body));
+        w.Raw(body);
+    }
+
+    private static void ReadNames(ref Reader r, out bool linear, out int groupCount, out List<KeyValuePair<string, int[]>> groupNames)
+    {
+        linear = r.Bool();
+        groupCount = r.Int();
         int names = r.Count();
-        List<KeyValuePair<string, int[]>> groupNames = new(r.Ok ? names : 0);
+        groupNames = new(r.Ok ? names : 0);
         for (int k = 0; k < names && r.Ok; k++)
         {
             groupNames.Add(new KeyValuePair<string, int[]>(r.String(), r.Ints()));
         }
-
-        Program? bounds = ReadProgram(ref r);
-        Program? captures = ReadProgram(ref r);
-        Dfa? dfa = r.Bool() ? Dfa.ReadFrom(ref r) : null;
-        if (!r.Ok || !r.AtEnd || bounds is null || captures is null || groupCount < 0)
-        {
-            return false;
-        }
-
-        parts = new Parts(bounds, captures, dfa, linear, groupCount, groupNames);
-        return true;
     }
 
     /// <summary>FNV-1a over 64 bits: a check against damage, not against tampering.</summary>
@@ -324,7 +650,7 @@ internal static class RegexImage
         automata.WriteTo(w);
     }
 
-    private static Program? ReadProgram(ref Reader r)
+    private static Program? ReadProgram(ref Reader r, ref bool unknownOpcode)
     {
         int setCount = r.Count();
         CharSet[] sets = new CharSet[r.Ok ? setCount : 0];
@@ -362,8 +688,15 @@ internal static class RegexImage
         for (int k = 0; k < insts.Length && r.Ok; k++)
         {
             int op = r.Int();
-            if (op < 0 || op > (int)Op.Match)
+            if (!r.Ok)
             {
+                break;
+            }
+
+            if (!Instructions.IsKnown(op))
+            {
+                // An instruction of a later engine: the image is of a compiler this one cannot follow.
+                unknownOpcode = true;
                 r.Fail();
                 break;
             }
@@ -583,6 +916,34 @@ internal static class RegexImage
         public int GetHashCode(CharSet obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
 
+    /// <summary>Why an image was not read.</summary>
+    internal enum Ignored
+    {
+        /// <summary>It was read.</summary>
+        None = 0,
+
+        /// <summary>Its layout is older or newer than any this engine reads.</summary>
+        Format = 1,
+
+        /// <summary>Its compiler is older than the oldest revision trusted, or (in layout 1) no release's.</summary>
+        Revision = 2,
+
+        /// <summary>It was written for other flags, another edition or another version of Unicode.</summary>
+        Settings = 3,
+
+        /// <summary>It holds a section a reader must know, which this engine does not.</summary>
+        UnknownSection = 4,
+
+        /// <summary>It lacks a section this engine needs.</summary>
+        MissingSection = 5,
+
+        /// <summary>It holds an instruction this engine does not know.</summary>
+        UnknownOpcode = 6,
+
+        /// <summary>It is damaged: a value out of range, a length or a checksum that does not agree.</summary>
+        Damaged = 7,
+    }
+
     /// <summary>What an image holds.</summary>
     /// <param name="bounds">The program that finds a match's bounds.</param>
     /// <param name="captures">The program that tracks every group.</param>
@@ -590,8 +951,11 @@ internal static class RegexImage
     /// <param name="linear">Whether the pattern has no backreference.</param>
     /// <param name="groupCount">The number of groups.</param>
     /// <param name="groupNames">The names of the groups.</param>
-    internal readonly struct Parts(Program bounds, Program captures, Dfa? dfa, bool linear, int groupCount, List<KeyValuePair<string, int[]>> groupNames)
+    /// <param name="revision">The revision of the compiler that wrote the image.</param>
+    internal readonly struct Parts(Program bounds, Program captures, Dfa? dfa, bool linear, int groupCount, List<KeyValuePair<string, int[]>> groupNames, int revision)
     {
+        public int Revision { get; } = revision;
+
         public Program Bounds { get; } = bounds;
 
         public Program Captures { get; } = captures;
@@ -741,6 +1105,22 @@ internal static class RegexImage
         public readonly bool AtEnd => this.at == this.data.Length;
 
         public void Fail() => this.failed = true;
+
+        /// <summary>Reads a length and that many bytes.</summary>
+        /// <returns>The bytes, or empty when the reader failed.</returns>
+        public ReadOnlySpan<byte> Payload()
+        {
+            int count = this.Int();
+            if (this.failed || count < 0 || count > this.data.Length - this.at)
+            {
+                this.failed = true;
+                return default;
+            }
+
+            ReadOnlySpan<byte> payload = this.data.Slice(this.at, count);
+            this.at += count;
+            return payload;
+        }
 
         public ReadOnlySpan<byte> Rest()
         {

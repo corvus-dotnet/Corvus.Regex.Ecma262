@@ -12,111 +12,141 @@ using System.Text;
 
 namespace Corvus.Ecma262.RegularExpressions;
 
-/// <summary>The instructions of the backtracking matcher.</summary>
+/// <summary>
+/// The instructions of the backtracking matcher. Images (see <see cref="RegexImage"/>) store an instruction by its
+/// number, so a number keeps its instruction and its meaning once a release has written it: a new instruction takes
+/// the next number, and an instruction that changes what it does is a new one (docs/contributing/compatibility.md).
+/// </summary>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public enum Op : byte
 {
     /// <summary><see cref="Char"/> and <see cref="Set"/> consume one code point going forward.</summary>
-    Char,
+    Char = 0,
 
     /// <summary>Consumes the code point before the position when it is the character, which is how the body of a lookbehind runs.</summary>
-    CharBack,
+    CharBack = 1,
 
     /// <summary>Consumes one code point of the set.</summary>
-    Set,
+    Set = 2,
 
     /// <summary>Consumes the code point before the position when it is in the set.</summary>
-    SetBack,
+    SetBack = 3,
 
     /// <summary>Consumes a run of literal text going forward.</summary>
-    Lit,
+    Lit = 4,
 
     /// <summary>Fails.</summary>
-    Fail,
+    Fail = 5,
 
     /// <summary>Holds at the start of the text.</summary>
-    Bol,
+    Bol = 6,
 
     /// <summary>Holds at the end of the text.</summary>
-    Eol,
+    Eol = 7,
 
     /// <summary>Holds at a word boundary.</summary>
-    WordBoundary,
+    WordBoundary = 8,
 
     /// <summary>Holds away from a word boundary.</summary>
-    NotWordBoundary,
+    NotWordBoundary = 9,
 
     /// <summary><c>^</c> with the m modifier.</summary>
-    LineStart,
+    LineStart = 10,
 
     /// <summary><c>$</c> with the m modifier.</summary>
-    LineEnd,
+    LineEnd = 11,
 
     /// <summary>A word boundary inside a case-insensitive group of a pattern with the u flag.</summary>
-    WordBoundaryFold,
+    WordBoundaryFold = 12,
 
     /// <summary>Away from a word boundary inside a case-insensitive group of a pattern with the u flag.</summary>
-    NotWordBoundaryFold,
+    NotWordBoundaryFold = 13,
 
     /// <summary>Continues at <see cref="Inst.X"/>.</summary>
-    Jmp,
+    Jmp = 14,
 
     /// <summary>Continues at <see cref="Inst.X"/> and leaves <see cref="Inst.Y"/> as the alternative.</summary>
-    Split,
+    Split = 15,
 
     /// <summary>Notes where a group was entered.</summary>
-    SaveTmp,
+    SaveTmp = 16,
 
     /// <summary>Records the group once it has closed.</summary>
-    Capture,
+    Capture = 17,
 
     /// <summary>Resets the groups <see cref="Inst.A"/> to <see cref="Inst.B"/>, as ECMA-262 does at the start of each iteration of a quantified body.</summary>
-    Clear,
+    Clear = 18,
 
     /// <summary>Consumes the text a group captured.</summary>
-    Backref,
+    Backref = 19,
 
     /// <summary>Consumes the text a group captured, going backward.</summary>
-    BackrefBack,
+    BackrefBack = 20,
 
     /// <summary>Consumes the text a group captured, with case folded.</summary>
-    BackrefFold,
+    BackrefFold = 21,
 
     /// <summary>Consumes the text a group captured, with case folded, going backward.</summary>
-    BackrefFoldBack,
+    BackrefFoldBack = 22,
 
     /// <summary>Consumes the text a group captured, a code unit at a time, for a pattern matched by code unit.</summary>
-    BackrefUnits,
+    BackrefUnits = 23,
 
     /// <summary>Consumes the text a group captured, a code unit at a time, going backward.</summary>
-    BackrefUnitsBack,
+    BackrefUnitsBack = 24,
 
     /// <summary>Opens a lookaround.</summary>
-    Look,
+    Look = 25,
 
     /// <summary>Ends the body of a positive lookaround.</summary>
-    LookOk,
+    LookOk = 26,
 
     /// <summary>Ends the body of a negative lookaround.</summary>
-    LookFail,
+    LookFail = 27,
 
     /// <summary>Repeats one character or class greedily without entering the general loop.</summary>
-    Rep,
+    Rep = 28,
 
     /// <summary>Repeats one character or class lazily without entering the general loop.</summary>
-    RepLazy,
+    RepLazy = 29,
 
     /// <summary>Starts a counted or possibly empty quantified body.</summary>
-    LoopInit,
+    LoopInit = 30,
 
     /// <summary>Decides whether to enter or leave a counted loop.</summary>
-    Loop,
+    Loop = 31,
 
     /// <summary>Counts an iteration of a loop.</summary>
-    LoopIter,
+    LoopIter = 32,
 
     /// <summary>The match.</summary>
-    Match,
+    Match = 33,
+}
+
+/// <summary>Which numbers are instructions of this engine, for the reader of an image.</summary>
+internal static class Instructions
+{
+    private static readonly bool[] Known = MakeKnown();
+
+    /// <summary>Whether a number is an instruction this engine knows.</summary>
+    /// <param name="op">The number.</param>
+    /// <returns><see langword="true"/> when it is.</returns>
+    public static bool IsKnown(int op) => (uint)op < (uint)Known.Length && Known[op];
+
+    private static bool[] MakeKnown()
+    {
+        bool[] known = new bool[256];
+#if NET
+        foreach (Op op in Enum.GetValues<Op>())
+#else
+        foreach (Op op in (Op[])Enum.GetValues(typeof(Op)))
+#endif
+        {
+            known[(int)op] = true;
+        }
+
+        return known;
+    }
 }
 
 /// <summary>One instruction of the backtracking matcher.</summary>

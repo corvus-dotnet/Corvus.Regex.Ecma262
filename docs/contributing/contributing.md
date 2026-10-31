@@ -241,6 +241,9 @@ benchmark compete for the same cores and the numbers are worthless.
 - **The design document kept current.** A decision taken while working is written into
   [docs/design/design.md](../design/design.md), which describes the library as it is, with the reason for each
   decision beside it.
+- **Compatibility kept.** A change to what the compiler writes, to the instructions, to the layout of an image or to
+  the public surface follows [the compatibility rules](compatibility.md): the golden check in `dataset.yml`, the
+  public API analyzers and package validation enforce them.
 - **The XML documentation** on every public member, since the API reference on the site is generated from it and
   `GenerateDocumentationFile` is on.
 
@@ -265,6 +268,10 @@ updated from stable release tags, and between them by running `build-website-onl
 deploys it; the documents on main describe the latest release, so a change to them alone needs no release. The version is bumped by
 editing `next-version` in `GitVersion.yml`: a breaking change to the public surface is a major bump, a feature a
 minor one, and a fix a patch.
+
+After a release is on NuGet, a pull request records it for the compatibility checks: it is added to
+`ReleasedVersions.txt`, becomes the `PackageValidationBaselineVersion`, and its new public members move to
+`PublicAPI.Shipped.txt` ([compatibility, section 4](compatibility.md#at-a-release)).
 
 `main` is protected by a ruleset: changes arrive by pull request with one approving review, the `.NET build
 gate` and `ECMA-262 test data` checks must be green on the branch as it will merge, and the branch is never

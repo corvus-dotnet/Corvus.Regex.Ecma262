@@ -1,0 +1,658 @@
+#nullable enable
+Corvus.Ecma262.RegularExpressions.AlternationSearch
+Corvus.Ecma262.RegularExpressions.AlternationSearch.ExtrasUtf16.get -> Corvus.Ecma262.RegularExpressions.MultiNeedle<ushort>?
+Corvus.Ecma262.RegularExpressions.AlternationSearch.ExtrasUtf8.get -> Corvus.Ecma262.RegularExpressions.MultiNeedle<byte>?
+Corvus.Ecma262.RegularExpressions.AlternationSearch.Forms.get -> int[]![]![]?
+Corvus.Ecma262.RegularExpressions.AlternationSearch.Literals.get -> string![]!
+Corvus.Ecma262.RegularExpressions.AlternationSearch.LiteralsUtf8.get -> byte[]![]!
+Corvus.Ecma262.RegularExpressions.AlternationSearch.MultiUtf16.get -> Corvus.Ecma262.RegularExpressions.MultiNeedle<ushort>!
+Corvus.Ecma262.RegularExpressions.AlternationSearch.MultiUtf8.get -> Corvus.Ecma262.RegularExpressions.MultiNeedle<byte>!
+Corvus.Ecma262.RegularExpressions.AlternationSearch.NeedlesCompleteUtf16.get -> bool
+Corvus.Ecma262.RegularExpressions.AlternationSearch.NeedlesUtf16.get -> Corvus.Ecma262.RegularExpressions.Needle<ushort>![]!
+Corvus.Ecma262.RegularExpressions.AlternationSearch.NeedlesUtf8.get -> Corvus.Ecma262.RegularExpressions.Needle<byte>![]!
+Corvus.Ecma262.RegularExpressions.AlternationSearch.WindowUtf16.get -> int
+Corvus.Ecma262.RegularExpressions.AlternationSearch.WindowUtf8.get -> int
+Corvus.Ecma262.RegularExpressions.CandidateScan
+Corvus.Ecma262.RegularExpressions.CandidateScan.CandidateScan() -> void
+Corvus.Ecma262.RegularExpressions.CandidateScan.Floor -> int
+Corvus.Ecma262.RegularExpressions.CandidateScan.Kind -> int
+Corvus.Ecma262.RegularExpressions.CandidateScan.Last -> int
+Corvus.Ecma262.RegularExpressions.CandidateScan.LastChar -> int
+Corvus.Ecma262.RegularExpressions.CandidateScan.LastWidth -> int
+Corvus.Ecma262.RegularExpressions.CandidateScan.Next -> int
+Corvus.Ecma262.RegularExpressions.Capture
+Corvus.Ecma262.RegularExpressions.Capture.Index.get -> int
+Corvus.Ecma262.RegularExpressions.Capture.Length.get -> int
+Corvus.Ecma262.RegularExpressions.Capture.Value.get -> string!
+Corvus.Ecma262.RegularExpressions.Capture.ValueSpan.get -> System.ReadOnlySpan<char>
+Corvus.Ecma262.RegularExpressions.CaptureCollection
+Corvus.Ecma262.RegularExpressions.CaptureCollection.Count.get -> int
+Corvus.Ecma262.RegularExpressions.CaptureCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<Corvus.Ecma262.RegularExpressions.Capture!>!
+Corvus.Ecma262.RegularExpressions.CaptureCollection.this[int index].get -> Corvus.Ecma262.RegularExpressions.Capture!
+Corvus.Ecma262.RegularExpressions.CaseFolding
+Corvus.Ecma262.RegularExpressions.CharSet
+Corvus.Ecma262.RegularExpressions.CharSet.Ascii0.get -> ulong
+Corvus.Ecma262.RegularExpressions.CharSet.Ascii1.get -> ulong
+Corvus.Ecma262.RegularExpressions.CharSet.CharSet(int[]! ranges) -> void
+Corvus.Ecma262.RegularExpressions.CharSet.Contains(int r) -> bool
+Corvus.Ecma262.RegularExpressions.CharSet.Count.get -> long
+Corvus.Ecma262.RegularExpressions.CharSet.CoversAbove128To.get -> int
+Corvus.Ecma262.RegularExpressions.CharSet.HasAscii(int c) -> bool
+Corvus.Ecma262.RegularExpressions.CharSet.HasNonAscii.get -> bool
+Corvus.Ecma262.RegularExpressions.CharSet.HoldsAllNonAscii(bool units) -> bool
+Corvus.Ecma262.RegularExpressions.CharSet.Intersects(Corvus.Ecma262.RegularExpressions.CharSet! other) -> bool
+Corvus.Ecma262.RegularExpressions.CharSet.IsEmpty.get -> bool
+Corvus.Ecma262.RegularExpressions.CharSet.IsLineRest.get -> bool
+Corvus.Ecma262.RegularExpressions.CharSet.IsSmall.get -> bool
+Corvus.Ecma262.RegularExpressions.CharSet.Ranges.get -> int[]!
+Corvus.Ecma262.RegularExpressions.Entry
+Corvus.Ecma262.RegularExpressions.Entry.A.get -> int
+Corvus.Ecma262.RegularExpressions.Entry.A.set -> void
+Corvus.Ecma262.RegularExpressions.Entry.Entry() -> void
+Corvus.Ecma262.RegularExpressions.Entry.Entry(byte kind, int pc, int pos, int a) -> void
+Corvus.Ecma262.RegularExpressions.Entry.Kind.get -> byte
+Corvus.Ecma262.RegularExpressions.Entry.Kind.set -> void
+Corvus.Ecma262.RegularExpressions.Entry.Pc.get -> int
+Corvus.Ecma262.RegularExpressions.Entry.Pc.set -> void
+Corvus.Ecma262.RegularExpressions.Entry.Pos.get -> int
+Corvus.Ecma262.RegularExpressions.Entry.Pos.set -> void
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.Edition.get -> Corvus.Ecma262.RegularExpressions.RegexEdition
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.Edition.set -> void
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.Flags.get -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.FlagsText.get -> string?
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.GeneratedRegexAttribute(string! pattern) -> void
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.GeneratedRegexAttribute(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags) -> void
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.GeneratedRegexAttribute(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, int matchTimeoutMilliseconds) -> void
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.GeneratedRegexAttribute(string! pattern, string! flags) -> void
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.GeneratedRegexAttribute(string! pattern, string! flags, int matchTimeoutMilliseconds) -> void
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.MatchTimeoutMilliseconds.get -> int
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.Pattern.get -> string!
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.UnicodeVersion.get -> Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion
+Corvus.Ecma262.RegularExpressions.GeneratedRegexAttribute.UnicodeVersion.set -> void
+Corvus.Ecma262.RegularExpressions.GeneratedRunner
+Corvus.Ecma262.RegularExpressions.GeneratedRunner.GeneratedRunner() -> void
+Corvus.Ecma262.RegularExpressions.Group
+Corvus.Ecma262.RegularExpressions.Group.Captures.get -> Corvus.Ecma262.RegularExpressions.CaptureCollection!
+Corvus.Ecma262.RegularExpressions.Group.Name.get -> string!
+Corvus.Ecma262.RegularExpressions.Group.Success.get -> bool
+Corvus.Ecma262.RegularExpressions.GroupCollection
+Corvus.Ecma262.RegularExpressions.GroupCollection.ContainsKey(string! name) -> bool
+Corvus.Ecma262.RegularExpressions.GroupCollection.Count.get -> int
+Corvus.Ecma262.RegularExpressions.GroupCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<Corvus.Ecma262.RegularExpressions.Group!>!
+Corvus.Ecma262.RegularExpressions.GroupCollection.TryGetValue(string! name, out Corvus.Ecma262.RegularExpressions.Group! group) -> bool
+Corvus.Ecma262.RegularExpressions.GroupCollection.this[int index].get -> Corvus.Ecma262.RegularExpressions.Group!
+Corvus.Ecma262.RegularExpressions.GroupCollection.this[string! name].get -> Corvus.Ecma262.RegularExpressions.Group!
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.AdvanceUnit(System.ReadOnlySpan<TUnit> input, int pos) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.AlternativeAt(System.ReadOnlySpan<TUnit> input, int pos, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation, bool units) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.AlternativeWindow(Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.Decode(System.ReadOnlySpan<TUnit> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.DecodeBefore(System.ReadOnlySpan<TUnit> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.HasAlternativeExtras(Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> bool
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IndexOfAlternation(System.ReadOnlySpan<TUnit> input, int from, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IndexOfAlternation(System.ReadOnlySpan<TUnit> input, int from, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation, out int length) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IndexOfAlternativeExtra(System.ReadOnlySpan<TUnit> input, int from, int limit, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IndexOfAnyNeedle(System.ReadOnlySpan<TUnit> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IndexOfPrefix(System.ReadOnlySpan<TUnit> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IndexOfRequired(System.ReadOnlySpan<TUnit> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IsLineTerminatorAt(System.ReadOnlySpan<TUnit> input, int pos) -> bool
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IsLineTerminatorBefore(System.ReadOnlySpan<TUnit> input, int pos) -> bool
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.LiteralAt(System.ReadOnlySpan<TUnit> input, int pos, Corvus.Ecma262.RegularExpressions.Program! program, int lit, out int width) -> bool
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.NextStart(System.ReadOnlySpan<TUnit> input, int pos) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.PrefixLength(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.RequiredOffset(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.Unit(System.ReadOnlySpan<TUnit> input, int pos) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.UnitAt(System.ReadOnlySpan<TUnit> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.UnitBefore(System.ReadOnlySpan<TUnit> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.WalkBack(System.ReadOnlySpan<TUnit> input, int from, int count, int floor, bool units) -> int
+Corvus.Ecma262.RegularExpressions.Inst
+Corvus.Ecma262.RegularExpressions.Inst.A.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.A.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Atomic.get -> bool
+Corvus.Ecma262.RegularExpressions.Inst.Atomic.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.B.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.B.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Flag.get -> bool
+Corvus.Ecma262.RegularExpressions.Inst.Flag.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Inst() -> void
+Corvus.Ecma262.RegularExpressions.Inst.Inst(Corvus.Ecma262.RegularExpressions.Op op) -> void
+Corvus.Ecma262.RegularExpressions.Inst.Iter.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.Iter.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Len.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.Len.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Lit.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.Lit.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.M.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.M.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Max.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.Max.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Min.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.Min.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Need.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.Need.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Op.get -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Inst.Op.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.R.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.R.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Set.get -> Corvus.Ecma262.RegularExpressions.CharSet?
+Corvus.Ecma262.RegularExpressions.Inst.Set.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.X.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.X.set -> void
+Corvus.Ecma262.RegularExpressions.Inst.Y.get -> int
+Corvus.Ecma262.RegularExpressions.Inst.Y.set -> void
+Corvus.Ecma262.RegularExpressions.Match
+Corvus.Ecma262.RegularExpressions.Match.Groups.get -> Corvus.Ecma262.RegularExpressions.GroupCollection!
+Corvus.Ecma262.RegularExpressions.Match.NextMatch() -> Corvus.Ecma262.RegularExpressions.Match!
+Corvus.Ecma262.RegularExpressions.Match.Result(string! replacement) -> string!
+Corvus.Ecma262.RegularExpressions.MatchCollection
+Corvus.Ecma262.RegularExpressions.MatchCollection.Count.get -> int
+Corvus.Ecma262.RegularExpressions.MatchCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<Corvus.Ecma262.RegularExpressions.Match!>!
+Corvus.Ecma262.RegularExpressions.MatchCollection.this[int index].get -> Corvus.Ecma262.RegularExpressions.Match!
+Corvus.Ecma262.RegularExpressions.MatchEvaluator
+Corvus.Ecma262.RegularExpressions.MatchState
+Corvus.Ecma262.RegularExpressions.MatchState.Caps.get -> int[]!
+Corvus.Ecma262.RegularExpressions.MatchState.Caps.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Check(int depth) -> bool
+Corvus.Ecma262.RegularExpressions.MatchState.Checks.get -> int
+Corvus.Ecma262.RegularExpressions.MatchState.Checks.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Counts.get -> int[]!
+Corvus.Ecma262.RegularExpressions.MatchState.Counts.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Deadline.get -> long
+Corvus.Ecma262.RegularExpressions.MatchState.Deadline.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.ExtraFrom.get -> int
+Corvus.Ecma262.RegularExpressions.MatchState.ExtraFrom.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.ExtraTo.get -> int
+Corvus.Ecma262.RegularExpressions.MatchState.ExtraTo.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.InUse.get -> bool
+Corvus.Ecma262.RegularExpressions.MatchState.InUse.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.LimitTicks.get -> long
+Corvus.Ecma262.RegularExpressions.MatchState.LimitTicks.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.LoadCursor(in Corvus.Ecma262.RegularExpressions.ScanCursor cursor) -> void
+Corvus.Ecma262.RegularExpressions.MatchState.MatchState() -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Memo.get -> ulong[]!
+Corvus.Ecma262.RegularExpressions.MatchState.Memo.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.MemoOff.get -> bool
+Corvus.Ecma262.RegularExpressions.MatchState.MemoOff.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.MemoOn.get -> bool
+Corvus.Ecma262.RegularExpressions.MatchState.MemoOn.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Points.get -> int
+Corvus.Ecma262.RegularExpressions.MatchState.Points.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.PreparedFor.get -> Corvus.Ecma262.RegularExpressions.Program?
+Corvus.Ecma262.RegularExpressions.MatchState.PreparedFor.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.RareFrom.get -> int
+Corvus.Ecma262.RegularExpressions.MatchState.RareFrom.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.RareTo.get -> int
+Corvus.Ecma262.RegularExpressions.MatchState.RareTo.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Release() -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Remember() -> void
+Corvus.Ecma262.RegularExpressions.MatchState.SaveCursor(ref Corvus.Ecma262.RegularExpressions.ScanCursor cursor) -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Stack.get -> Corvus.Ecma262.RegularExpressions.Entry[]!
+Corvus.Ecma262.RegularExpressions.MatchState.Stack.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Steps.get -> long
+Corvus.Ecma262.RegularExpressions.MatchState.Steps.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Stop.get -> Corvus.Ecma262.RegularExpressions.MatchStop
+Corvus.Ecma262.RegularExpressions.MatchState.Stop.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Timed.get -> bool
+Corvus.Ecma262.RegularExpressions.MatchState.Timed.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Tmp.get -> int[]!
+Corvus.Ecma262.RegularExpressions.MatchState.Tmp.set -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Undo(in Corvus.Ecma262.RegularExpressions.Entry e) -> void
+Corvus.Ecma262.RegularExpressions.MatchState.Width.get -> int
+Corvus.Ecma262.RegularExpressions.MatchState.Width.set -> void
+Corvus.Ecma262.RegularExpressions.MatchStop
+Corvus.Ecma262.RegularExpressions.MatchStop.Memory = 2 -> Corvus.Ecma262.RegularExpressions.MatchStop
+Corvus.Ecma262.RegularExpressions.MatchStop.None = 0 -> Corvus.Ecma262.RegularExpressions.MatchStop
+Corvus.Ecma262.RegularExpressions.MatchStop.Time = 1 -> Corvus.Ecma262.RegularExpressions.MatchStop
+Corvus.Ecma262.RegularExpressions.Matcher
+Corvus.Ecma262.RegularExpressions.MemoPoint
+Corvus.Ecma262.RegularExpressions.MemoPoint.Loop0.get -> int
+Corvus.Ecma262.RegularExpressions.MemoPoint.Loop0.set -> void
+Corvus.Ecma262.RegularExpressions.MemoPoint.Loop1.get -> int
+Corvus.Ecma262.RegularExpressions.MemoPoint.Loop1.set -> void
+Corvus.Ecma262.RegularExpressions.MemoPoint.MemoPoint() -> void
+Corvus.Ecma262.RegularExpressions.MemoPoint.Min0.get -> int
+Corvus.Ecma262.RegularExpressions.MemoPoint.Min0.set -> void
+Corvus.Ecma262.RegularExpressions.MemoPoint.Min1.get -> int
+Corvus.Ecma262.RegularExpressions.MemoPoint.Min1.set -> void
+Corvus.Ecma262.RegularExpressions.MultiNeedle<T>
+Corvus.Ecma262.RegularExpressions.MultiNeedle<T>.Cost.get -> double
+Corvus.Ecma262.RegularExpressions.MultiNeedle<T>.IndexOf(System.ReadOnlySpan<T> input, int from) -> int
+Corvus.Ecma262.RegularExpressions.MultiNeedle<T>.IndexOf(System.ReadOnlySpan<T> input, int from, out int length) -> int
+Corvus.Ecma262.RegularExpressions.MultiNeedle<T>.MultiNeedle(Corvus.Ecma262.RegularExpressions.Needle<T>![]! needles, bool leadOnly = false) -> void
+Corvus.Ecma262.RegularExpressions.MultiNeedle<T>.Two.get -> bool
+Corvus.Ecma262.RegularExpressions.Needle<T>
+Corvus.Ecma262.RegularExpressions.Needle<T>.CanSearch.get -> bool
+Corvus.Ecma262.RegularExpressions.Needle<T>.Exact.get -> bool
+Corvus.Ecma262.RegularExpressions.Needle<T>.IndexOf(System.ReadOnlySpan<T> input, int from) -> int
+Corvus.Ecma262.RegularExpressions.Needle<T>.Length.get -> int
+Corvus.Ecma262.RegularExpressions.Needle<T>.Needle(T[]! units) -> void
+Corvus.Ecma262.RegularExpressions.Needle<T>.Needle(T[]![]! rows, int[]! starts) -> void
+Corvus.Ecma262.RegularExpressions.Needle<T>.Offset1.get -> int
+Corvus.Ecma262.RegularExpressions.Needle<T>.Offset2.get -> int
+Corvus.Ecma262.RegularExpressions.Needle<T>.PrefersStringSearch.get -> bool
+Corvus.Ecma262.RegularExpressions.Needle<T>.SearchesOneUnit.get -> bool
+Corvus.Ecma262.RegularExpressions.Needle<T>.UnitAt(int offset) -> T
+Corvus.Ecma262.RegularExpressions.Needle<T>.UnitsAt(int offset, System.Span<T> values) -> int
+Corvus.Ecma262.RegularExpressions.Needle<T>.Value1.get -> T
+Corvus.Ecma262.RegularExpressions.Needle<T>.Value2.get -> T
+Corvus.Ecma262.RegularExpressions.Needle<T>.Verify(System.ReadOnlySpan<T> input, int pos) -> bool
+Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Backref = 19 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.BackrefBack = 20 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.BackrefFold = 21 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.BackrefFoldBack = 22 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.BackrefUnits = 23 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.BackrefUnitsBack = 24 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Bol = 6 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Capture = 17 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Char = 0 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.CharBack = 1 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Clear = 18 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Eol = 7 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Fail = 5 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Jmp = 14 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.LineEnd = 11 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.LineStart = 10 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Lit = 4 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Look = 25 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.LookFail = 27 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.LookOk = 26 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Loop = 31 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.LoopInit = 30 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.LoopIter = 32 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Match = 33 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.NotWordBoundary = 9 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.NotWordBoundaryFold = 13 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Rep = 28 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.RepLazy = 29 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.SaveTmp = 16 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Set = 2 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.SetBack = 3 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.Split = 15 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.WordBoundary = 8 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Op.WordBoundaryFold = 12 -> Corvus.Ecma262.RegularExpressions.Op
+Corvus.Ecma262.RegularExpressions.Program
+Corvus.Ecma262.RegularExpressions.Program.AfterLoopAlternation.get -> Corvus.Ecma262.RegularExpressions.AlternationSearch?
+Corvus.Ecma262.RegularExpressions.Program.AfterLoopEveryStart.get -> bool
+Corvus.Ecma262.RegularExpressions.Program.AfterLoopMax.get -> int
+Corvus.Ecma262.RegularExpressions.Program.AfterLoopMins.get -> int[]!
+Corvus.Ecma262.RegularExpressions.Program.AfterLoopSets.get -> Corvus.Ecma262.RegularExpressions.CharSet![]!
+Corvus.Ecma262.RegularExpressions.Program.AfterLoopUtf16.get -> string!
+Corvus.Ecma262.RegularExpressions.Program.AfterLoopUtf16Needle.get -> Corvus.Ecma262.RegularExpressions.Needle<ushort>?
+Corvus.Ecma262.RegularExpressions.Program.AfterLoopUtf8.get -> byte[]!
+Corvus.Ecma262.RegularExpressions.Program.AfterLoopUtf8Needle.get -> Corvus.Ecma262.RegularExpressions.Needle<byte>?
+Corvus.Ecma262.RegularExpressions.Program.Alternation.get -> Corvus.Ecma262.RegularExpressions.AlternationSearch?
+Corvus.Ecma262.RegularExpressions.Program.Anchored.get -> bool
+Corvus.Ecma262.RegularExpressions.Program.CaseCharacters.get -> int
+Corvus.Ecma262.RegularExpressions.Program.CaseExtrasUtf16.get -> Corvus.Ecma262.RegularExpressions.MultiNeedle<ushort>?
+Corvus.Ecma262.RegularExpressions.Program.CaseExtrasUtf8.get -> Corvus.Ecma262.RegularExpressions.MultiNeedle<byte>?
+Corvus.Ecma262.RegularExpressions.Program.CaseNeedleUtf16.get -> Corvus.Ecma262.RegularExpressions.Needle<ushort>?
+Corvus.Ecma262.RegularExpressions.Program.CaseNeedleUtf8.get -> Corvus.Ecma262.RegularExpressions.Needle<byte>?
+Corvus.Ecma262.RegularExpressions.Program.CaseWindowUtf16.get -> int
+Corvus.Ecma262.RegularExpressions.Program.CaseWindowUtf8.get -> int
+Corvus.Ecma262.RegularExpressions.Program.First.get -> Corvus.Ecma262.RegularExpressions.CharSet?
+Corvus.Ecma262.RegularExpressions.Program.FirstIsSmall.get -> bool
+Corvus.Ecma262.RegularExpressions.Program.Groups.get -> int
+Corvus.Ecma262.RegularExpressions.Program.Insts.get -> Corvus.Ecma262.RegularExpressions.Inst[]!
+Corvus.Ecma262.RegularExpressions.Program.LeadingWordBoundary.get -> bool
+Corvus.Ecma262.RegularExpressions.Program.LoopMin.get -> int
+Corvus.Ecma262.RegularExpressions.Program.LoopSet.get -> Corvus.Ecma262.RegularExpressions.CharSet?
+Corvus.Ecma262.RegularExpressions.Program.Loops.get -> int
+Corvus.Ecma262.RegularExpressions.Program.Need.get -> int
+Corvus.Ecma262.RegularExpressions.Program.PairMultiUtf16.get -> Corvus.Ecma262.RegularExpressions.MultiNeedle<ushort>?
+Corvus.Ecma262.RegularExpressions.Program.PairMultiUtf8.get -> Corvus.Ecma262.RegularExpressions.MultiNeedle<byte>?
+Corvus.Ecma262.RegularExpressions.Program.PairNeedles.get -> string![]!
+Corvus.Ecma262.RegularExpressions.Program.PairNeedlesUtf16.get -> Corvus.Ecma262.RegularExpressions.Needle<ushort>![]!
+Corvus.Ecma262.RegularExpressions.Program.PairNeedlesUtf8.get -> Corvus.Ecma262.RegularExpressions.Needle<byte>![]!
+Corvus.Ecma262.RegularExpressions.Program.Points.get -> Corvus.Ecma262.RegularExpressions.MemoPoint[]!
+Corvus.Ecma262.RegularExpressions.Program.Program(Corvus.Ecma262.RegularExpressions.Inst[]! insts, int groups, int loops, bool units, bool anchored, string! prefix, int need, Corvus.Ecma262.RegularExpressions.MemoPoint[]! points, Corvus.Ecma262.RegularExpressions.Quick[]! quick, Corvus.Ecma262.RegularExpressions.CharSet? first, byte[]![]! utf8Literals, string![]! utf16Literals, string! required, int requiredOffset, int[]![]! caseForms, int requiredOffsetUtf8, Corvus.Ecma262.RegularExpressions.CharSet? loopSet, int loopMin, string! afterLoop, bool skipRun, int requiredCount, int afterLoopMax = -1, Corvus.Ecma262.RegularExpressions.AlternationSearch? afterLoopAlternation = null, int requiredCountMax = -1, Corvus.Ecma262.RegularExpressions.CharSet![]? afterLoopSets = null, int[]? afterLoopMins = null, Corvus.Ecma262.RegularExpressions.AlternationSearch? requiredAlternation = null, int requiredAlternationLo = 0, int requiredAlternationHi = 0) -> void
+Corvus.Ecma262.RegularExpressions.Program.Quick.get -> Corvus.Ecma262.RegularExpressions.Quick[]!
+Corvus.Ecma262.RegularExpressions.Program.RequiredAlternation.get -> Corvus.Ecma262.RegularExpressions.AlternationSearch?
+Corvus.Ecma262.RegularExpressions.Program.RequiredAlternationHi.get -> int
+Corvus.Ecma262.RegularExpressions.Program.RequiredAlternationLo.get -> int
+Corvus.Ecma262.RegularExpressions.Program.RequiredCount.get -> int
+Corvus.Ecma262.RegularExpressions.Program.RequiredCountMax.get -> int
+Corvus.Ecma262.RegularExpressions.Program.RequiredOffset.get -> int
+Corvus.Ecma262.RegularExpressions.Program.RequiredOffsetUtf8.get -> int
+Corvus.Ecma262.RegularExpressions.Program.RequiredUtf16.get -> string!
+Corvus.Ecma262.RegularExpressions.Program.RequiredUtf16Needle.get -> Corvus.Ecma262.RegularExpressions.Needle<ushort>?
+Corvus.Ecma262.RegularExpressions.Program.RequiredUtf8.get -> byte[]!
+Corvus.Ecma262.RegularExpressions.Program.RequiredUtf8Needle.get -> Corvus.Ecma262.RegularExpressions.Needle<byte>?
+Corvus.Ecma262.RegularExpressions.Program.Runner.get -> Corvus.Ecma262.RegularExpressions.GeneratedRunner?
+Corvus.Ecma262.RegularExpressions.Program.Runner.set -> void
+Corvus.Ecma262.RegularExpressions.Program.Shape.get -> Corvus.Ecma262.RegularExpressions.SimpleShape
+Corvus.Ecma262.RegularExpressions.Program.ShapeSet.get -> Corvus.Ecma262.RegularExpressions.CharSet?
+Corvus.Ecma262.RegularExpressions.Program.SkipRun.get -> bool
+Corvus.Ecma262.RegularExpressions.Program.Units.get -> bool
+Corvus.Ecma262.RegularExpressions.Program.UsesCursor.get -> bool
+Corvus.Ecma262.RegularExpressions.Program.Utf16Literals.get -> string![]!
+Corvus.Ecma262.RegularExpressions.Program.Utf16Prefix.get -> string!
+Corvus.Ecma262.RegularExpressions.Program.Utf16PrefixNeedle.get -> Corvus.Ecma262.RegularExpressions.Needle<ushort>?
+Corvus.Ecma262.RegularExpressions.Program.Utf8Literals.get -> byte[]![]!
+Corvus.Ecma262.RegularExpressions.Program.Utf8Prefix.get -> byte[]!
+Corvus.Ecma262.RegularExpressions.Program.Utf8PrefixNeedle.get -> Corvus.Ecma262.RegularExpressions.Needle<byte>?
+Corvus.Ecma262.RegularExpressions.Quick
+Corvus.Ecma262.RegularExpressions.Quick.AddRune(int r) -> void
+Corvus.Ecma262.RegularExpressions.Quick.AddSet(Corvus.Ecma262.RegularExpressions.CharSet! s) -> void
+Corvus.Ecma262.RegularExpressions.Quick.Allows<TUnit, TEncoding>(System.ReadOnlySpan<TUnit> input, int pos) -> bool
+Corvus.Ecma262.RegularExpressions.Quick.Ascii0.get -> ulong
+Corvus.Ecma262.RegularExpressions.Quick.Ascii0.set -> void
+Corvus.Ecma262.RegularExpressions.Quick.Ascii1.get -> ulong
+Corvus.Ecma262.RegularExpressions.Quick.Ascii1.set -> void
+Corvus.Ecma262.RegularExpressions.Quick.End.get -> bool
+Corvus.Ecma262.RegularExpressions.Quick.End.set -> void
+Corvus.Ecma262.RegularExpressions.Quick.Equals(Corvus.Ecma262.RegularExpressions.Quick other) -> bool
+Corvus.Ecma262.RegularExpressions.Quick.Intersect(Corvus.Ecma262.RegularExpressions.Quick b) -> void
+Corvus.Ecma262.RegularExpressions.Quick.Mid.get -> bool
+Corvus.Ecma262.RegularExpressions.Quick.Mid.set -> void
+Corvus.Ecma262.RegularExpressions.Quick.Other.get -> bool
+Corvus.Ecma262.RegularExpressions.Quick.Other.set -> void
+Corvus.Ecma262.RegularExpressions.Quick.Quick() -> void
+Corvus.Ecma262.RegularExpressions.Quick.Union(Corvus.Ecma262.RegularExpressions.Quick o) -> void
+Corvus.Ecma262.RegularExpressions.Regex
+Corvus.Ecma262.RegularExpressions.Regex.Count(System.ReadOnlySpan<byte> utf8) -> int
+Corvus.Ecma262.RegularExpressions.Regex.Count(System.ReadOnlySpan<char> input) -> int
+Corvus.Ecma262.RegularExpressions.Regex.Count(string! input) -> int
+Corvus.Ecma262.RegularExpressions.Regex.CountUnchecked(System.ReadOnlySpan<byte> utf8) -> int
+Corvus.Ecma262.RegularExpressions.Regex.Edition.get -> Corvus.Ecma262.RegularExpressions.RegexEdition
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatches(System.ReadOnlySpan<byte> utf8) -> Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatches(System.ReadOnlySpan<byte> utf8, System.Span<Corvus.Ecma262.RegularExpressions.ValueCapture> captures) -> Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatches(System.ReadOnlySpan<byte> utf8, int startAt) -> Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatches(System.ReadOnlySpan<byte> utf8, int startAt, System.Span<Corvus.Ecma262.RegularExpressions.ValueCapture> captures) -> Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatches(System.ReadOnlySpan<char> input) -> Corvus.Ecma262.RegularExpressions.ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatches(System.ReadOnlySpan<char> input, System.Span<Corvus.Ecma262.RegularExpressions.ValueCapture> captures) -> Corvus.Ecma262.RegularExpressions.ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatches(System.ReadOnlySpan<char> input, int startAt) -> Corvus.Ecma262.RegularExpressions.ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatches(System.ReadOnlySpan<char> input, int startAt, System.Span<Corvus.Ecma262.RegularExpressions.ValueCapture> captures) -> Corvus.Ecma262.RegularExpressions.ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatchesUnchecked(System.ReadOnlySpan<byte> utf8) -> Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatchesUnchecked(System.ReadOnlySpan<byte> utf8, System.Span<Corvus.Ecma262.RegularExpressions.ValueCapture> captures) -> Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatchesUnchecked(System.ReadOnlySpan<byte> utf8, int startAt) -> Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateMatchesUnchecked(System.ReadOnlySpan<byte> utf8, int startAt, System.Span<Corvus.Ecma262.RegularExpressions.ValueCapture> captures) -> Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateSplits(System.ReadOnlySpan<byte> utf8) -> Corvus.Ecma262.RegularExpressions.Utf8ValueSplitEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateSplits(System.ReadOnlySpan<byte> utf8, int count) -> Corvus.Ecma262.RegularExpressions.Utf8ValueSplitEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateSplits(System.ReadOnlySpan<char> input) -> Corvus.Ecma262.RegularExpressions.ValueSplitEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateSplits(System.ReadOnlySpan<char> input, int count) -> Corvus.Ecma262.RegularExpressions.ValueSplitEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateSplitsUnchecked(System.ReadOnlySpan<byte> utf8) -> Corvus.Ecma262.RegularExpressions.Utf8ValueSplitEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.EnumerateSplitsUnchecked(System.ReadOnlySpan<byte> utf8, int count) -> Corvus.Ecma262.RegularExpressions.Utf8ValueSplitEnumerator
+Corvus.Ecma262.RegularExpressions.Regex.Flags.get -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.Regex.FlagsString.get -> string!
+Corvus.Ecma262.RegularExpressions.Regex.GetGroupNames() -> string![]!
+Corvus.Ecma262.RegularExpressions.Regex.GroupCount.get -> int
+Corvus.Ecma262.RegularExpressions.Regex.GroupNameFromNumber(int number) -> string!
+Corvus.Ecma262.RegularExpressions.Regex.GroupNumberFromName(string! name) -> int
+Corvus.Ecma262.RegularExpressions.Regex.IsMatch(System.ReadOnlySpan<byte> utf8) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.IsMatch(System.ReadOnlySpan<byte> utf8, int startAt) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.IsMatch(System.ReadOnlySpan<char> input) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.IsMatch(System.ReadOnlySpan<char> input, int startAt) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.IsMatch(string! input) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.IsMatch(string! input, int startAt) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.IsMatchUnchecked(System.ReadOnlySpan<byte> utf8) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.IsMatchUnchecked(System.ReadOnlySpan<byte> utf8, int startAt) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.IsUnicode.get -> bool
+Corvus.Ecma262.RegularExpressions.Regex.Match(string! input) -> Corvus.Ecma262.RegularExpressions.Match!
+Corvus.Ecma262.RegularExpressions.Regex.Match(string! input, int startAt) -> Corvus.Ecma262.RegularExpressions.Match!
+Corvus.Ecma262.RegularExpressions.Regex.MatchTimeout.get -> System.TimeSpan
+Corvus.Ecma262.RegularExpressions.Regex.Matches(string! input) -> Corvus.Ecma262.RegularExpressions.MatchCollection!
+Corvus.Ecma262.RegularExpressions.Regex.Matches(string! input, int startAt) -> Corvus.Ecma262.RegularExpressions.MatchCollection!
+Corvus.Ecma262.RegularExpressions.Regex.Pattern.get -> string!
+Corvus.Ecma262.RegularExpressions.Regex.Regex(string! pattern) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Regex(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Regex(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, System.TimeSpan matchTimeout) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Regex(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, System.TimeSpan matchTimeout, Corvus.Ecma262.RegularExpressions.GeneratedRunner? bounds, Corvus.Ecma262.RegularExpressions.GeneratedRunner? captures) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Regex(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, System.TimeSpan matchTimeout, Corvus.Ecma262.RegularExpressions.RegexEdition edition, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicodeVersion) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Regex(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, System.TimeSpan matchTimeout, Corvus.Ecma262.RegularExpressions.RegexEdition edition, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicodeVersion, Corvus.Ecma262.RegularExpressions.GeneratedRunner? bounds, Corvus.Ecma262.RegularExpressions.GeneratedRunner? captures) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Regex(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, System.TimeSpan matchTimeout, Corvus.Ecma262.RegularExpressions.RegexEdition edition, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicodeVersion, Corvus.Ecma262.RegularExpressions.GeneratedRunner? bounds, Corvus.Ecma262.RegularExpressions.GeneratedRunner? captures, System.ReadOnlySpan<byte> compiled) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Regex(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, System.TimeSpan matchTimeout, Corvus.Ecma262.RegularExpressions.RegexEdition edition, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicodeVersion, Corvus.Ecma262.RegularExpressions.RegexBuildOptions buildOptions) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Regex(string! pattern, string! flags) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Replace(System.ReadOnlySpan<byte> utf8, Corvus.Ecma262.RegularExpressions.Utf8MatchEvaluator! evaluator, System.Buffers.IBufferWriter<byte>! destination) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Replace(System.ReadOnlySpan<byte> utf8, System.ReadOnlySpan<byte> replacement, System.Buffers.IBufferWriter<byte>! destination) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Replace(System.ReadOnlySpan<char> input, Corvus.Ecma262.RegularExpressions.SpanMatchEvaluator! evaluator, System.Buffers.IBufferWriter<char>! destination) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Replace(System.ReadOnlySpan<char> input, System.ReadOnlySpan<char> replacement, System.Buffers.IBufferWriter<char>! destination) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Replace(string! input, Corvus.Ecma262.RegularExpressions.MatchEvaluator! evaluator) -> string!
+Corvus.Ecma262.RegularExpressions.Regex.Replace(string! input, string! replacement) -> string!
+Corvus.Ecma262.RegularExpressions.Regex.ReplaceUnchecked(System.ReadOnlySpan<byte> utf8, Corvus.Ecma262.RegularExpressions.Utf8MatchEvaluator! evaluator, System.Buffers.IBufferWriter<byte>! destination) -> void
+Corvus.Ecma262.RegularExpressions.Regex.ReplaceUnchecked(System.ReadOnlySpan<byte> utf8, System.ReadOnlySpan<byte> replacement, System.Buffers.IBufferWriter<byte>! destination) -> void
+Corvus.Ecma262.RegularExpressions.Regex.Split(string! input) -> string?[]!
+Corvus.Ecma262.RegularExpressions.Regex.Split(string! input, int count) -> string?[]!
+Corvus.Ecma262.RegularExpressions.Regex.TryMatch(System.ReadOnlySpan<byte> utf8, int startAt, System.Span<Corvus.Ecma262.RegularExpressions.ValueCapture> captures, out Corvus.Ecma262.RegularExpressions.ValueMatch match) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.TryMatch(System.ReadOnlySpan<char> input, int startAt, System.Span<Corvus.Ecma262.RegularExpressions.ValueCapture> captures, out Corvus.Ecma262.RegularExpressions.ValueMatch match) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.TryMatchUnchecked(System.ReadOnlySpan<byte> utf8, int startAt, System.Span<Corvus.Ecma262.RegularExpressions.ValueCapture> captures, out Corvus.Ecma262.RegularExpressions.ValueMatch match) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.TryReplace(System.ReadOnlySpan<byte> utf8, System.ReadOnlySpan<byte> replacement, System.Span<byte> destination, out int written) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.TryReplace(System.ReadOnlySpan<char> input, System.ReadOnlySpan<char> replacement, System.Span<char> destination, out int written) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.TryReplaceUnchecked(System.ReadOnlySpan<byte> utf8, System.ReadOnlySpan<byte> replacement, System.Span<byte> destination, out int written) -> bool
+Corvus.Ecma262.RegularExpressions.Regex.UnicodeVersion.get -> Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion
+Corvus.Ecma262.RegularExpressions.RegexBuildOptions
+Corvus.Ecma262.RegularExpressions.RegexBuildOptions.Eager = 1 -> Corvus.Ecma262.RegularExpressions.RegexBuildOptions
+Corvus.Ecma262.RegularExpressions.RegexBuildOptions.None = 0 -> Corvus.Ecma262.RegularExpressions.RegexBuildOptions
+Corvus.Ecma262.RegularExpressions.RegexEdition
+Corvus.Ecma262.RegularExpressions.RegexEdition.Current = 0 -> Corvus.Ecma262.RegularExpressions.RegexEdition
+Corvus.Ecma262.RegularExpressions.RegexEdition.Es2020 = 1 -> Corvus.Ecma262.RegularExpressions.RegexEdition
+Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.RegexFlags.DotAll = 16 -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.RegexFlags.Global = 2 -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.RegexFlags.HasIndices = 1 -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.RegexFlags.IgnoreCase = 4 -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.RegexFlags.Multiline = 8 -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.RegexFlags.None = 0 -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.RegexFlags.Sticky = 128 -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.RegexFlags.Unicode = 32 -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.RegexFlags.UnicodeSets = 64 -> Corvus.Ecma262.RegularExpressions.RegexFlags
+Corvus.Ecma262.RegularExpressions.RegexMatchTimeoutException
+Corvus.Ecma262.RegularExpressions.RegexMatchTimeoutException.ExceededMemory.get -> bool
+Corvus.Ecma262.RegularExpressions.RegexMatchTimeoutException.MatchTimeout.get -> System.TimeSpan
+Corvus.Ecma262.RegularExpressions.RegexMatchTimeoutException.Pattern.get -> string!
+Corvus.Ecma262.RegularExpressions.RegexMatchTimeoutException.RegexMatchTimeoutException(string! pattern, System.TimeSpan matchTimeout, bool memory) -> void
+Corvus.Ecma262.RegularExpressions.RegexParseException
+Corvus.Ecma262.RegularExpressions.RegexParseException.Offset.get -> int
+Corvus.Ecma262.RegularExpressions.RegexParseException.Reason.get -> string!
+Corvus.Ecma262.RegularExpressions.RegexParseException.RegexParseException(string! reason, int offset) -> void
+Corvus.Ecma262.RegularExpressions.RegexPatternTooLargeException
+Corvus.Ecma262.RegularExpressions.RegexPatternTooLargeException.Limit.get -> string!
+Corvus.Ecma262.RegularExpressions.RegexPatternTooLargeException.Read.get -> bool
+Corvus.Ecma262.RegularExpressions.RegexPatternTooLargeException.RegexPatternTooLargeException(string! limit) -> void
+Corvus.Ecma262.RegularExpressions.RegexPatternTooLargeException.RegexPatternTooLargeException(string! message, string! limit, bool read) -> void
+Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion
+Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.Default = 0 -> Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion
+Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.Latest = 2147483647 -> Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion
+Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.V13 = 13 -> Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion
+Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.V17 = 17 -> Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion
+Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.V18 = 18 -> Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion
+Corvus.Ecma262.RegularExpressions.ScanCursor
+Corvus.Ecma262.RegularExpressions.ScanCursor.ExtraFrom -> int
+Corvus.Ecma262.RegularExpressions.ScanCursor.ExtraTo -> int
+Corvus.Ecma262.RegularExpressions.ScanCursor.RareFrom -> int
+Corvus.Ecma262.RegularExpressions.ScanCursor.RareTo -> int
+Corvus.Ecma262.RegularExpressions.ScanCursor.ScanCursor() -> void
+Corvus.Ecma262.RegularExpressions.SimpleShape
+Corvus.Ecma262.RegularExpressions.SimpleShape.CaseLiteral = 3 -> Corvus.Ecma262.RegularExpressions.SimpleShape
+Corvus.Ecma262.RegularExpressions.SimpleShape.Literal = 1 -> Corvus.Ecma262.RegularExpressions.SimpleShape
+Corvus.Ecma262.RegularExpressions.SimpleShape.LiteralAlternation = 6 -> Corvus.Ecma262.RegularExpressions.SimpleShape
+Corvus.Ecma262.RegularExpressions.SimpleShape.Loop = 5 -> Corvus.Ecma262.RegularExpressions.SimpleShape
+Corvus.Ecma262.RegularExpressions.SimpleShape.None = 0 -> Corvus.Ecma262.RegularExpressions.SimpleShape
+Corvus.Ecma262.RegularExpressions.SimpleShape.Sequence = 4 -> Corvus.Ecma262.RegularExpressions.SimpleShape
+Corvus.Ecma262.RegularExpressions.SimpleShape.Set = 2 -> Corvus.Ecma262.RegularExpressions.SimpleShape
+Corvus.Ecma262.RegularExpressions.SpanMatchEvaluator
+Corvus.Ecma262.RegularExpressions.Utf16Encoding
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.AdvanceUnit(System.ReadOnlySpan<char> input, int pos) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.AlternativeAt(System.ReadOnlySpan<char> input, int pos, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation, bool units) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.AlternativeWindow(Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.Decode(System.ReadOnlySpan<char> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.DecodeBefore(System.ReadOnlySpan<char> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.HasAlternativeExtras(Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> bool
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IndexOfAlternation(System.ReadOnlySpan<char> input, int from, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IndexOfAlternation(System.ReadOnlySpan<char> input, int from, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation, out int length) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IndexOfAlternativeExtra(System.ReadOnlySpan<char> input, int from, int limit, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IndexOfAnyNeedle(System.ReadOnlySpan<char> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IndexOfPrefix(System.ReadOnlySpan<char> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IndexOfRequired(System.ReadOnlySpan<char> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IsLineTerminatorAt(System.ReadOnlySpan<char> input, int pos) -> bool
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IsLineTerminatorBefore(System.ReadOnlySpan<char> input, int pos) -> bool
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.LiteralAt(System.ReadOnlySpan<char> input, int pos, Corvus.Ecma262.RegularExpressions.Program! program, int lit, out int width) -> bool
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.NextStart(System.ReadOnlySpan<char> input, int pos) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.PrefixLength(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.RequiredOffset(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.Unit(System.ReadOnlySpan<char> input, int pos) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.UnitAt(System.ReadOnlySpan<char> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.UnitBefore(System.ReadOnlySpan<char> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.Utf16Encoding() -> void
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.WalkBack(System.ReadOnlySpan<char> input, int from, int count, int floor, bool units) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.AdvanceUnit(System.ReadOnlySpan<byte> input, int pos) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.AlternativeAt(System.ReadOnlySpan<byte> input, int pos, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation, bool units) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.AlternativeWindow(Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.Decode(System.ReadOnlySpan<byte> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.DecodeBefore(System.ReadOnlySpan<byte> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.HasAlternativeExtras(Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> bool
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IndexOfAlternation(System.ReadOnlySpan<byte> input, int from, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IndexOfAlternation(System.ReadOnlySpan<byte> input, int from, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation, out int length) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IndexOfAlternativeExtra(System.ReadOnlySpan<byte> input, int from, int limit, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IndexOfAnyNeedle(System.ReadOnlySpan<byte> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IndexOfPrefix(System.ReadOnlySpan<byte> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IndexOfRequired(System.ReadOnlySpan<byte> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IsLineTerminatorAt(System.ReadOnlySpan<byte> input, int pos) -> bool
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IsLineTerminatorBefore(System.ReadOnlySpan<byte> input, int pos) -> bool
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.LiteralAt(System.ReadOnlySpan<byte> input, int pos, Corvus.Ecma262.RegularExpressions.Program! program, int lit, out int width) -> bool
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.NextStart(System.ReadOnlySpan<byte> input, int pos) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.PrefixLength(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.RequiredOffset(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.Unit(System.ReadOnlySpan<byte> input, int pos) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.UnitAt(System.ReadOnlySpan<byte> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.UnitBefore(System.ReadOnlySpan<byte> input, int pos, out int width) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.Utf8Encoding() -> void
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.WalkBack(System.ReadOnlySpan<byte> input, int from, int count, int floor, bool units) -> int
+Corvus.Ecma262.RegularExpressions.Utf8MatchEvaluator
+Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator.Current.get -> Corvus.Ecma262.RegularExpressions.ValueMatch
+Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator.GetEnumerator() -> Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator.MoveNext() -> bool
+Corvus.Ecma262.RegularExpressions.Utf8ValueMatchEnumerator.Utf8ValueMatchEnumerator() -> void
+Corvus.Ecma262.RegularExpressions.Utf8ValueSplitEnumerator
+Corvus.Ecma262.RegularExpressions.Utf8ValueSplitEnumerator.Current.get -> Corvus.Ecma262.RegularExpressions.ValueMatch
+Corvus.Ecma262.RegularExpressions.Utf8ValueSplitEnumerator.GetEnumerator() -> Corvus.Ecma262.RegularExpressions.Utf8ValueSplitEnumerator
+Corvus.Ecma262.RegularExpressions.Utf8ValueSplitEnumerator.MoveNext() -> bool
+Corvus.Ecma262.RegularExpressions.Utf8ValueSplitEnumerator.Utf8ValueSplitEnumerator() -> void
+Corvus.Ecma262.RegularExpressions.ValueCapture
+Corvus.Ecma262.RegularExpressions.ValueCapture.Equals(Corvus.Ecma262.RegularExpressions.ValueCapture other) -> bool
+Corvus.Ecma262.RegularExpressions.ValueCapture.Index.get -> int
+Corvus.Ecma262.RegularExpressions.ValueCapture.Length.get -> int
+Corvus.Ecma262.RegularExpressions.ValueCapture.Success.get -> bool
+Corvus.Ecma262.RegularExpressions.ValueCapture.ValueCapture() -> void
+Corvus.Ecma262.RegularExpressions.ValueMatch
+Corvus.Ecma262.RegularExpressions.ValueMatch.Equals(Corvus.Ecma262.RegularExpressions.ValueMatch other) -> bool
+Corvus.Ecma262.RegularExpressions.ValueMatch.Index.get -> int
+Corvus.Ecma262.RegularExpressions.ValueMatch.Length.get -> int
+Corvus.Ecma262.RegularExpressions.ValueMatch.ValueMatch() -> void
+Corvus.Ecma262.RegularExpressions.ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.ValueMatchEnumerator.Current.get -> Corvus.Ecma262.RegularExpressions.ValueMatch
+Corvus.Ecma262.RegularExpressions.ValueMatchEnumerator.GetEnumerator() -> Corvus.Ecma262.RegularExpressions.ValueMatchEnumerator
+Corvus.Ecma262.RegularExpressions.ValueMatchEnumerator.MoveNext() -> bool
+Corvus.Ecma262.RegularExpressions.ValueMatchEnumerator.ValueMatchEnumerator() -> void
+Corvus.Ecma262.RegularExpressions.ValueSplitEnumerator
+Corvus.Ecma262.RegularExpressions.ValueSplitEnumerator.Current.get -> Corvus.Ecma262.RegularExpressions.ValueMatch
+Corvus.Ecma262.RegularExpressions.ValueSplitEnumerator.GetEnumerator() -> Corvus.Ecma262.RegularExpressions.ValueSplitEnumerator
+Corvus.Ecma262.RegularExpressions.ValueSplitEnumerator.MoveNext() -> bool
+Corvus.Ecma262.RegularExpressions.ValueSplitEnumerator.ValueSplitEnumerator() -> void
+abstract Corvus.Ecma262.RegularExpressions.GeneratedRunner.Run(Corvus.Ecma262.RegularExpressions.Program! p, Corvus.Ecma262.RegularExpressions.MatchState! st, System.ReadOnlySpan<byte> input, int start, out int end) -> bool
+abstract Corvus.Ecma262.RegularExpressions.GeneratedRunner.Run(Corvus.Ecma262.RegularExpressions.Program! p, Corvus.Ecma262.RegularExpressions.MatchState! st, System.ReadOnlySpan<char> input, int start, out int end) -> bool
+const Corvus.Ecma262.RegularExpressions.CandidateScan.Alternation = 1 -> int
+const Corvus.Ecma262.RegularExpressions.CandidateScan.Emitted = 4 -> int
+const Corvus.Ecma262.RegularExpressions.CandidateScan.First = 3 -> int
+const Corvus.Ecma262.RegularExpressions.CandidateScan.Fixed = 2 -> int
+const Corvus.Ecma262.RegularExpressions.CharSet.SmallSet = 512 -> int
+const Corvus.Ecma262.RegularExpressions.Entry.Cap = 7 -> byte
+const Corvus.Ecma262.RegularExpressions.Entry.Choice = 0 -> byte
+const Corvus.Ecma262.RegularExpressions.Entry.Counter = 8 -> byte
+const Corvus.Ecma262.RegularExpressions.Entry.Look = 3 -> byte
+const Corvus.Ecma262.RegularExpressions.Entry.LookNeg = 4 -> byte
+const Corvus.Ecma262.RegularExpressions.Entry.Mark = 5 -> byte
+const Corvus.Ecma262.RegularExpressions.Entry.Rep = 1 -> byte
+const Corvus.Ecma262.RegularExpressions.Entry.RepLazy = 2 -> byte
+const Corvus.Ecma262.RegularExpressions.Entry.Tmp = 6 -> byte
+const Corvus.Ecma262.RegularExpressions.MatchState.None = -1 -> int
+const Corvus.Ecma262.RegularExpressions.Matcher.CheckEvery = 4096 -> long
+const Corvus.Ecma262.RegularExpressions.Matcher.MaxMarkDepth = 524288 -> int
+const Corvus.Ecma262.RegularExpressions.Matcher.MaxMemoWords = 1048576 -> int
+const Corvus.Ecma262.RegularExpressions.Matcher.MaxStack = 1048576 -> int
+const Corvus.Ecma262.RegularExpressions.Matcher.MemoStepsPerPosition = 64 -> int
+const Corvus.Ecma262.RegularExpressions.Needle<T>.MaxRows = 4 -> int
+const Corvus.Ecma262.RegularExpressions.Utf8Encoding.RuneError = 65533 -> int
+override Corvus.Ecma262.RegularExpressions.Capture.ToString() -> string!
+override Corvus.Ecma262.RegularExpressions.Quick.Equals(object? obj) -> bool
+override Corvus.Ecma262.RegularExpressions.Quick.GetHashCode() -> int
+override Corvus.Ecma262.RegularExpressions.Regex.ToString() -> string!
+override Corvus.Ecma262.RegularExpressions.ValueCapture.Equals(object? obj) -> bool
+override Corvus.Ecma262.RegularExpressions.ValueCapture.GetHashCode() -> int
+override Corvus.Ecma262.RegularExpressions.ValueMatch.Equals(object? obj) -> bool
+override Corvus.Ecma262.RegularExpressions.ValueMatch.GetHashCode() -> int
+static Corvus.Ecma262.RegularExpressions.AlternationSearch.Create(string![]! literals) -> Corvus.Ecma262.RegularExpressions.AlternationSearch!
+static Corvus.Ecma262.RegularExpressions.AlternationSearch.CreateForms(int[]![]![]! forms) -> Corvus.Ecma262.RegularExpressions.AlternationSearch?
+static Corvus.Ecma262.RegularExpressions.CaseFolding.Canonicalize(int r, bool unicode) -> int
+static Corvus.Ecma262.RegularExpressions.CaseFolding.Canonicalize(int r, bool unicode, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion version) -> int
+static Corvus.Ecma262.RegularExpressions.Match.Empty.get -> Corvus.Ecma262.RegularExpressions.Match!
+static Corvus.Ecma262.RegularExpressions.MatchState.Acquire() -> Corvus.Ecma262.RegularExpressions.MatchState!
+static Corvus.Ecma262.RegularExpressions.MatchState.Current() -> Corvus.Ecma262.RegularExpressions.MatchState!
+static Corvus.Ecma262.RegularExpressions.MatchState.MemoFromTheStart.get -> bool
+static Corvus.Ecma262.RegularExpressions.MatchState.MemoFromTheStart.set -> void
+static Corvus.Ecma262.RegularExpressions.Matcher.AsciiRun<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.CharSet! set, System.ReadOnlySpan<TUnit> input, int at, int max, bool units) -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.BackrefAt<TUnit, TEncoding>(System.ReadOnlySpan<TUnit> input, int pos, int from, int to, bool fold, bool unicode, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion version, out int width) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.BackrefAt<TUnit, TEncoding>(System.ReadOnlySpan<TUnit> input, int pos, int from, int to, bool fold, bool unicode, out int width) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.Backtrack<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.Program! p, Corvus.Ecma262.RegularExpressions.MatchState! st, System.ReadOnlySpan<TUnit> input, ref Corvus.Ecma262.RegularExpressions.Entry[]! stack, ref int sp, ref int pc, ref int pos, ref long steps, bool memo, ulong[]! memoBits) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.EndOfLine<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.MatchState? st, System.ReadOnlySpan<TUnit> input, int at) -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.EndOfRun<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.CharSet! set, System.ReadOnlySpan<TUnit> input, int at, bool units) -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.EndOfRun<TUnit, TEncoding>(int c, System.ReadOnlySpan<TUnit> input, int at) -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.ExtraStart<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.MatchState! st, System.ReadOnlySpan<TUnit> input, int next, int i, Corvus.Ecma262.RegularExpressions.AlternationSearch! alternation) -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.FormsAt<TUnit, TEncoding>(int[]![]![]! alternatives, System.ReadOnlySpan<TUnit> input, int pos, bool units) -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.GiveBack<TUnit, TEncoding>(System.ReadOnlySpan<TUnit> input, int pos, bool units) -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.Interpret<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.Program! p, Corvus.Ecma262.RegularExpressions.MatchState! st, System.ReadOnlySpan<TUnit> input, int start, out int end) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.IsFoldWordRune(int r) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.IsMatch<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.Program! p, System.ReadOnlySpan<TUnit> input, int start, bool sticky, System.TimeSpan limit, out Corvus.Ecma262.RegularExpressions.MatchStop stop) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.LastAllowedIn<TUnit, TEncoding>(System.ReadOnlySpan<TUnit> input, int from, int to, Corvus.Ecma262.RegularExpressions.CharSet! set) -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.Match<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.Program! p, System.ReadOnlySpan<TUnit> input, int start, bool sticky, System.TimeSpan limit, System.Span<int> captures, out Corvus.Ecma262.RegularExpressions.MatchStop stop) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.MatchWith<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.MatchState! st, ref Corvus.Ecma262.RegularExpressions.ScanCursor cursor, Corvus.Ecma262.RegularExpressions.Program! p, System.ReadOnlySpan<TUnit> input, int start, bool sticky, System.TimeSpan limit, System.Span<int> captures, out Corvus.Ecma262.RegularExpressions.MatchStop stop) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.MatchWith<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.MatchState! st, ref Corvus.Ecma262.RegularExpressions.ScanCursor cursor, ref Corvus.Ecma262.RegularExpressions.CandidateScan scan, Corvus.Ecma262.RegularExpressions.Program! p, System.ReadOnlySpan<TUnit> input, int start, bool sticky, System.TimeSpan limit, System.Span<int> captures, out Corvus.Ecma262.RegularExpressions.MatchStop stop) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.MemoBit(ulong[]! memo, int idx) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.MemoIndex(Corvus.Ecma262.RegularExpressions.Program! p, Corvus.Ecma262.RegularExpressions.MatchState! st, int m, int pos) -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.NextStart<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.Program! p, Corvus.Ecma262.RegularExpressions.MatchState! st, System.ReadOnlySpan<TUnit> input, ref Corvus.Ecma262.RegularExpressions.CandidateScan scan, out int start) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.One<TUnit, TEncoding>(in Corvus.Ecma262.RegularExpressions.Inst i, System.ReadOnlySpan<TUnit> input, int at, bool units) -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.Push(ref Corvus.Ecma262.RegularExpressions.Entry[]! stack, ref int sp, byte kind, int pc, int pos, int a) -> void
+static Corvus.Ecma262.RegularExpressions.Matcher.ResumeEmitted<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.MatchState! st, ref Corvus.Ecma262.RegularExpressions.ScanCursor cursor, ref Corvus.Ecma262.RegularExpressions.CandidateScan scan, Corvus.Ecma262.RegularExpressions.Program! p, System.ReadOnlySpan<TUnit> input, int start, System.TimeSpan limit, out int from, out int to) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.ResumeWith<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.MatchState! st, ref Corvus.Ecma262.RegularExpressions.ScanCursor cursor, ref Corvus.Ecma262.RegularExpressions.CandidateScan scan, Corvus.Ecma262.RegularExpressions.Program! p, System.ReadOnlySpan<TUnit> input, int start, System.TimeSpan limit, System.Span<int> captures, out Corvus.Ecma262.RegularExpressions.MatchStop stop) -> bool
+static Corvus.Ecma262.RegularExpressions.Matcher.SetMemoBit(ulong[]! memo, int idx) -> void
+static Corvus.Ecma262.RegularExpressions.Matcher.Simple<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.Program! p, Corvus.Ecma262.RegularExpressions.MatchState? st, System.ReadOnlySpan<TUnit> input, int start, bool sticky, out int from, out int to) -> bool
+static Corvus.Ecma262.RegularExpressions.Needle<T>.TryMask(T a, T b, out T mask) -> bool
+static Corvus.Ecma262.RegularExpressions.Quick.All.get -> Corvus.Ecma262.RegularExpressions.Quick
+static Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout.get -> System.TimeSpan
+static Corvus.Ecma262.RegularExpressions.Regex.Escape(string! text) -> string!
+static Corvus.Ecma262.RegularExpressions.Regex.IsMatch(string! input, string! pattern) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.IsMatch(string! input, string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.IsValid(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.IsValid(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, Corvus.Ecma262.RegularExpressions.RegexEdition edition, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicodeVersion) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.IsValidPattern(System.ReadOnlySpan<byte> utf8Pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.IsValidPattern(System.ReadOnlySpan<byte> utf8Pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, Corvus.Ecma262.RegularExpressions.RegexEdition edition, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicodeVersion) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.IsValidPattern(System.ReadOnlySpan<char> pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.IsValidPattern(System.ReadOnlySpan<char> pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, Corvus.Ecma262.RegularExpressions.RegexEdition edition, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicodeVersion) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.Match(string! input, string! pattern) -> Corvus.Ecma262.RegularExpressions.Match!
+static Corvus.Ecma262.RegularExpressions.Regex.Match(string! input, string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags) -> Corvus.Ecma262.RegularExpressions.Match!
+static Corvus.Ecma262.RegularExpressions.Regex.Matches(string! input, string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags = Corvus.Ecma262.RegularExpressions.RegexFlags.None) -> Corvus.Ecma262.RegularExpressions.MatchCollection!
+static Corvus.Ecma262.RegularExpressions.Regex.ParseFlags(string! flags) -> Corvus.Ecma262.RegularExpressions.RegexFlags
+static Corvus.Ecma262.RegularExpressions.Regex.Replace(string! input, string! pattern, string! replacement, Corvus.Ecma262.RegularExpressions.RegexFlags flags = Corvus.Ecma262.RegularExpressions.RegexFlags.None) -> string!
+static Corvus.Ecma262.RegularExpressions.Regex.Split(string! input, string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags = Corvus.Ecma262.RegularExpressions.RegexFlags.None) -> string?[]!
+static Corvus.Ecma262.RegularExpressions.Regex.TryCreate(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, System.TimeSpan matchTimeout, Corvus.Ecma262.RegularExpressions.RegexEdition edition, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicodeVersion, Corvus.Ecma262.RegularExpressions.RegexBuildOptions buildOptions, out Corvus.Ecma262.RegularExpressions.Regex? regex, out string? error) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.TryCreate(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, System.TimeSpan matchTimeout, Corvus.Ecma262.RegularExpressions.RegexEdition edition, Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicodeVersion, out Corvus.Ecma262.RegularExpressions.Regex? regex, out string? error) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.TryCreate(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, System.TimeSpan matchTimeout, out Corvus.Ecma262.RegularExpressions.Regex? regex, out string? error) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.TryCreate(string! pattern, Corvus.Ecma262.RegularExpressions.RegexFlags flags, out Corvus.Ecma262.RegularExpressions.Regex? regex, out string? error) -> bool
+static Corvus.Ecma262.RegularExpressions.Regex.Unescape(string! pattern) -> string!
+static Corvus.Ecma262.RegularExpressions.Utf8Encoding.DecodeLastRune(System.ReadOnlySpan<byte> p, out int width) -> int
+static Corvus.Ecma262.RegularExpressions.Utf8Encoding.DecodeRune(System.ReadOnlySpan<byte> p, out int width) -> int
+static Corvus.Ecma262.RegularExpressions.Utf8Encoding.IsWordUnit(int b) -> bool
+static Corvus.Ecma262.RegularExpressions.ValueCapture.operator !=(Corvus.Ecma262.RegularExpressions.ValueCapture left, Corvus.Ecma262.RegularExpressions.ValueCapture right) -> bool
+static Corvus.Ecma262.RegularExpressions.ValueCapture.operator ==(Corvus.Ecma262.RegularExpressions.ValueCapture left, Corvus.Ecma262.RegularExpressions.ValueCapture right) -> bool
+static Corvus.Ecma262.RegularExpressions.ValueMatch.operator !=(Corvus.Ecma262.RegularExpressions.ValueMatch left, Corvus.Ecma262.RegularExpressions.ValueMatch right) -> bool
+static Corvus.Ecma262.RegularExpressions.ValueMatch.operator ==(Corvus.Ecma262.RegularExpressions.ValueMatch left, Corvus.Ecma262.RegularExpressions.ValueMatch right) -> bool
+static readonly Corvus.Ecma262.RegularExpressions.Regex.InfiniteMatchTimeout -> System.TimeSpan
+virtual Corvus.Ecma262.RegularExpressions.GeneratedRunner.OwnsSearch.get -> bool
+virtual Corvus.Ecma262.RegularExpressions.GeneratedRunner.Scan(Corvus.Ecma262.RegularExpressions.Program! p, Corvus.Ecma262.RegularExpressions.MatchState! st, System.ReadOnlySpan<byte> input, ref Corvus.Ecma262.RegularExpressions.CandidateScan scan, out int start, out int end) -> bool
+virtual Corvus.Ecma262.RegularExpressions.GeneratedRunner.Scan(Corvus.Ecma262.RegularExpressions.Program! p, Corvus.Ecma262.RegularExpressions.MatchState! st, System.ReadOnlySpan<char> input, ref Corvus.Ecma262.RegularExpressions.CandidateScan scan, out int start, out int end) -> bool
+virtual Corvus.Ecma262.RegularExpressions.MatchEvaluator.Invoke(Corvus.Ecma262.RegularExpressions.Match! match) -> string!
+virtual Corvus.Ecma262.RegularExpressions.SpanMatchEvaluator.Invoke(System.ReadOnlySpan<char> input, Corvus.Ecma262.RegularExpressions.ValueMatch match, System.ReadOnlySpan<Corvus.Ecma262.RegularExpressions.ValueCapture> captures, System.Buffers.IBufferWriter<char>! destination) -> void
+virtual Corvus.Ecma262.RegularExpressions.Utf8MatchEvaluator.Invoke(System.ReadOnlySpan<byte> utf8, Corvus.Ecma262.RegularExpressions.ValueMatch match, System.ReadOnlySpan<Corvus.Ecma262.RegularExpressions.ValueCapture> captures, System.Buffers.IBufferWriter<byte>! destination) -> void

@@ -61,6 +61,11 @@ internal static class Factory
     /// <returns>The regular expression.</returns>
     public static Regex Make(string pattern, RegexFlags flags, TimeSpan limit)
     {
+        if (Golden.Enabled && Golden.Make(pattern, flags, limit) is Regex golden)
+        {
+            return golden;
+        }
+
         bool generated = Runners.TryGetValue((pattern, Key(flags)), out (GeneratedRunner Bounds, GeneratedRunner Captures) r);
         if (Images)
         {
@@ -232,6 +237,12 @@ internal static class Factory
             Runners[batch[k]] = (b, c);
         }
     }
+
+    /// <summary>Gets the references generated code is compiled against: the framework and this library.</summary>
+    public static ImmutableArray<MetadataReference> MetadataReferences => References.Value;
+
+    /// <summary>Gets the preprocessor symbols generated code is compiled with.</summary>
+    public static string[] PreprocessorSymbols => Symbols;
 
     private static ImmutableArray<MetadataReference> LoadReferences()
     {

@@ -1,0 +1,189 @@
+# Compatibility of compiled images, and of the library
+
+Status: agreed and implemented, 2026-10-31, for 1.0.12. Agreed in conversation: one revision floor for compiler fixes
+(feature bits deferred), the scope is images and the public API, golden output made from the released packages when
+the checks run, and Corvus.JsonSchema #1046 (V5.8.0) waits for the release that carries it. Revised to the implemented
+state: the golden check runs in the data-set runner (`--golden`), where the answers are V8's, rather than in the unit
+tests; every section an image has now is required, since the automata are built from the pattern's tree, which an
+image does not hold.
+
+## 1. The problem
+
+An image (`Engine/RegexImage.cs`, see `compiled-regex-as-data.md`) records a fingerprint of the engine that wrote it,
+a SHA-256 over the sources of `Engine/`, `Syntax/`, `Unicode/` and the settings types. A reader whose fingerprint
+differs ignores the image and parses the pattern.
+
+That is safe and much too strict. Any edit to any of those files, a comment included, changes the fingerprint, so every
+image written by an earlier release falls back. 1.0.11 changed only the validator, which plays no part in an image, and
+every image Corvus.JsonSchema had generated with 1.0.10 stopped being read. A consumer whose generated code was written
+with one version and whose application loads a later, entirely compatible one pays the full cost of construction
+without knowing it.
+
+Nothing guards compatibility in the other direction either. The opcodes are numbered by their order in the `Op` enum,
+so inserting one silently changes the meaning of every image. The library has no API baseline, so a change that breaks
+generated code compiled against an earlier version would merge unnoticed.
+
+## 2. The aim
+
+- **A newer library reads every older image that is still correct.** It falls back only when the image uses something
+  the library does not know, or when the compiler that wrote it is known to have been wrong, or when the answers'
+  inputs (flags, edition, resolved Unicode version) differ.
+- **An older library never misreads a newer image.** It falls back.
+- **Code generated against one version compiles and runs against every later version of the same major version.**
+- **Every rule is enforced by a test or a CI check**, so a change that breaks one cannot merge by accident.
+
+## 3. What an image depends on
+
+The fingerprint is replaced by four things, each versioned on its own.
+
+### 3.1 The layout: a format version and sections
+
+The header keeps the magic number "CRI" and gains a format version that the reader checks against a range,
+`MinimumFormat` to `CurrentFormat`, rather than for equality.
+
+The body becomes a sequence of sections. Each section is a tag, a flag that says whether it is required, a length and
+its bytes. The names of the groups, the program with its search automata, the capture program with its search automata,
+and the DFA (when the pattern has one) are sections, each required: the automata are built from the pattern's tree,
+which an image does not hold, so a reader that cannot read one of them cannot build the regular expression. A reader:
+
+- skips a section it does not know that is marked optional;
+- falls back on a section it does not know that is marked required;
+- falls back on a required section it expects that is missing.
+
+New data goes in a new section, so most additions need no new format version. A new format version is for a change to
+the header or to the framing itself. Dropping a format from the readable range is a breaking change, made only in a
+major version.
+
+### 3.2 The meaning of what is stored: frozen once released
+
+Everything an image stores has a meaning that is fixed once a release has written it.
+
+- **Opcodes have explicit numbers** (`Char = 0`, `CharBack = 1`, ...). A number is never reused or reordered. A change
+  to what an opcode does is a new opcode. An image that holds an opcode the reader does not know falls back.
+- **Every field keeps its meaning.** This covers the derived facts the compiler stores beside the instructions: the
+  shape and its set, the quick tables, the window and loop facts, prefixes, literals and required strings, and the
+  tables of the DFA and of the search automata. A matcher that comes to need a fact older images lack either derives it
+  from the fields they have, or treats its absence as the conservative value. If it can do neither, the fact goes in a
+  new required section, and older images fall back.
+
+### 3.3 The compiler: a revision and a floor
+
+The image records `CompilerRevision`, a number the library raises whenever the compiler's output changes for any
+pattern, whether the change makes it smaller, faster or right.
+
+The library also has `MinimumTrustedRevision`. It is raised only when a change fixes output that gave wrong answers.
+An image from below the floor falls back, because the program it carries can answer wrongly. An image from a revision
+that was only slower still reads, because its answers are right.
+
+One floor for every pattern is deliberately coarse. A fix to case-insensitive backreferences invalidates images of
+patterns that have none. Compiler fixes that change answers should be rare now that the data set gates every change. If
+they are not, a later section can record which constructs a pattern uses, so that a fix invalidates only the images
+that use the construct it fixes. The section framing lets that be added without a new format.
+
+### 3.4 The answers' inputs: unchanged
+
+The flags, the edition and the resolved Unicode version stay in the header and must match exactly. When the library's
+default Unicode version moves, an image written under `Default` records the version it resolved to, the reader resolves
+`Default` to the new one, and the image falls back. That is right, because the answers differ.
+
+The character sets are stored as ranges, so a change to the library's Unicode tables does not affect an image except
+through the resolved version.
+
+### 3.5 What the generated code calls
+
+A generated holder calls the library through public members hidden from editors: the constructor that takes an image,
+and the members its generated runners use. Code emitted by the source package of one version is compiled against
+whatever later version the application references. These members are public API like any other, under the baseline of
+§5, and are never removed or changed within a major version.
+
+## 4. Images already published
+
+1.0.10 and 1.0.11 wrote format 1, with a fingerprint. Their contents mean exactly what the first sectioned format's
+sections will mean. The release that brings this model:
+
+- reads format 1 when its fingerprint is one of the two that 1.0.10 and 1.0.11 shipped, and treats such an image as
+  revision 1;
+- writes the sectioned format.
+
+An image built with either published version keeps being read.
+
+## 5. Guards
+
+| Guard | What it checks | What it catches |
+|---|---|---|
+| **Golden images** | For every released version, the images that version writes for a fixed sample of the data set (§5.1), read by the current library in the data-set runner, whose answers over the sample's texts must be V8's. An image below `MinimumTrustedRevision` must be ignored, and every other image read. | A newer library that misreads, or no longer reads, an older image. |
+| **Output pinned to the revision** | Each released image of the current `CompilerRevision` is compared, in a canonical form of what it holds, with what the current compiler writes for the same pattern. A difference fails, and the message says to raise the revision, and the floor too if the change fixes answers. | Output that changes without a revision, and so without anyone deciding whether the floor must rise. |
+| **Opcodes pinned** | A unit test lists every opcode's name and number. | An opcode inserted, renumbered or reused. |
+| **Golden generated code** | The holders the emitter of each released version writes for a smaller sample (§5.1), compiled with Roslyn against the current library in the runner, which checks that each is read from its image and answers as V8 does. | A change to the members generated code calls that breaks code generated by an earlier release. |
+| **Public API baseline** | `Microsoft.CodeAnalysis.PublicApiAnalyzers` with `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` (and a `net10.0` pair for the members only that build has), and package validation against the last released package (`EnablePackageValidation`, `PackageValidationBaselineVersion`). | Any public member removed or changed, the hidden generated-code members included, and any binary break against the last release. |
+| **Corvus.JsonSchema** | A test there asserts that every image in its checked-in generated code is read by the version of the library it references. | Generated code that ships with images its own library no longer reads. |
+
+The sample is every 50th record of each file of the data set (every 1,000th for whole holders), under each grammar V8
+found it valid in: about 3,500 images and 175 holders. The rule never changes, so what every release writes is
+comparable with what every other writes.
+
+### 5.1 Golden output is made when the check runs
+
+Nothing golden is stored. Each released version's `Corvus.Regex.Ecma262.CodeGeneration.Sources` package carries that
+version's emitter and image writer as source, so what it writes can be made again whenever it is wanted.
+
+- `Solutions/Corvus.Regex.Ecma262.GoldenWriter` is a small tool built once for each released version, with
+  `-p:GoldenVersion=<version>`, which references that version of the source package. It calls the version's
+  `RegexEmitter.TryEmit` for each pattern of the sample and writes out the holders it emits.
+- The image bytes are read from each holder's `Compiled` literal. The holder source itself is the golden generated
+  code. One call gives both, and it is the one member of the emitter that Corvus.JsonSchema already depends on.
+- The released versions to check are listed in `ReleasedVersions.txt` beside the tool, from 1.0.10, the first to write
+  images. The pull request after a release adds its line.
+- `tools/compatibility/Test-GoldenImages.ps1` builds and runs the tool for each version and runs the data-set runner
+  with `--golden` over its output. The `dataset` workflow runs it on every pull request, every push to main and
+  nightly.
+
+What is checked is therefore exactly what each release ships, and nothing can drift from it. The cost is a restore of
+each released source package and a small build for each: about half a minute a release.
+
+## 6. A fallback is visible
+
+A fallback never changes an answer, only the cost of construction, so it would otherwise go unnoticed. The library
+raises an `EventSource` event when it ignores an image, naming why (format, unknown section, unknown opcode, revision,
+settings, damage), and keeps a count. A consumer's own tests or telemetry can see that its generated code has stopped
+saving the work it was written to save.
+
+## 7. Guidelines
+
+`docs/contributing/compatibility.md` will say, for each kind of change, what to do and which guard enforces it.
+
+| Change | What to do | Enforced by |
+|---|---|---|
+| A refactoring, a comment, the validator, anything that changes no output | Nothing. | The output-pinned test passes. |
+| The compiler's output changes, answers unchanged (smaller, faster) | Raise `CompilerRevision`. | Output pinned to the revision. |
+| The compiler's output changes because it gave wrong answers | Raise `CompilerRevision` and set `MinimumTrustedRevision` to it. Say so in the release notes. | Output pinned, and the golden images test, which then expects older images to fall back. |
+| A new kind of instruction | A new opcode with the next number. | Opcodes pinned. |
+| A new stored fact | Derive it from older fields, or default it conservatively, or put it in a new section (required only if neither is possible). | Golden images. |
+| A change to the header or the framing | A new format version. Keep reading the old ones. | Golden images. |
+| Dropping an old format, opcode or public member | Only in a major version. | Package validation, the API baseline, golden images. |
+| A new public member | Add it to `PublicAPI.Unshipped.txt`. | The API analyzers. |
+
+## 8. Delivery
+
+1. This note, agreed.
+2. One pull request on Corvus.Regex.Ecma262, released as 1.0.12 (a patch: nothing a consumer sees changes except
+   that more images are read):
+   - the sectioned format, `CompilerRevision` and `MinimumTrustedRevision` in place of the fingerprint, with
+     `EngineFingerprint.targets` removed;
+   - format 1 read for the two published fingerprints;
+   - explicit opcode numbers, the same as today's ordinals, so no image changes meaning;
+   - the guards of §5, with the golden writer of §5.1 and its list of released versions (1.0.10 and 1.0.11 to start),
+     and a `CompatibilitySuppressions.xml` holding only the differences between the package's own `net10.0` and
+     `netstandard2.0` builds that 1.0.11 already shipped;
+   - the fallback event;
+   - `docs/contributing/compatibility.md`, and `design.md` §4 and `compiled-regex-as-data.md` revised in place to the
+     new state.
+3. Corvus.JsonSchema #1046 takes 1.0.12, regenerates its checked-in code, and gains the test of §5 that its images are
+   read. V5.8.0 then ships.
+
+## 9. Open questions
+
+- **The time the golden check takes.** It grows by about half a minute for each release. If that grows too long, the
+  older releases can run in the nightly job only.
+- **The other engines.** The ports do not yet write images. When they do, they adopt the same model, each in its own
+  repository.

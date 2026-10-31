@@ -1,10 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\Corvus.Regex.Ecma262.SourceGenerator\EmitterSources.props" />
   <Import Project="$(EndjinProjectPropsPath)" Condition="$(EndjinProjectPropsPath) != ''" />
-  <PropertyGroup>
-    <EngineFingerprintAsEmitterSource>true</EngineFingerprintAsEmitterSource>
-  </PropertyGroup>
-  <Import Project="..\Corvus.Regex.Ecma262\EngineFingerprint.targets" />
 
   <!--
     The emitter as a source package: the files the source generator compiles, carried as C# that is compiled into the

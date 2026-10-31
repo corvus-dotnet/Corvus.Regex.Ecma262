@@ -1,0 +1,4 @@
+# The released versions whose images the current library must read (docs/plan/image-compatibility.md), from 1.0.10,
+# the first to write images. A release adds its line.
+1.0.10
+1.0.11
