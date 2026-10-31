@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="EmitterSources.props" />
   <Import Project="$(EndjinProjectPropsPath)" Condition="$(EndjinProjectPropsPath) != ''" />
-  <Import Project="..\Corvus.Regex.Ecma262\EngineFingerprint.targets" />
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>

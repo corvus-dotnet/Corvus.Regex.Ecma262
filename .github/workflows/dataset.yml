@@ -4,7 +4,8 @@
 # invalid one and 0 matches at their limit. The data is pinned to a commit; move the pin when the data grows. The
 # Linux job also runs the data as the data's own scripts write it for Unicode 13 and 18 (unicode.js apply) and for
 # the grammar of ECMAScript 2020 (edition.js apply), with the runner set to match, and makes the generated Unicode data
-# again from the Unicode Character Database, failing unless it is the checked-in data. The tests and the data also run
+# again from the Unicode Character Database, failing unless it is the checked-in data. It also reads what every
+# released version wrote with this library (tools/compatibility/Test-GoldenImages.ps1). The tests and the data also run
 # on arm64 and on x86-64 without AVX2, the vector paths the Linux job does not take.
 name: dataset
 on:
@@ -47,6 +48,11 @@ jobs:
       run: dotnet build Solutions/Corvus.Regex.Ecma262.DatasetRunner/Corvus.Regex.Ecma262.DatasetRunner.csproj -c Release
     - name: Run the data
       run: ./Solutions/Corvus.Regex.Ecma262.DatasetRunner/bin/Release/net10.0/Corvus.Regex.Ecma262.DatasetRunner ecma262-regex-test-data/data wrong-cases.tsv
+    - name: Read what every release wrote (the golden check)
+      # Each released version's images and generated holders, for a fixed sample of the data, written by that
+      # version's own source package and read by this library (docs/plan/image-compatibility.md).
+      shell: pwsh
+      run: ./tools/compatibility/Test-GoldenImages.ps1 -Data ecma262-regex-test-data/data -WorkDirectory "$env:RUNNER_TEMP/golden"
     - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: '24.22.1'
@@ -84,7 +90,9 @@ jobs:
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: wrong-cases
-        path: wrong-cases*.tsv
+        path: |
+          wrong-cases*.tsv
+          ${{ runner.temp }}/golden/wrong-cases-golden-*.tsv
 
   vector-paths:
     # The tests and the data over the vector paths the Linux job does not take: arm64 (AdvSimd, and no 256-bit

@@ -6,6 +6,7 @@
 //
 //   DatasetRunner <data directory> <wrong-cases output file> [file filter] [utf16|utf8|both] [--answers <file>]
 //                 [--compliance <file>] [--edition current|es2020] [--unicode 13|17|18|latest] [--images]
+//                 [--golden <directory>]
 //
 // Each record is asked about under each grammar V8 found it valid in: the record's flags with u added (the
 // `unicode` answers) and the record's flags alone (the `legacy` answers). A text is matched as UTF-16 and as UTF-8.
@@ -19,6 +20,9 @@
 // character database, and the data is the data as `node edition.js apply` or `node unicode.js apply` writes it for them.
 // With --images, each regular expression is read from the image of it the source generator's engine writes (as a
 // generated one is), and a pattern whose image is not read is listed as IMAGE-NOT-READ.
+// With --golden <directory>, the patterns of the sample a released version's GoldenWriter wrote are read from that
+// release's images and holders (Golden.cs): one not read, a holder that does not compile, or an image of this engine's
+// own compiler revision that holds other than what it writes now, is a failure.
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -31,6 +35,13 @@ if (imagesAt >= 0)
 {
     args = [.. args.Take(imagesAt), .. args.Skip(imagesAt + 1)];
     Factory.Images = true;
+}
+
+int goldenAt = Array.IndexOf(args, "--golden");
+string? goldenPath = goldenAt >= 0 ? args[goldenAt + 1] : null;
+if (goldenAt >= 0)
+{
+    args = [.. args.Take(goldenAt), .. args.Skip(goldenAt + 2)];
 }
 
 int complianceAt = Array.IndexOf(args, "--compliance");
@@ -77,6 +88,11 @@ if (answersAt >= 0)
 }
 
 string directory = args[0];
+if (goldenPath is not null)
+{
+    Golden.Load(goldenPath, Factory.MetadataReferences, Factory.PreprocessorSymbols);
+}
+
 string wrongPath = args[1];
 string filter = args.Length > 2 ? args[2] : "*.jsonl";
 string encodings = args.Length > 3 ? args[3] : "both";
@@ -296,6 +312,16 @@ if (Factory.Images)
     Console.WriteLine($"images read {Factory.ImagesRead:N0}  not read {Factory.ImagesNotRead.Count:N0}");
 }
 
+if (Golden.Enabled)
+{
+    foreach (string failure in Golden.Failures)
+    {
+        wrongCases.Enqueue(failure);
+    }
+
+    Console.WriteLine($"golden read {Golden.Read:N0}  failures {Golden.Failures.Count:N0}");
+}
+
 File.WriteAllLines(wrongPath, wrongCases.OrderBy(c => c, StringComparer.Ordinal));
 if (answersPath is not null)
 {
@@ -308,7 +334,7 @@ if (compliancePath is not null)
 
 Console.WriteLine();
 Console.WriteLine($"records {records:N0} (skipped {skipped} deviations)  right {right:N0}  wrong {wrong:N0}  refused-valid {refusedValid}  accepted-invalid {acceptedInvalid}  limit {limited}  errors {errors}  in {clock.Elapsed}");
-return wrong + refusedValid + acceptedInvalid + errors == 0 ? 0 : 1;
+return wrong + refusedValid + acceptedInvalid + errors + Golden.Failures.Count == 0 ? 0 : 1;
 
 // The engine's compliance as the benchmark page reads it (docs/implementing-a-source.md in
 // corvus-regex-ecma262-benchmarks): the counts, this runner and the calls it makes in each encoding it asked in, and

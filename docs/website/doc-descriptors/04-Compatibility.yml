@@ -1,0 +1,3 @@
+source: contributing/compatibility.md
+navTitle: "Compatibility"
+description: "What a change must do so that generated and compiled code built against an earlier release keeps working, and the checks that enforce it."

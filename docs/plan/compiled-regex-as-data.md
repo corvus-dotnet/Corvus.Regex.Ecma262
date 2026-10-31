@@ -1,6 +1,6 @@
 # The compiled regular expression as data
 
-Status: agreed and implemented, 2026-10-30, for 1.0.10. Revised to the implemented state: the version check is a fingerprint of the engine's sources rather than the library's version.
+Status: agreed and implemented, 2026-10-30, for 1.0.10. Revised to the implemented state: the version check is a fingerprint of the engine's sources rather than the library's version. Revised 2026-10-31: from 1.0.12 the fingerprint is replaced by the compatibility model of image-compatibility.md, and §5 describes that.
 
 ## 1. The problem
 
@@ -91,15 +91,15 @@ internal static readonly Regex Instance = new(pattern, flags, timeout, edition, 
 
 - A `ReadOnlySpan<byte>` literal of bytes is stored in the assembly's data and costs nothing to initialise, under the
   JIT, ReadyToRun and native AOT alike.
-- The image starts with a magic number, the format's version, and the facts it was made under: the fingerprint of
-  the engine that wrote it, the edition, the resolved Unicode version (`RegexUnicodeVersion.Default` resolves per
-  library version), and the flags. The fingerprint is a SHA-256 over the sources of the reader, the compiler, the
-  engine and the Unicode tables, written into each build by `EngineFingerprint.targets`; the library, the source
-  generator and the source package compile the same files, so they agree exactly when their engines are the same,
-  with nothing to remember to bump. A development build of a changed engine gets a new fingerprint too.
-- **Mismatch falls back.** If the reading library does not know the format version, or any recorded fact differs from
-  what it would resolve now, it ignores the image and parses the pattern as today. A regular expression made either
-  way gives the same answers; the image only saves work.
+- The image starts with a magic number, the format's version, the revision of the compiler that wrote it, and the
+  facts it was made under: the edition, the resolved Unicode version (`RegexUnicodeVersion.Default` resolves per
+  library version), and the flags. Its parts follow as tagged sections. 1.0.10 and 1.0.11 recorded a fingerprint of
+  the engine's sources in place of a revision, which made every image of an earlier release fall back after any edit
+  to the engine; image-compatibility.md replaces it, and a reader still reads those two releases' images.
+- **What a reader does not know falls back.** If the reading library does not know the format version, a required
+  section or an instruction, if the revision is below the trusted one, or if any recorded fact differs from what it
+  would resolve now, it ignores the image and parses the pattern. A regular expression made either way gives the
+  same answers; the image only saves work.
 - Why not C# object initialisers: they would bind generated code to the engine's internal types at compile time, so
   a consumer whose generator carries one emitter version (`CodeGeneration.Sources`) and whose application loads a later
   library would fail to build, where the image degrades to today's cost. They would also be large: `Inst` has more than

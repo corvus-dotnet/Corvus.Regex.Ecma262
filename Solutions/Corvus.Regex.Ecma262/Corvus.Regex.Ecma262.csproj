@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(EndjinProjectPropsPath)" Condition="$(EndjinProjectPropsPath) != ''" />
-  <Import Project="EngineFingerprint.targets" />
 
   <PropertyGroup>
     <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
@@ -33,6 +32,31 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!--
+    Backward compatibility (docs/contributing/compatibility.md): the public API, the members generated code calls
+    included, is listed in PublicAPI.Shipped.txt, and a member added goes in PublicAPI.Unshipped.txt until it ships.
+    The package is validated against the last release, so a change that breaks code built against it fails the pack.
+  -->
+  <PropertyGroup>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>1.0.11</PackageValidationBaselineVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
+  <!-- The members only the .NET build has (the vectorised searches over SearchValues and the like). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <AdditionalFiles Include="PublicAPI\net10.0\PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI\net10.0\PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="Engine\Adfa.cs" />
     <Compile Include="Engine\CaseFolding.cs" />
@@ -53,6 +77,7 @@
     <Compile Include="MatchCollection.cs" />
     <Compile Include="MatchEvaluator.cs" />
     <Compile Include="Regex.cs" />
+    <Compile Include="RegexEventSource.cs" />
     <Compile Include="Regex.Matching.cs" />
     <Compile Include="Regex.Spans.cs" />
     <Compile Include="PooledBufferWriter.cs" />

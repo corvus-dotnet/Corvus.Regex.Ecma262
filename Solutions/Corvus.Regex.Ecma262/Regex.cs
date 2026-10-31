@@ -195,7 +195,14 @@ public sealed partial class Regex
         // Every pattern has its timeout. One without a backreference takes time in proportion to its size times the
         // text, but a count is not size: (?:a?){2147483647} keeps a choice for each of its iterations.
         this.limit = matchTimeout == InfiniteMatchTimeout ? TimeSpan.Zero : matchTimeout;
-        if (!compiled.IsEmpty && RegexImage.TryRead(compiled, flags, edition, this.UnicodeVersion, out RegexImage.Parts parts))
+        RegexImage.Parts parts = default;
+        RegexImage.Ignored ignored = RegexImage.Ignored.None;
+        if (!compiled.IsEmpty && !RegexImage.TryRead(compiled, flags, edition, this.UnicodeVersion, out parts, out ignored))
+        {
+            RegexEventSource.Log.ImageIgnored((int)ignored, ignored.ToString());
+        }
+
+        if (!compiled.IsEmpty && ignored == RegexImage.Ignored.None)
         {
             // Everything the first matches would build is in the image, so nothing is kept to build it from.
             this.root = null;

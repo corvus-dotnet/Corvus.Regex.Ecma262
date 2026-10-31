@@ -122,20 +122,107 @@ public class CompiledImageTests
     }
 
     [TestMethod]
-    public void AnImageOfAnotherEngineIsIgnored()
+    public void AnImageOfALayoutThisEngineDoesNotReadIsIgnored()
     {
         byte[] image = RegexImage.Write("a+b", RegexFlags.Unicode, RegexEdition.Current, RegexUnicodeVersion.Default);
+        foreach (byte format in new byte[] { 0, RegexImage.MinimumFormat - 1, RegexImage.FormatVersion + 1, 0xFF })
+        {
+            byte[] layout = (byte[])image.Clone();
+            layout[3] = format;
+            Regex r = Read("a+b", layout);
+            Assert.IsFalse(r.ReadFromImage, $"layout {format}");
+            Assert.IsTrue(r.IsMatch("xaab"));
+        }
+    }
 
-        // The fingerprint follows the four bytes of the magic and the layout: its length, then its characters.
-        byte[] other = (byte[])image.Clone();
-        other[6] ^= 0x01;
-        Regex r = new("a+b", RegexFlags.Unicode, Regex.InfiniteMatchTimeout, RegexEdition.Current, RegexUnicodeVersion.Default, null, null, other);
+    [TestMethod]
+    [DataRow("9096543f80969d8ba477181cc4a67bfeba3f76edbd27425d7b545f875daa3199", true)]
+    [DataRow("8fe300ee5e122022c8e2ba87ff05861880c0986daa87d9ce086b402dcc17e98d", true)]
+    [DataRow("8fe300ee5e122022c8e2ba87ff05861880c0986daa87d9ce086b402dcc17e98e", false)]
+    [DataRow("", false)]
+    public void AnImageOfLayoutOneIsReadWhenAReleaseWroteIt(string fingerprint, bool read)
+    {
+        // 1.0.10 and 1.0.11 wrote layout 1, recording a hash of the engine's sources: an image with either release's
+        // hash holds what revision 1 of the compiler writes, and one with any other came from no release.
+        foreach ((string pattern, RegexFlags flags, RegexEdition edition, RegexUnicodeVersion version) in Cases().Where((_, k) => k % 7 == 0))
+        {
+            byte[] image = RegexImage.WriteFormat1(pattern, flags, edition, version, fingerprint);
+            Regex fromImage = new(pattern, flags, Regex.InfiniteMatchTimeout, edition, version, null, null, image);
+            Assert.AreEqual(read, fromImage.ReadFromImage, $"/{pattern}/ {flags}");
+            Regex compiled = new(pattern, flags, Regex.InfiniteMatchTimeout, edition, version);
+            foreach (string text in Texts)
+            {
+                Assert.AreEqual(Answers(compiled, text), Answers(fromImage, text), $"/{pattern}/ {flags} on \"{text}\"");
+            }
+        }
+    }
+
+    [TestMethod]
+    public void AnImageIsReadFromEveryTrustedRevisionAndNoOther()
+    {
+        // A compiler revision below the floor wrote output known to give wrong answers. One above this engine's own is
+        // a later compiler's, whose output uses only what this engine knows, or the image would have said so.
+        Assert.IsTrue(Read("a+b", RegexImage.Write("a+b", RegexFlags.Unicode, RegexEdition.Current, RegexUnicodeVersion.Default, RegexImage.MinimumTrustedRevision, [])).ReadFromImage);
+        Assert.IsTrue(Read("a+b", RegexImage.Write("a+b", RegexFlags.Unicode, RegexEdition.Current, RegexUnicodeVersion.Default, RegexImage.CompilerRevision + 1, [])).ReadFromImage);
+        Regex old = Read("a+b", RegexImage.Write("a+b", RegexFlags.Unicode, RegexEdition.Current, RegexUnicodeVersion.Default, RegexImage.MinimumTrustedRevision - 1, []));
+        Assert.IsFalse(old.ReadFromImage);
+        Assert.IsTrue(old.IsMatch("xaab"));
+    }
+
+    [TestMethod]
+    public void ASectionThisEngineDoesNotKnowIsSkippedUnlessItIsRequired()
+    {
+        byte[] optional = RegexImage.Write("a+b", RegexFlags.Unicode, RegexEdition.Current, RegexUnicodeVersion.Default, RegexImage.CompilerRevision, [(99, false, [1, 2, 3])]);
+        Assert.IsTrue(Read("a+b", optional).ReadFromImage);
+        byte[] required = RegexImage.Write("a+b", RegexFlags.Unicode, RegexEdition.Current, RegexUnicodeVersion.Default, RegexImage.CompilerRevision, [(99, true, [1, 2, 3])]);
+        Regex r = Read("a+b", required);
         Assert.IsFalse(r.ReadFromImage);
         Assert.IsTrue(r.IsMatch("xaab"));
+        byte[] twice = RegexImage.Write("a+b", RegexFlags.Unicode, RegexEdition.Current, RegexUnicodeVersion.Default, RegexImage.CompilerRevision, [(RegexImage.SectionBounds, true, [])]);
+        Assert.IsFalse(Read("a+b", twice).ReadFromImage);
+    }
 
-        byte[] layout = (byte[])image.Clone();
-        layout[3] = RegexImage.FormatVersion + 1;
-        Assert.IsFalse(new Regex("a+b", RegexFlags.Unicode, Regex.InfiniteMatchTimeout, RegexEdition.Current, RegexUnicodeVersion.Default, null, null, layout).ReadFromImage);
+    [TestMethod]
+    public void TheInstructionsKeepTheirNumbers()
+    {
+        // An image stores an instruction by its number. A number never changes or is reused once a release has
+        // written it, and a new instruction takes the next one (docs/contributing/compatibility.md).
+        string[] released =
+        [
+            "Char", "CharBack", "Set", "SetBack", "Lit", "Fail", "Bol", "Eol", "WordBoundary", "NotWordBoundary", "LineStart",
+            "LineEnd", "WordBoundaryFold", "NotWordBoundaryFold", "Jmp", "Split", "SaveTmp", "Capture", "Clear", "Backref",
+            "BackrefBack", "BackrefFold", "BackrefFoldBack", "BackrefUnits", "BackrefUnitsBack", "Look", "LookOk", "LookFail",
+            "Rep", "RepLazy", "LoopInit", "Loop", "LoopIter", "Match",
+        ];
+
+        for (int k = 0; k < released.Length; k++)
+        {
+            Assert.AreEqual(k, (int)(Op)Enum.Parse(typeof(Op), released[k]), released[k]);
+            Assert.IsTrue(Instructions.IsKnown(k), released[k]);
+        }
+
+        Op[] all = (Op[])Enum.GetValues(typeof(Op));
+        Assert.AreEqual(all.Length, all.Select(op => (int)op).Distinct().Count(), "Two instructions share a number.");
+        foreach (Op op in all.Where(op => Array.IndexOf(released, op.ToString()) < 0))
+        {
+            Assert.IsTrue((int)op >= released.Length, $"{op} takes a number below the released ones.");
+        }
+
+        Assert.IsFalse(Instructions.IsKnown(-1));
+        Assert.IsFalse(Instructions.IsKnown(255));
+    }
+
+    [TestMethod]
+    public void AnIgnoredImageIsReported()
+    {
+        using Listener listener = new();
+        long before = RegexEventSource.Log.ImagesIgnored;
+        byte[] image = RegexImage.Write("a+b", RegexFlags.Unicode, RegexEdition.Current, RegexUnicodeVersion.Default);
+        Regex settings = new("a+b", RegexFlags.Unicode | RegexFlags.IgnoreCase, Regex.InfiniteMatchTimeout, RegexEdition.Current, RegexUnicodeVersion.Default, null, null, image);
+        Assert.IsFalse(settings.ReadFromImage);
+        Assert.IsTrue(Read("a+b", image).ReadFromImage);
+        Assert.IsTrue(RegexEventSource.Log.ImagesIgnored >= before + 1);
+        Assert.IsTrue(listener.Reasons.Contains("Settings"), string.Join(",", listener.Reasons));
     }
 
     [TestMethod]
@@ -194,6 +281,9 @@ public class CompiledImageTests
         Assert.IsTrue(GeneratedImages.Dates().ReadFromImage);
         Assert.IsTrue(GeneratedImages.Dates().IsMatch("on 11/18/2019"));
     }
+
+    private static Regex Read(string pattern, byte[] image)
+        => new(pattern, RegexFlags.Unicode, Regex.InfiniteMatchTimeout, RegexEdition.Current, RegexUnicodeVersion.Default, null, null, image);
 
     private static IEnumerable<(string Pattern, RegexFlags Flags, RegexEdition Edition, RegexUnicodeVersion Version)> Cases()
     {
@@ -358,6 +448,28 @@ public class CompiledImageTests
         public bool Equals((object, object) x, (object, object) y) => ReferenceEquals(x.Item1, y.Item1) && ReferenceEquals(x.Item2, y.Item2);
 
         public int GetHashCode((object, object) obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Item1) ^ (System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Item2) * 31);
+    }
+
+    /// <summary>Hears the library's events, for the reasons images were ignored.</summary>
+    private sealed class Listener : System.Diagnostics.Tracing.EventListener
+    {
+        public System.Collections.Concurrent.ConcurrentBag<string> Reasons { get; } = [];
+
+        protected override void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource eventSource)
+        {
+            if (eventSource.Name == "Corvus.Regex.Ecma262")
+            {
+                this.EnableEvents(eventSource, System.Diagnostics.Tracing.EventLevel.Warning);
+            }
+        }
+
+        protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData)
+        {
+            if (eventData.EventId == 1 && eventData.Payload is { Count: 2 } payload && payload[1] is string reason)
+            {
+                this.Reasons.Add(reason);
+            }
+        }
     }
 }
 

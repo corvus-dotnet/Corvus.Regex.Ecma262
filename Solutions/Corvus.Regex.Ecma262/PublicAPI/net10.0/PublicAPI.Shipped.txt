@@ -1,0 +1,63 @@
+#nullable enable
+Corvus.Ecma262.RegularExpressions.AlternationSearch.Strings.get -> System.Buffers.SearchValues<string!>?
+Corvus.Ecma262.RegularExpressions.AlternationSearch.TeddyUtf16.get -> Corvus.Ecma262.RegularExpressions.Teddy<ushort>?
+Corvus.Ecma262.RegularExpressions.AlternationSearch.TeddyUtf8.get -> Corvus.Ecma262.RegularExpressions.Teddy<byte>?
+Corvus.Ecma262.RegularExpressions.CharSet.AllChars.get -> System.Buffers.SearchValues<char>!
+Corvus.Ecma262.RegularExpressions.CharSet.LeadBytes.get -> System.Buffers.SearchValues<byte>!
+Corvus.Ecma262.RegularExpressions.CharSet.MemberBytes.get -> System.Buffers.SearchValues<byte>!
+Corvus.Ecma262.RegularExpressions.CharSet.MemberChars.get -> System.Buffers.SearchValues<char>!
+Corvus.Ecma262.RegularExpressions.CharSet.NonMemberBytes.get -> System.Buffers.SearchValues<byte>!
+Corvus.Ecma262.RegularExpressions.CharSet.NonMemberChars.get -> System.Buffers.SearchValues<char>!
+Corvus.Ecma262.RegularExpressions.CharSet.ScansByTrailByte.get -> bool
+Corvus.Ecma262.RegularExpressions.CharSet.TrailBytes.get -> System.Buffers.SearchValues<byte>!
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.AlignStart(System.ReadOnlySpan<TUnit> input, int pos, bool units) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.AsciiUnit(int c) -> TUnit
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.CaseLength(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.CaseWindow(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.HasCaseExtras(Corvus.Ecma262.RegularExpressions.Program! program) -> bool
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.HasCaseNeedle(Corvus.Ecma262.RegularExpressions.Program! program) -> bool
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IndexOfAfterLoop(System.ReadOnlySpan<TUnit> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IndexOfCandidate(System.ReadOnlySpan<TUnit> input, int from, Corvus.Ecma262.RegularExpressions.CharSet! set, bool small) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IndexOfCaseExtra(System.ReadOnlySpan<TUnit> input, int from, int limit, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.IndexOfCasePrefix(System.ReadOnlySpan<TUnit> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.LastAllowed(System.ReadOnlySpan<TUnit> input, int from, int to, ref Corvus.Ecma262.RegularExpressions.Quick quick) -> int
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.Members(Corvus.Ecma262.RegularExpressions.CharSet! set) -> System.Buffers.SearchValues<TUnit>!
+Corvus.Ecma262.RegularExpressions.ITextEncoding<TUnit>.NonMembers(Corvus.Ecma262.RegularExpressions.CharSet! set) -> System.Buffers.SearchValues<TUnit>!
+Corvus.Ecma262.RegularExpressions.MultiNeedle<T>.IndexOfNarrowPair(System.ReadOnlySpan<byte> input, int from, out int length) -> int
+Corvus.Ecma262.RegularExpressions.Quick.AllowedBytes.get -> System.Buffers.SearchValues<byte>!
+Corvus.Ecma262.RegularExpressions.Quick.AllowedChars.get -> System.Buffers.SearchValues<char>!
+Corvus.Ecma262.RegularExpressions.Quick.AsciiOnly.get -> bool
+Corvus.Ecma262.RegularExpressions.Teddy<T>
+Corvus.Ecma262.RegularExpressions.Teddy<T>.IndexOf(System.ReadOnlySpan<T> input, int from) -> int
+Corvus.Ecma262.RegularExpressions.Teddy<T>.IndexOf(System.ReadOnlySpan<T> input, int from, out int length) -> int
+Corvus.Ecma262.RegularExpressions.Teddy<T>.Teddy(Corvus.Ecma262.RegularExpressions.Needle<T>![]! needles, bool packed = false) -> void
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.AlignStart(System.ReadOnlySpan<char> input, int pos, bool units) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.AsciiUnit(int c) -> char
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.CaseLength(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.CaseWindow(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.HasCaseExtras(Corvus.Ecma262.RegularExpressions.Program! program) -> bool
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.HasCaseNeedle(Corvus.Ecma262.RegularExpressions.Program! program) -> bool
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IndexOfAfterLoop(System.ReadOnlySpan<char> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IndexOfCandidate(System.ReadOnlySpan<char> input, int from, Corvus.Ecma262.RegularExpressions.CharSet! set, bool small) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IndexOfCaseExtra(System.ReadOnlySpan<char> input, int from, int limit, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.IndexOfCasePrefix(System.ReadOnlySpan<char> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.LastAllowed(System.ReadOnlySpan<char> input, int from, int to, ref Corvus.Ecma262.RegularExpressions.Quick quick) -> int
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.Members(Corvus.Ecma262.RegularExpressions.CharSet! set) -> System.Buffers.SearchValues<char>!
+Corvus.Ecma262.RegularExpressions.Utf16Encoding.NonMembers(Corvus.Ecma262.RegularExpressions.CharSet! set) -> System.Buffers.SearchValues<char>!
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.AlignStart(System.ReadOnlySpan<byte> input, int pos, bool units) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.AsciiUnit(int c) -> byte
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.CaseLength(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.CaseWindow(Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.HasCaseExtras(Corvus.Ecma262.RegularExpressions.Program! program) -> bool
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.HasCaseNeedle(Corvus.Ecma262.RegularExpressions.Program! program) -> bool
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IndexOfAfterLoop(System.ReadOnlySpan<byte> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IndexOfCandidate(System.ReadOnlySpan<byte> input, int from, Corvus.Ecma262.RegularExpressions.CharSet! set, bool small) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IndexOfCaseExtra(System.ReadOnlySpan<byte> input, int from, int limit, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.IndexOfCasePrefix(System.ReadOnlySpan<byte> input, int from, Corvus.Ecma262.RegularExpressions.Program! program) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.LastAllowed(System.ReadOnlySpan<byte> input, int from, int to, ref Corvus.Ecma262.RegularExpressions.Quick quick) -> int
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.Members(Corvus.Ecma262.RegularExpressions.CharSet! set) -> System.Buffers.SearchValues<byte>!
+Corvus.Ecma262.RegularExpressions.Utf8Encoding.NonMembers(Corvus.Ecma262.RegularExpressions.CharSet! set) -> System.Buffers.SearchValues<byte>!
+const Corvus.Ecma262.RegularExpressions.Teddy<T>.MostLiterals = 32 -> int
+static Corvus.Ecma262.RegularExpressions.Matcher.ExtraStartCase<TUnit, TEncoding>(Corvus.Ecma262.RegularExpressions.Program! p, Corvus.Ecma262.RegularExpressions.MatchState! st, System.ReadOnlySpan<TUnit> input, int next, int i) -> int
+static Corvus.Ecma262.RegularExpressions.Teddy<T>.PackedSupported.get -> bool
+static Corvus.Ecma262.RegularExpressions.Teddy<T>.Supported.get -> bool
