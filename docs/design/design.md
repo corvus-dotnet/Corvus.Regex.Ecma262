@@ -163,6 +163,9 @@ diagnostics CRE0001 to CRE0005 cover the pattern, the member's shape, the flags,
   compiled into the code generator that takes it. Its types are internal and in a namespace of their own
   (`Corvus.Ecma262.RegularExpressions.CodeGeneration`), so it loads no assembly beside a source generator and
   never clashes with the library. One list of files (`EmitterSources.props`) feeds the generator and the package.
+  It supports the targets the library's builds do, .NET 10 and later and .NET Standard 2.0; a project on .NET 8 or 9
+  is refused by the package's `build` targets with the error `CRES0001`, since the engine takes members only .NET 10
+  has under `#if NET`.
 
 ## 5. Targets and layout
 
