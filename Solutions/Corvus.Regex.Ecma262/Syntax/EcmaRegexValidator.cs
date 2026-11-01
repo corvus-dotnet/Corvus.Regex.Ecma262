@@ -12,7 +12,8 @@ namespace Corvus.Ecma262.RegularExpressions;
 /// nothing allocated: no tree, no sets, no string. It reads the pattern where it lies, UTF-16 or UTF-8, decoding a
 /// character only where the grammar needs it, keeps the groups and the nested classes of the v flag on stacks of
 /// its own rather than recursing (so no pattern can overflow the stack), and keeps a group name as its place in the
-/// pattern. It asks the grammar only: the parser's limits of size (the nesting of groups, the steps it takes) belong
+/// pattern and a named group as the disjunction and the alternative it lies in, never a copy of the path to it, so
+/// its memory is in proportion to the pattern however deeply named groups nest. It asks the grammar only: the parser's limits of size (the nesting of groups, the steps it takes) belong
 /// to compiling a pattern, and none of them applies here.
 /// </summary>
 /// <remarks>
@@ -39,6 +40,9 @@ internal ref struct EcmaRegexValidator
     private const int WaitingUnion = 4;
     private const int WaitingOperand = 5;
 
+    // The entries of a disjunction in disjunctionTable.
+    private const int DisjunctionFrame = 4;
+
     private readonly ReadOnlySpan<char> chars;
     private readonly ReadOnlySpan<byte> bytes;
     private readonly bool utf8;
@@ -53,16 +57,22 @@ internal ref struct EcmaRegexValidator
     private int groupCount;
     private int disjunctions;
 
-    // The alternatives that enclose the position, as disjunction and alternative (the parser's path).
+    // The disjunctions open at the position, outermost first (the parser's path, whose alternatives are in
+    // disjunctionTable).
     private IntStack path;
 
     // The groups open at the position: the kind of each.
     private IntStack frames;
 
-    // Each named group: the start and the end of its name, the start and the length of its path in namePaths, and the
-    // hash of its name.
+    // Each named group: the start and the end of its name, the disjunction and the alternative it lies directly in, and
+    // the hash of its name.
     private IntStack names;
-    private IntStack namePaths;
+
+    // Each disjunction, by its number from 1, as DisjunctionFrame entries: the disjunction it lies in (0 for the
+    // pattern's own) and the alternative of that one it lies in, its own current alternative, and whether it is still
+    // open. A closed disjunction's first two entries may be moved on to an ancestor (see SeparateAlternatives), so each
+    // named group keeps two numbers rather than a copy of its path, and the memory is proportional to the pattern.
+    private IntStack disjunctionTable;
 
     // Each name, by its hash: one more than the place in names of the last group with that name (0 for none). A table
     // of open addressing, a power of two long and at most half full.
@@ -93,10 +103,10 @@ internal ref struct EcmaRegexValidator
         this.path = new IntStack(scratch.Slice(0, 64));
         this.frames = new IntStack(scratch.Slice(64, 32));
         this.names = new IntStack(scratch.Slice(96, 64));
-        this.namePaths = new IntStack(scratch.Slice(160, 64));
-        this.references = new IntStack(scratch.Slice(224, 32));
-        this.classes = new IntStack(scratch.Slice(256, 64));
-        this.nameTable = scratch.Slice(320, 32);
+        this.disjunctionTable = new IntStack(scratch.Slice(160, 256));
+        this.references = new IntStack(scratch.Slice(416, 32));
+        this.classes = new IntStack(scratch.Slice(448, 64));
+        this.nameTable = scratch.Slice(512, 32);
         this.nameTable.Clear();
         this.rentedNameTable = null;
         this.distinctNames = 0;
@@ -111,7 +121,7 @@ internal ref struct EcmaRegexValidator
     /// <returns><see langword="true"/> when it is.</returns>
     public static bool IsValid(ReadOnlySpan<char> pattern, bool unicode, bool unicodeSets, RegexEdition edition, RegexUnicodeVersion unicodeVersion)
     {
-        Span<int> scratch = stackalloc int[352];
+        Span<int> scratch = stackalloc int[544];
         EcmaRegexValidator validator = new(pattern, default, false, unicode, unicodeSets, edition, unicodeVersion, scratch);
         try
         {
@@ -137,7 +147,7 @@ internal ref struct EcmaRegexValidator
             return false;
         }
 
-        Span<int> scratch = stackalloc int[352];
+        Span<int> scratch = stackalloc int[544];
         EcmaRegexValidator validator = new(default, pattern, true, unicode, unicodeSets, edition, unicodeVersion, scratch);
         try
         {
@@ -178,7 +188,7 @@ internal ref struct EcmaRegexValidator
         this.path.Dispose();
         this.frames.Dispose();
         this.names.Dispose();
-        this.namePaths.Dispose();
+        this.disjunctionTable.Dispose();
         this.references.Dispose();
         this.classes.Dispose();
         if (this.rentedNameTable is not null)
@@ -290,7 +300,7 @@ internal ref struct EcmaRegexValidator
             if (c == '|')
             {
                 this.Next();
-                this.path[this.path.Count - 1]++;
+                this.disjunctionTable[this.Frame(this.path[this.path.Count - 1]) + 2]++;
                 continue;
             }
 
@@ -303,7 +313,7 @@ internal ref struct EcmaRegexValidator
                 }
 
                 this.Next();
-                this.path.Count -= 2;
+                this.disjunctionTable[this.Frame(this.path.Pop()) + 3] = 0;
                 int kind = this.frames.Pop();
 
                 // Annex B lets a quantifier follow a lookahead. The u flag does not, and neither lets one follow a
@@ -363,9 +373,16 @@ internal ref struct EcmaRegexValidator
 
     private void PushDisjunction()
     {
+        int up = this.path.Count == 0 ? 0 : this.path[this.path.Count - 1];
+        this.disjunctionTable.Push(up);
+        this.disjunctionTable.Push(up == 0 ? 0 : this.disjunctionTable[this.Frame(up) + 2]);
+        this.disjunctionTable.Push(0);
+        this.disjunctionTable.Push(1);
         this.path.Push(++this.disjunctions);
-        this.path.Push(0);
     }
+
+    /// <summary>The place in disjunctionTable of a disjunction's entries.</summary>
+    private readonly int Frame(int disjunction) => (disjunction - 1) * DisjunctionFrame;
 
     /// <summary>Counts the capturing groups of the pattern and notes whether any is named.</summary>
     private void ScanGroups()
@@ -637,15 +654,12 @@ internal ref struct EcmaRegexValidator
             }
 
             int entry = this.names.Count;
+            int disjunction = this.path[this.path.Count - 1];
             this.names.Push(start);
             this.names.Push(stop);
-            this.names.Push(this.namePaths.Count);
-            this.names.Push(this.path.Count);
+            this.names.Push(disjunction);
+            this.names.Push(this.disjunctionTable[this.Frame(disjunction) + 2]);
             this.names.Push(hash);
-            for (int k = 0; k < this.path.Count; k++)
-            {
-                this.namePaths.Push(this.path[k]);
-            }
 
             if (used)
             {
@@ -663,20 +677,28 @@ internal ref struct EcmaRegexValidator
     }
 
     /// <summary>
-    /// Whether a named group (by the start and the length of its path) and the current position lie in different
-    /// alternatives of some disjunction.
+    /// Whether a named group, by the disjunction and the alternative it lies directly in, and the current position lie in
+    /// different alternatives of some disjunction: of the innermost disjunction around the group that is still open,
+    /// which is the innermost around both. A disjunction never opens again once closed, so the walk out of closed ones
+    /// moves each one it passes on to its grandparent, and the walks take time in proportion to the pattern in all.
     /// </summary>
-    private readonly bool SeparateAlternatives(int otherStart, int otherLength)
+    private bool SeparateAlternatives(int disjunction, int alternative)
     {
-        for (int k = 0; (2 * k) + 1 < otherLength && (2 * k) + 1 < this.path.Count && this.namePaths[otherStart + (2 * k)] == this.path[2 * k]; k++)
+        while (this.disjunctionTable[this.Frame(disjunction) + 3] == 0)
         {
-            if (this.namePaths[otherStart + (2 * k) + 1] != this.path[(2 * k) + 1])
+            int frame = this.Frame(disjunction);
+            int up = this.disjunctionTable[frame];
+            if (this.disjunctionTable[this.Frame(up) + 3] == 0)
             {
-                return true;
+                this.disjunctionTable[frame] = this.disjunctionTable[this.Frame(up)];
+                this.disjunctionTable[frame + 1] = this.disjunctionTable[this.Frame(up) + 1];
             }
+
+            alternative = this.disjunctionTable[frame + 1];
+            disjunction = this.disjunctionTable[frame];
         }
 
-        return false;
+        return this.disjunctionTable[this.Frame(disjunction) + 2] != alternative;
     }
 
     /// <summary>Reads the modifiers of a group such as <c>(?i:...)</c> or <c>(?s-i:...)</c>, after the "(?", to its ':'.</summary>

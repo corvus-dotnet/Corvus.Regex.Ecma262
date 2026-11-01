@@ -2,6 +2,7 @@
 // Copyright (c) Endjin Limited. All rights reserved.
 // </copyright>
 
+using System.Diagnostics;
 using System.Text;
 using Corvus.Ecma262.RegularExpressions;
 
@@ -109,6 +110,58 @@ public class PatternReaderTests
         string classes = new string('[', 200_000) + "a" + new string(']', 200_000);
         Assert.IsTrue(Regex.IsValidPattern(classes.AsSpan(), RegexFlags.UnicodeSets));
         Assert.IsFalse(Regex.IsValidPattern((classes + "]").AsSpan(), RegexFlags.UnicodeSets));
+    }
+
+    [TestMethod]
+    public void NamedGroupsAreReadInMemoryAndTimeInProportionToThePattern()
+    {
+        // Each named group keeps the disjunction and the alternative it lies in, not a copy of the path to it, so
+        // nested named groups take memory in proportion to their number, not to its square.
+        StringBuilder nested = new();
+        for (int k = 0; k < 100_000; k++)
+        {
+            nested.Append("(?<g").Append(k).Append('>');
+        }
+
+        nested.Append('a').Append(')', 100_000);
+
+        // A name kept deep inside one alternative and used again in the next: the walk out of the closed groups to
+        // the disjunction around both is shortened as it goes, so each name does not walk the whole depth again.
+        StringBuilder reused = new StringBuilder().Insert(0, "(?:", 50_000);
+        for (int k = 0; k < 20_000; k++)
+        {
+            reused.Append("(?<n").Append(k).Append(">a)");
+        }
+
+        reused.Append(')', 50_000).Append('|');
+        for (int k = 0; k < 20_000; k++)
+        {
+            reused.Append("(?<n").Append(k).Append(">b)");
+        }
+
+        foreach ((string pattern, bool valid) in new[] { (nested.ToString(), true), (reused.ToString(), true), (reused + "(?<n0>c)", false) })
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            Stopwatch clock = Stopwatch.StartNew();
+            Assert.AreEqual(valid, Regex.IsValidPattern(pattern.AsSpan(), RegexFlags.Unicode));
+            Assert.AreEqual(valid, Regex.IsValidPattern(Encoding.UTF8.GetBytes(pattern), RegexFlags.Unicode));
+            clock.Stop();
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.IsTrue(allocated < 64L * pattern.Length, $"{allocated} bytes for a pattern of {pattern.Length}");
+            Assert.IsTrue(clock.Elapsed < TimeSpan.FromSeconds(10), $"{clock.Elapsed} for a pattern of {pattern.Length}");
+        }
+
+        // The disjunction asked is the innermost still open around the earlier group, wherever the groups close.
+        foreach (string pattern in new[]
+        {
+            "(?:(?<a>x))|(?<a>y)", "(?:(?<a>x)|b)(?<a>y)", "((?<a>x)|(?:(?<a>y)))", "(?:(?<a>x)|(?:c))(?:d|(?<a>y))",
+            "(?:(?:(?<a>x)))|(?:(?:(?<a>y)))|(?<a>z)", "(?:(?:(?<a>x))|(?<b>y))(?<a>z)", "(?:(?<a>x)|(?:(?<a>y)|(?<a>z)))",
+            "(?:(?:(?<a>x)|y)|(?<a>z))", "(?:(?:(?<a>x)|y)(?<a>z))", "(?<a>x)|(?:(?:(?<b>y))(?<a>z))",
+            "(?:(?:(?<a>x))(?:(?<b>y)))|(?<a>z)(?<b>w)", "(?:(?<a>x))(?:(?<b>y)|(?<a>z))",
+        })
+        {
+            Assert.AreEqual(Regex.IsValid(pattern, RegexFlags.Unicode), Regex.IsValidPattern(pattern.AsSpan(), RegexFlags.Unicode), pattern);
+        }
     }
 
     [TestMethod]
