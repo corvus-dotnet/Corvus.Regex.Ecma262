@@ -287,7 +287,7 @@ internal sealed class Dfa
 
                 moved.AddRange(restart);
                 next.Clear();
-                b.Closure(next, moved, false, false, word, null);
+                b.ClosureOfList(next, moved, false, false, word, null);
                 byte? to = Intern(b, ids, sets, trans, atEnd, wordBefore, atStart, stride, next, word, false);
                 if (to is null || b.Steps < 0)
                 {
@@ -389,7 +389,7 @@ internal sealed class Dfa
 
         // At the end of the text the end anchors are passed, and a boundary sees no word character after.
         List<int> closed = [];
-        b.Closure(closed, set, start, true, word, false);
+        b.ClosureOfList(closed, set, start, true, word, false);
         atEnd.Add(b.HasMatch(closed));
         return id;
     }
@@ -564,7 +564,7 @@ internal sealed class Dfa
         /// <paramref name="atEnd"/>, and a word boundary only when whether the units before and after are word
         /// characters is known (<paramref name="wordBefore"/> and <paramref name="wordAfter"/>), and it holds.
         /// </summary>
-        public void Closure(List<int> set, IEnumerable<int> from, bool atStart, bool atEnd, bool? wordBefore, bool? wordAfter)
+        public void Closure(List<int> set, ReadOnlySpan<int> from, bool atStart, bool atEnd, bool? wordBefore, bool? wordAfter)
         {
             this.generation++;
             this.stack.Clear();
@@ -573,6 +573,33 @@ internal sealed class Dfa
                 this.stack.Push(f);
             }
 
+            this.CloseOver(set, atStart, atEnd, wordBefore, wordAfter);
+        }
+
+        /// <summary>
+        /// Adds to <paramref name="set"/> every state that reading nothing reaches from the states in
+        /// <paramref name="from"/>, as <see cref="Closure(List{int}, ReadOnlySpan{int}, bool, bool, bool?, bool?)"/>
+        /// does.
+        /// </summary>
+        /// <remarks>
+        /// The states come as a list or a span, never as an <see cref="IEnumerable{T}"/>: the native AOT compiler,
+        /// given a profile recorded on the JIT, devirtualised the enumeration of an array through
+        /// <see cref="IEnumerable{T}"/> here wrongly, and the closure came out empty.
+        /// </remarks>
+        public void ClosureOfList(List<int> set, List<int> from, bool atStart, bool atEnd, bool? wordBefore, bool? wordAfter)
+        {
+            this.generation++;
+            this.stack.Clear();
+            for (int k = 0; k < from.Count; k++)
+            {
+                this.stack.Push(from[k]);
+            }
+
+            this.CloseOver(set, atStart, atEnd, wordBefore, wordAfter);
+        }
+
+        private void CloseOver(List<int> set, bool atStart, bool atEnd, bool? wordBefore, bool? wordAfter)
+        {
             while (this.stack.Count > 0)
             {
                 int i = this.stack.Pop();
