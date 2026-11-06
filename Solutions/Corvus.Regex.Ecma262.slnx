@@ -11,6 +11,7 @@
   </Folder>
   <Folder Name="/samples/">
     <Project Path="Corvus.Regex.Ecma262.AotSample/Corvus.Regex.Ecma262.AotSample.csproj" />
+    <Project Path="Corvus.Regex.Ecma262.AotProfileTests/Corvus.Regex.Ecma262.AotProfileTests.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="Corvus.Regex.Ecma262.Benchmarks/Corvus.Regex.Ecma262.Benchmarks.csproj" />
