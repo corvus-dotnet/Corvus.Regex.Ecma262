@@ -6,7 +6,7 @@
 #
 # writes /out/industry.json (and industry.md, industry-v8.json beside it). Mount the test data at /data to skip the
 # clone; set JOB=short for a quick look.
-FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:747cbade5bfd918a175ac32f8f1d931edec2c7d0d5397a3de72eaef1ac1f66d2
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b
 ARG NODE_VERSION=24.22.1
 # The SHA-256s of node-v24.22.1-linux-x64.tar.xz and node-v24.22.1-linux-arm64.tar.xz, from
 # nodejs.org/dist/v24.22.1/SHASUMS256.txt: the one for the architecture being built is taken.
